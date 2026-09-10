@@ -194,7 +194,7 @@ if(token){
 localStorage.removeItem("truthToken");
 localStorage.removeItem("adminToken");
 localStorage.removeItem("truthRole");
-updateNavAuthState();
+  updateNavAuthState();
 alert("Logged out successfully.");
 } else {
 openLogin();
@@ -299,8 +299,9 @@ matchesType = itemType.includes('ppt') || itemType.includes('presentation');
 }
 
 if(currentSubjectFilter){
-var itemSubj = String(x.subject || x.category || "").trim().toLowerCase();
-matchesSubject = (itemSubj === currentSubjectFilter.toLowerCase());
+var itemSubj = String(x.subject || x.category || x.topic || "").trim().toLowerCase();
+var targetSubj = currentSubjectFilter.trim().toLowerCase();
+matchesSubject = (itemSubj === targetSubj || itemSubj.includes(targetSubj));
 }
 
 return matchesType && matchesSubject;
@@ -326,10 +327,10 @@ return;
 box.innerHTML = filtered.map(function(x){
 var resId = x.id || x._id || '';
 return '<div class="resource">' +
-'<h3>' + esc(x.title) + '</h3>' +
-'<p class="muted">' + esc(x.type || '') + (x.subject ? " • " + esc(x.subject) : "") + '</p>' +
+'<h3>' + esc(x.title || x.name || 'Chapter') + '</h3>' +
+'<p class="muted">' + esc(x.type || '') + (x.subject || x.category ? " • " + esc(x.subject || x.category) : "") + '</p>' +
 '<p class="muted">' + esc(x.description || '') + '</p>' +
-'<button class="btn" type="button" onclick="handleResourceDownload(\'' + resId + '\', \'' + esc(x.file_url || '#') + '\')">Download ' + esc(x.type || 'File') + ' →</button>' +
+'<button class="btn" type="button" onclick="handleResourceDownload(\'' + resId + '\', \'' + esc(x.file_url || x.url || '#') + '\')">Download ' + esc(x.type || 'File') + ' →</button>' +
 '</div>';
 }).join("");
 }
