@@ -117,7 +117,7 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 </div>
 </div>
 <div id="activeFilterBadge" style="margin:12px 0;color:#35a9ff;font-weight:700;font-size:14px"></div>
-<div id="resourceList" class="resourcegrid"><div class="resource">Loading resources…</div></div>
+<div id="resourceList" class="resourcegrid"><div class="resource">Loading resources…[span_0](start_span)[span_0](end_span)</div></div>
 </div>
 </section>
 
@@ -174,8 +174,8 @@ function byId(id){return document.getElementById(id);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];});}
 
 let globalResources = [];
-let currentTypeFilter = 'all'; // 'all', 'notes', 'ppt'
-let currentSubjectFilter = ''; // '' means all subjects
+let currentTypeFilter = 'all'; 
+let currentSubjectFilter = ''; 
 
 window.openLogin=function(){byId("loginModal").classList.add("show");showTab("user");};
 window.closeLogin=function(){byId("loginModal").classList.remove("show");};
@@ -195,8 +195,6 @@ if(token){
 loginBtn.textContent = "Logout";
 loginBtn.onclick = function(){
 localStorage.removeItem("truthToken");
-  localStorage.removeItem("adminToken");
-localStorage.removeItem("truthRole");
 updateNavAuthState();
 alert("Logged out successfully.");
 };
@@ -218,7 +216,7 @@ e.preventDefault();
 var f=e.target,msg=byId("userMsg");
 msg.textContent="Logging in...";
 try{
-var d=await jsonPost("/api/auth/login",{mode:"user",instagram_username:f.instagram_username.value.trim(),password:f.password.value});
+var d=await jsonPost("/api/auth/login",{instagram_username:f.instagram_username.value.trim(),password:f.password.value});
 localStorage.setItem("truthToken",d.token||"");
 localStorage.setItem("truthRole","user");
 msg.textContent="Login successful!";
@@ -231,7 +229,7 @@ e.preventDefault();
 var f=e.target,msg=byId("adminMsg");
 msg.textContent="Checking...";
 try{
-var d=await jsonPost("/api/auth/login",{mode:"admin",username:f.username.value.trim(),password:f.password.value});
+var d=await jsonPost("/api/auth/login",{username:f.username.value.trim(),password:f.password.value});
 localStorage.setItem("adminToken",d.token||"");
 localStorage.setItem("truthToken",d.token||"");
 localStorage.setItem("truthRole","admin");
@@ -369,10 +367,28 @@ if(!key){
 key="v_"+Date.now()+"_"+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
 localStorage.setItem("truthVisitorKey",key);
 }
-var r=await fetch("/api/visits",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({visitor_key:key})});
-if(!r.ok)throw new Error("visitor api");
-var d=await r.json();
-var countVal = 0;
+let res = null;
+try {
+  res = await fetch("/api/visits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ visitor_key: key })
+  });
+} catch(e) {}
+
+let d = null;
+if(res && res.ok){
+  try { d = await res.json(); } catch(e) {}
+}
+
+if(!d || (d.count === undefined && d.total === undefined && d.visits === undefined && d.visitor_count === undefined)){
+  let resGet = await fetch("/api/visits");
+  if(resGet.ok){
+    try { d = await resGet.json(); } catch(e) {}
+  }
+}
+
+var countVal = 1;
 if(d && typeof d === 'object'){
   if(d.count !== undefined) countVal = d.count;
   else if(d.total !== undefined) countVal = d.total;
@@ -385,15 +401,6 @@ if(d && typeof d === 'object'){
         countVal = d[keys[k]];
         break;
       }
-    }
-  }
-}
-if(!countVal || isNaN(countVal)){
-  var rGet = await fetch("/api/visits");
-  if(rGet.ok){
-    var dGet = await rGet.json();
-    if(dGet && typeof dGet === 'object'){
-      countVal = dGet.count !== undefined ? dGet.count : (dGet.total !== undefined ? dGet.total : 1);
     }
   }
 }
