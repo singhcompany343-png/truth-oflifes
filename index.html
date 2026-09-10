@@ -40,7 +40,7 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 <a href="#home">Home</a><a href="#notes">Notes</a><a href="#ppts">PPTs</a><a href="#collab">Collaboration</a><a href="#about">About</a><a href="#contact">Contact</a>
 </div>
 <a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a>
-<button class="login" type="button" onclick="openLogin()" id="navLoginBtn">Login</button>
+<button class="login" type="button" onclick="handleNavAuthClick()" id="navLoginBtn">Login</button>
 </div>
 </nav>
 
@@ -188,26 +188,33 @@ byId(x==="user"?"tabUser":x==="admin"?"tabAdmin":"tabRegister").classList.toggle
 });
 };
 
+window.handleNavAuthClick = function(){
+var token = localStorage.getItem("truthToken") || localStorage.getItem("adminToken");
+if(token){
+localStorage.removeItem("truthToken");
+localStorage.removeItem("adminToken");
+localStorage.removeItem("truthRole");
+updateNavAuthState();
+alert("Logged out successfully.");
+} else {
+openLogin();
+}
+};
+
 function updateNavAuthState(){
 var token = localStorage.getItem("truthToken") || localStorage.getItem("adminToken");
 var loginBtn = byId("navLoginBtn");
 if(token){
 loginBtn.textContent = "Logout";
-loginBtn.onclick = function(){
-localStorage.removeItem("truthToken");
-updateNavAuthState();
-alert("Logged out successfully.");
-};
 } else {
 loginBtn.textContent = "Login";
-loginBtn.onclick = function(){ openLogin(); };
 }
 }
 
 async function jsonPost(url,data){
 var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
 var d={};try{d=await r.json();}catch(_){}
-if(!r.ok)throw new Error(d.error||d.message||"Request failed");
+if(!r.ok)throw new Error(d.error||d.message||d.msg||"Request failed");
 return d;
 }
 
