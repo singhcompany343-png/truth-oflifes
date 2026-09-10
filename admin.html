@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>truth.oflifes | Admin</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f7fb;color:#102a43}
+header{background:#050505;color:white;padding:18px 6%;display:flex;align-items:center}
+.logo{font-size:22px;font-weight:800}
+.logo span{color:#16e2d8}
+header button{margin-left:auto;background:#e53935;color:white;border:0;padding:9px 15px;border-radius:7px}
+main{max-width:1100px;margin:auto;padding:30px 5%}
+.box{background:white;padding:24px;border-radius:14px;margin-bottom:22px;box-shadow:0 4px 20px #0000000d}
+h1,h2{margin-top:0}
+input,select,textarea{width:100%;padding:12px;margin:7px 0 12px;border:1px solid #d6e0e9;border-radius:7px;font:inherit}
+textarea{min-height:90px}
+button,.btn{background:#168de2;color:white;border:0;padding:12px 18px;border-radius:7px;font-weight:bold;cursor:pointer}
+.hidden{display:none}
+.msg{margin-top:10px;font-weight:bold}
+.item{border:1px solid #dde7ef;padding:15px;border-radius:9px;margin:10px 0}
+.item strong{display:block;margin-bottom:5px}
+.delete{background:#e53935;padding:7px 11px;margin-top:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.small{color:#718397;font-size:13px}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">truth<span>.oflifes</span> — Admin</div>
+<button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+</header>
+
+<main>
+
+<div id="loginBox" class="box">
+<h1>🔐 Admin Login</h1>
+
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+
+<div id="loginMsg" class="msg"></div>
+</div>
+
+
+<div id="dashboard" class="hidden">
+
+<h1>Admin Dashboard</h1>
+
+<div class="grid">
+
+<div class="box">
+<h2>📚 Add Notes / PPT</h2>
+
+<input id="title" placeholder="Resource title">
+
+<select id="type">
+<option value="Notes">Notes</option>
+<option value="PPT">PPT</option>
+</select>
+
+<input id="subject" placeholder="Subject">
+
+<input id="fileUrl" placeholder="File URL">
+
+<p class="small">
+File URL = uploaded PDF/PPT/Google Drive/Cloud storage link.
+</p>
+
+<button onclick="addResource()">Add Resource</button>
+
+<div id="resourceMsg" class="msg"></div>
+</div>
+
+
+<div class="box">
+<h2>📊 Resources</h2>
+<div id="resources">Loading...</div>
+</div>
+
+</div>
+
+
+<div class="box">
+<h2>📩 Resource Requests</h2>
+<div id="requests">Loading...</div>
+</div>
+
+
+<div class="box">
+<h2>🤝 Collaboration Requests</h2>
+<div id="collaborations">Loading...</div>
+</div>
+
+</div>
+
+</main>
+
+
+<script>
+
+let token="";
+
+function showDashboard(){
+
+document.getElementById("loginBox").classList.add("hidden");
+document.getElementById("dashboard").classList.remove("hidden");
+document.getElementById("logoutBtn").classList.remove("hidden");
+
+loadAll();
+
+}
+
+
+async function login(){
+
+const username=document.getElementById("username").value.trim();
+const password=document.getElementById("password").value;
+
+const msg=document.getElementById("loginMsg");
+
+msg.textContent="Logging in...";
+
+try{
+
+const r=await fetch("/api/admin/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username,password})
+});
+
+const data=await r.json();
+
+if(!r.ok) throw new Error(data.message||"Login failed");
+
+token=data.token;
+
+localStorage.setItem("adminToken",token);
+
+msg.textContent="";
+
+showDashboard();
+
+}catch(e){
+
+msg.textContent="❌ "+e.message;
+
+}
+
+}
+
+
+function logout(){
+
+localStorage.removeItem("adminToken");
+token="";
+location.reload();
+
+}
+
+
+async function api(url,options={}){
+
+const headers=options.headers||{};
+
+headers["Authorization"]="Bearer "+token;
+
+options.headers=headers;
+
+const r=await fetch(url,options);
+
+if(r.status===401||r.status===403){
+
+logout();
+throw new Error("Session expired");
+
+}
+
+return r;
+
+}
+
+
+async function addResource(){
+
+const title=document.getElementById("title").value.trim();
+const type=document.getElementById("type").value;
+const subject=document.getElementById("subject").value.trim();
+const file_url=document.getElementById("fileUrl").value.trim();
+
+const msg=document.getElementById("resourceMsg");
+
+if(!title||!file_url){
+
+msg.textContent="❌ Title aur File URL zaroori hai.";
+
+return;
+
+}
+
+msg.textContent="Adding...";
+
+try{
+
+const r=await api("/api/resources",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+title,
+type,
+subject,
+file_url
+})
+});
+
+const data=await r.json();
+
+if(!r.ok) throw new Error(data.message||"Failed");
+
+msg.textContent="✅ Resource added!";
+
+document.getElementById("title").value="";
+document.getElementById("subject").value="";
+document.getElementById("fileUrl").value="";
+
+loadResources();
+
+}catch(e){
+
+msg.textContent="❌ "+e.message;
+
+}
+
+}
+
+
+async function loadResources(){
+
+const box=document.getElementById("resources");
+
+try{
+
+const r=await fetch("/api/resources");
+const data=await r.json();
+
+if(!data.length){
+
+box.innerHTML="<p>No resources yet.</p>";
+
+return;
+
+}
+
+box.innerHTML=data.map(x=>`
+
+<div class="item">
+
+<strong>${esc(x.title)}</strong>
+
+<div class="small">
+${esc(x.type)} • ${esc(x.subject||"Medical")}
+</div>
+
+<a href="${esc(x.file_url)}" target="_blank">Open file</a>
+<br>
+
+<button class="delete" onclick="deleteResource(${x.id})">
+Delete
+</button>
+
+</div>
+
+`).join("");
+
+}catch(e){
+
+box.innerHTML="Unable to load resources.";
+
+}
+
+}
+
+
+async function deleteResource(id){
+
+if(!confirm("Delete this resource?")) return;
+
+try{
+
+const r=await api("/api/resources/"+id,{
+method:"DELETE"
+});
+
+if(!r.ok) throw new Error("Delete failed");
+
+loadResources();
+
+}catch(e){
+
+alert("❌ "+e.message);
+
+}
+
+}
+
+
+async function loadRequests(){
+
+const box=document.getElementById("requests");
+
+try{
+
+const r=await api("/api/requests");
+const data=await r.json();
+
+if(!data.length){
+
+box.innerHTML="<p>No requests yet.</p>";
+
+return;
+
+}
+
+box.innerHTML=data.map(x=>`
+
+<div class="item">
+
+<strong>${esc(x.resource||"Resource request")}</strong>
+
+<div>Name: ${esc(x.name||"")}</div>
+<div>Contact: ${esc(x.contact||"")}</div>
+<div>Type: ${esc(x.type||"")}</div>
+<div>${esc(x.message||"")}</div>
+
+</div>
+
+`).join("");
+
+}catch(e){
+
+box.innerHTML="Unable to load requests.";
+
+}
+
+}
+
+
+async function loadCollaborations(){
+
+const box=document.getElementById("collaborations");
+
+try{
+
+const r=await api("/api/collaborations");
+const data=await r.json();
+
+if(!data.length){
+
+box.innerHTML="<p>No collaboration requests yet.</p>";
+
+return;
+
+}
+
+box.innerHTML=data.map(x=>`
+
+<div class="item">
+
+<strong>${esc(x.name||"Collaboration")}</strong>
+
+<div>Contact: ${esc(x.contact||"")}</div>
+<div>Organization: ${esc(x.organization||"")}</div>
+<div>${esc(x.message||"")}</div>
+
+</div>
+
+`).join("");
+
+}catch(e){
+
+box.innerHTML="Unable to load collaborations.";
+
+}
+
+}
+
+
+function loadAll(){
+
+loadResources();
+loadRequests();
+loadCollaborations();
+
+}
+
+
+function esc(v){
+
+return String(v??"")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+
+token=localStorage.getItem("adminToken")||"";
+
+if(token){
+
+showDashboard();
+
+}
+
+</script>
+
+</body>
+  </html>
