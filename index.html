@@ -7,110 +7,240 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f4f9ff;color:#102a43}
+body{
+font-family:Arial,sans-serif;
+background:#f4f9ff;
+color:#102a43;
+line-height:1.5
+}
 a{text-decoration:none}
 
 nav{
-background:#050505;color:white;padding:15px 6%;
-display:flex;align-items:center;gap:22px;position:sticky;top:0;z-index:10
+background:#050505;
+color:white;
+padding:15px 6%;
+display:flex;
+align-items:center;
+gap:22px;
+position:sticky;
+top:0;
+z-index:10
 }
-.logo{font-size:23px;font-weight:800;margin-right:auto}
-.logo span{color:#168de2}
-nav a{color:white;font-size:14px}
-.tg{background:#168de2;padding:11px 17px;border-radius:25px}
+.logo{
+font-size:23px;
+font-weight:800;
+margin-right:auto
+}
+.logo span{color:#16e2d8}
+nav a{
+color:white;
+font-size:14px
+}
+.tg{
+background:#168de2;
+padding:9px 17px;
+border-radius:25px
+}
 
 .hero{
-min-height:470px;padding:70px 7%;
-display:flex;align-items:center;
-background:linear-gradient(90deg,rgba(255,255,255,.96),rgba(255,255,255,.65)),
-url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=85") center/cover
+min-height:470px;
+padding:70px 7%;
+display:flex;
+align-items:center;
+background:
+linear-gradient(90deg,rgba(255,255,255,.96),rgba(255,255,255,.65)),
+url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=85")
+center/cover
 }
 .hero-content{max-width:680px}
-.eyebrow{color:#31547b;margin-bottom:15px;font-style:italic}
-h1{font-size:52px;line-height:1.05;color:#071e3d}
-h1 span{color:#168de2}
-.hero p{font-size:18px;line-height:1.6;color:#40566e;margin:20px 0}
-.btn{display:inline-block;padding:14px 22px;border-radius:9px;font-weight:bold;margin:5px}
-.blue{background:#168de2;color:white}
-.outline{border:2px solid #62758c;color:#183b63}
+.eyebrow{
+color:#315477;
+margin-bottom:15px;
+font-style:italic
+}
+h1{
+font-size:52px;
+line-height:1.05;
+color:#071e3d
+}
+.hero p{
+font-size:18px;
+line-height:1.6;
+color:#40556e;
+margin:20px 0
+}
+.btn{
+display:inline-block;
+padding:12px 22px;
+border-radius:9px;
+font-weight:bold;
+margin:5px
+}
+.blue{
+background:#168de2;
+color:white
+}
+.outline{
+border:2px solid #62758c;
+color:#183b63
+}
 
 .features{
-display:grid;grid-template-columns:repeat(4,1fr);
-gap:20px;padding:25px 6%;background:white;color:#52677a
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:20px;
+padding:25px 6%;
+background:white;
+color:#52677a
 }
 .feature{font-weight:bold;font-size:14px}
 
 section{padding:50px 6%}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.cards{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:22px
+}
 .card{
-background:white;border-radius:16px;padding:25px;
-box-shadow:0 5px 25px #00000012
+background:white;
+border-radius:16px;
+padding:25px;
+box-shadow:0 5px 25px rgba(0,0,0,.06)
 }
 .card h2{margin-bottom:8px}
 .muted{color:#65788c;line-height:1.5}
 
 .subjects{
-display:grid;grid-template-columns:repeat(4,1fr);
-gap:10px;margin-top:20px
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:10px;
+margin-top:20px
 }
 .subject{
-background:#f4f9ff;padding:14px 7px;
-text-align:center;border-radius:9px;
-font-weight:bold;font-size:13px
+background:#f4f9ff;
+padding:14px 7px;
+text-align:center;
+border-radius:9px;
+font-weight:bold;
+font-size:13px
 }
 
-.dark{background:#050a10;color:white}
+.resource-list{
+display:grid;
+gap:12px;
+margin-top:20px
+}
+.resource{
+border:1px solid #dce8f2;
+border-radius:12px;
+padding:15px;
+display:flex;
+align-items:center;
+gap:12px;
+background:#fbfdff
+}
+.resource-info{
+flex:1
+}
+.resource-title{
+font-weight:bold;
+color:#163a60
+}
+.resource-subject{
+font-size:13px;
+color:#718397
+}
+.download{
+background:#168de2;
+color:white;
+padding:9px 13px;
+border-radius:8px;
+font-size:13px;
+font-weight:bold;
+white-space:nowrap
+}
+.empty{
+padding:20px;
+text-align:center;
+color:#718397;
+background:#f4f9ff;
+border-radius:10px
+}
+
+.dark{
+background:#050a10;
+color:white
+}
 .darkgrid{
-display:grid;grid-template-columns:repeat(3,1fr);gap:22px
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:22px
 }
 .darkbox{
-border:1px solid #28384c;border-radius:14px;padding:22px
+border:1px solid #28384c;
+border-radius:14px;
+padding:22px
 }
-.darkbox p{color:#abb9ca;line-height:1.5;margin:10px 0 18px}
+.darkbox p{
+color:#abb9ca;
+line-height:1.5;
+margin:10px 0 18px
+}
 
 .formgrid{
-display:grid;grid-template-columns:1fr 1fr;gap:22px
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:22px
 }
 form{
-background:white;padding:25px;border-radius:15px;
-box-shadow:0 5px 25px #00000012
+background:white;
+padding:25px;
+border-radius:15px;
+box-shadow:0 5px 25px rgba(0,0,0,.06)
 }
 input,textarea,select{
-width:100%;padding:13px;margin:7px 0 12px;
-border:1px solid #d5e0ea;border-radius:8px;font:inherit
+width:100%;
+padding:13px;
+margin:7px 0 12px;
+border:1px solid #d5e0ea;
+border-radius:8px;
+font:inherit
 }
 textarea{min-height:110px}
 button{
-width:100%;padding:14px;background:#168de2;
-color:white;border:0;border-radius:8px;font-weight:bold
+width:100%;
+padding:14px;
+border:0;
+border-radius:8px;
+background:#168de2;
+color:white;
+font-weight:bold;
+font-size:15px
 }
 
 footer{
-background:#071a32;color:white;padding:30px 6%
-}
-.footer{
-display:flex;justify-content:space-between;
-align-items:center;gap:20px;flex-wrap:wrap
-}
-.links{display:flex;gap:18px;flex-wrap:wrap}
-.links a{color:white;font-size:13px}
-.copy{
-text-align:center;border-top:1px solid #29405a;
-margin-top:20px;padding-top:18px;
-color:#9daaba;font-size:12px
+background:#03070b;
+color:#aebdca;
+padding:30px 6%;
+text-align:center
 }
 
 @media(max-width:800px){
-nav .menu{display:none}
-.hero{padding:55px 7%}
-h1{font-size:40px}
-.features,.cards,.darkgrid,.formgrid{grid-template-columns:1fr 1fr}
-.subjects{grid-template-columns:1fr 1fr}
+nav{padding:14px 4%;gap:10px}
+nav a:not(.tg){display:none}
+.hero{padding:55px 6%;min-height:430px}
+h1{font-size:39px}
+.features{
+grid-template-columns:1fr 1fr;
+padding:22px 5%
 }
-
-@media(max-width:520px){
-.features,.cards,.darkgrid,.formgrid{grid-template-columns:1fr}
-h1{font-size:36px}
+.cards,.darkgrid,.formgrid{grid-template-columns:1fr}
+.subjects{grid-template-columns:1fr 1fr}
+.resource{
+align-items:flex-start
+}
+.download{font-size:12px}
+section{padding:40px 5%}
 }
 </style>
 </head>
@@ -118,77 +248,100 @@ h1{font-size:36px}
 <body>
 
 <nav>
-<div class="logo">🩺 truth<span>.oflifes</span></div>
-<div class="menu">
+<div class="logo">truth<span>.oflifes</span></div>
 <a href="#home">Home</a>
 <a href="#notes">Notes</a>
 <a href="#ppts">PPTs</a>
 <a href="#collaboration">Collaboration</a>
 <a href="#about">About</a>
 <a href="#contact">Contact</a>
-</div>
-<a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Join Telegram</a>
+<a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a>
 </nav>
 
 <header class="hero" id="home">
 <div class="hero-content">
-<div class="eyebrow">For Every Medical Soul — ♡</div>
-
-<h1>
-Your Medical Journey<br>
-<span>Starts Here</span>
-</h1>
-
+<div class="eyebrow">Your trusted medical learning space</div>
+<h1>Your Medical Journey Starts Here</h1>
 <p>
-Get Notes, PPTs, Study Material & Latest Medical Updates
-all in one place. Join our community and grow together.
+Quality medical notes, PPTs and educational resources —
+simple, useful and easy to understand.
 </p>
-
-<a class="btn blue" href="#notes">📖 Explore Notes</a>
-<a class="btn outline" href="#ppts">📊 Explore PPTs</a>
+<a class="btn blue" href="#notes">Explore Notes</a>
+<a class="btn outline" href="#ppts">Explore PPTs</a>
 </div>
 </header>
 
 <div class="features">
-<div class="feature">🛡️ Quality Content<br>Verified</div>
-<div class="feature">⚡ Easy Access<br>& Fast</div>
-<div class="feature">👨‍🎓 Student<br>Friendly</div>
-<div class="feature">⏰ Regular<br>Updates</div>
+<div class="feature">✅ Quality Content</div>
+<div class="feature">⚡ Easy Access</div>
+<div class="feature">🎓 Student Friendly</div>
+<div class="feature">📚 Regular Updates</div>
 </div>
 
 <section id="notes">
+<h2>📚 Medical Notes</h2>
+<p class="muted">
+Handwritten & typed notes | Subject wise
+</p>
 
 <div class="cards">
 
 <div class="card">
-<h2>📚 Medical Notes</h2>
-<p class="muted">Handwritten & Typed Notes | Subject Wise</p>
-
+<h2>📖 Subjects</h2>
 <div class="subjects">
 <div class="subject">🫀 Anatomy</div>
 <div class="subject">❤️ Physiology</div>
 <div class="subject">💊 Pharmacology</div>
 <div class="subject">🔬 Pathology</div>
 <div class="subject">🩺 Medicine</div>
-<div class="subject">✍️ Surgery</div>
+<div class="subject">🔪 Surgery</div>
 <div class="subject">👶 OBG</div>
 <div class="subject">👨‍⚕️ Nursing</div>
 </div>
 </div>
 
-<div class="card" id="ppts">
-<h2>📊 Medical PPTs</h2>
-<p class="muted">Well-Structured | Easy to Understand</p>
+<div class="card">
+<h2>⬇️ Available Notes</h2>
+<p class="muted">
+Notes uploaded by the admin will appear here.
+</p>
+<div id="notesList" class="resource-list">
+<div class="empty">Loading notes...</div>
+</div>
+</div>
 
+</div>
+</section>
+
+<section id="ppts">
+<h2>📊 Medical PPTs</h2>
+<p class="muted">
+Well-structured | Easy to Understand
+</p>
+
+<div class="cards">
+
+<div class="card">
+<h2>📚 Subjects</h2>
 <div class="subjects">
-<div class="subject">🏥 Medicine</div>
-<div class="subject">✍️ Surgery</div>
-<div class="subject">🦴 Anatomy</div>
-<div class="subject">〽️ Physiology</div>
+<div class="subject">💊 Medicine</div>
+<div class="subject">🔪 Surgery</div>
+<div class="subject">🫀 Anatomy</div>
+<div class="subject">❤️ Physiology</div>
 <div class="subject">💊 Pharmacology</div>
 <div class="subject">🔬 Pathology</div>
 <div class="subject">👶 OBG</div>
 <div class="subject">📚 Others</div>
+</div>
+</div>
+
+<div class="card">
+<h2>⬇️ Available PPTs</h2>
+<p class="muted">
+PPTs uploaded by the admin will appear here.
+</p>
+<div id="pptsList" class="resource-list">
+<div class="empty">Loading PPTs...</div>
 </div>
 </div>
 
@@ -201,8 +354,10 @@ all in one place. Join our community and grow together.
 
 <div class="darkbox">
 <h2>📸 Instagram</h2>
-<p>Follow us for daily medical notes, tips, motivation & updates.</p>
-
+<p>
+Follow us for daily medical notes, tips,
+motivation and educational updates.
+</p>
 <a class="btn blue"
 href="https://www.instagram.com/truth.oflifes"
 target="_blank">
@@ -212,8 +367,10 @@ Follow Instagram →
 
 <div class="darkbox">
 <h2>✈️ Telegram</h2>
-<p>Get instant updates, free notes, important PDFs & more.</p>
-
+<p>
+Get instant updates, free notes,
+important PDFs and more.
+</p>
 <a class="btn blue"
 href="https://t.me/+q3-9PiVKzbYyYWVl"
 target="_blank">
@@ -228,181 +385,280 @@ Content Creators<br>
 Doctors & Educators<br>
 Brands & Medical Organizations
 </p>
-
-<a class="btn blue" href="#contact">Apply →</a>
+<a class="btn blue" href="#contact">
+Apply →
+</a>
 </div>
 
 </div>
+
 </section>
 
 <section id="about">
-
-<div class="card">
 <h2>About truth.oflifes</h2>
-
-<p class="muted">
-A student-friendly medical education platform for organized
-Notes, PPTs, study material and useful medical updates.
-Learn smarter, share knowledge and grow together.
+<p class="muted" style="max-width:800px;margin-top:12px">
+truth.oflifes is a medical education platform created to make
+useful medical learning resources easier to access.
+Students can find notes, PPTs and educational resources
+in one simple place.
 </p>
-</div>
-
 </section>
 
 <section id="contact">
 
-<div class="formgrid">
+<h2>📩 Request a Resource</h2>
+<p class="muted">
+Can't find what you need? Send us a request.
+</p>
 
-<form id="request">
+<div class="formgrid" style="margin-top:20px">
 
-<h2>Need a Note or PPT?</h2>
-<p class="muted">Send your request and we'll add it to our queue.</p>
+<form id="requestForm">
+<h3>Notes / PPT Request</h3>
 
-<input name="name" placeholder="Your Name" required>
-
-<input name="contact"
-placeholder="Phone / Email / Telegram"
+<input
+name="name"
+placeholder="Your Name"
 required>
 
-<select name="request_type">
-<option>Notes</option>
-<option>PPT</option>
-<option>Study Material</option>
+<input
+name="contact"
+placeholder="Email / Phone / Telegram"
+required>
+
+<input
+name="resource"
+placeholder="Which Notes or PPT do you need?"
+required>
+
+<select name="type">
+<option value="Notes">Notes</option>
+<option value="PPT">PPT</option>
 </select>
 
-<input name="resource_title"
-placeholder="What do you need?"
-required>
+<textarea
+name="message"
+placeholder="Additional details"></textarea>
 
-<textarea name="message"
-placeholder="Any details"></textarea>
+<button type="submit">
+Send Request
+</button>
 
-<button type="submit">Send Request</button>
-
-<p id="rm"></p>
-
+<p id="requestStatus" class="muted"></p>
 </form>
 
 <form id="collabForm">
+<h3>🤝 Collaboration Request</h3>
 
-<h2>Let's Collaborate</h2>
-<p class="muted">
-Creators, doctors, educators and brands are welcome.
-</p>
-
-<input name="name"
-placeholder="Your Name / Brand"
+<input
+name="name"
+placeholder="Your Name"
 required>
 
-<input name="contact"
-placeholder="Phone / Email / Social Handle"
+<input
+name="contact"
+placeholder="Email / Phone / Instagram"
 required>
 
-<select name="category">
-<option>Content Creator</option>
-<option>Doctor / Educator</option>
-<option>Brand / Organization</option>
-<option>Instagram / YouTube / Telegram</option>
-</select>
+<input
+name="organization"
+placeholder="Organization / Page / Brand">
 
-<textarea name="message"
+<textarea
+name="message"
 placeholder="Tell us about your collaboration idea"
 required></textarea>
 
-<button type="submit">Apply for Collaboration</button>
+<button type="submit">
+Submit Collaboration
+</button>
 
-<p id="cm"></p>
-
+<p id="collabStatus" class="muted"></p>
 </form>
 
 </div>
 </section>
 
 <footer>
-
-<div class="footer">
-
-<b>🩺 truth.oflifes</b>
-
-<div class="links">
-<a href="#home">Home</a>
-<a href="#notes">Notes</a>
-<a href="#ppts">PPTs</a>
-<a href="#collaboration">Collaboration</a>
-<a href="#contact">Contact</a>
-</div>
-
-<a class="tg"
-href="https://t.me/+q3-9PiVKzbYyYWVl"
-target="_blank">
-✈ Join Telegram
-</a>
-
-</div>
-
-<div class="copy">
-© 2026 truth.oflifes. All rights reserved. |
-Built for Medical Students ♡
-</div>
-
+<strong>truth.oflifes</strong>
+<br>
+Medical Education • Notes • PPTs • Collaboration
+<br><br>
+© 2026 truth.oflifes. All rights reserved.
 </footer>
 
 <script>
 
-async function sendForm(form,url,messageId){
+async function loadResources(){
 
-const msg=document.getElementById(messageId);
+const notesList=document.getElementById("notesList");
+const pptsList=document.getElementById("pptsList");
 
 try{
 
-const response=await fetch(url,{
+const response=await fetch("/api/resources");
+
+if(!response.ok){
+throw new Error("Failed");
+}
+
+const resources=await response.json();
+
+const notes=resources.filter(r =>
+String(r.type).toLowerCase()==="notes"
+);
+
+const ppts=resources.filter(r =>
+["ppt","ppts","presentation"].includes(
+String(r.type).toLowerCase()
+)
+);
+
+renderResources(notes,notesList,"notes");
+renderResources(ppts,pptsList,"PPTs");
+
+}catch(error){
+
+notesList.innerHTML=
+'<div class="empty">Notes are currently unavailable.</div>';
+
+pptsList.innerHTML=
+'<div class="empty">PPTs are currently unavailable.</div>';
+
+}
+
+}
+
+function renderResources(items,container,label){
+
+if(!items.length){
+
+container.innerHTML=
+`<div class="empty">No ${label} available yet.</div>`;
+
+return;
+}
+
+container.innerHTML=items.map(item=>`
+
+<div class="resource">
+
+<div class="resource-info">
+
+<div class="resource-title">
+${escapeHTML(item.title || "Untitled Resource")}
+</div>
+
+<div class="resource-subject">
+${escapeHTML(item.subject || "Medical")}
+</div>
+
+</div>
+
+<a
+class="download"
+href="${escapeAttr(item.file_url || "#")}"
+target="_blank"
+rel="noopener"
+${item.file_url ? "" : 'onclick="return false"'}
+>
+📥 Download
+</a>
+
+</div>
+
+`).join("");
+
+}
+
+function escapeHTML(value){
+
+return String(value)
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+function escapeAttr(value){
+
+return escapeHTML(value);
+
+}
+
+document.getElementById("requestForm")
+.addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const status=document.getElementById("requestStatus");
+const data=Object.fromEntries(new FormData(this));
+
+status.textContent="Sending...";
+
+try{
+
+const response=await fetch("/api/requests",{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
 },
-body:JSON.stringify(
-Object.fromEntries(new FormData(form))
-)
+body:JSON.stringify(data)
 });
 
-if(response.ok){
-msg.textContent="✅ Submitted successfully!";
-form.reset();
-}else{
-msg.textContent="❌ Could not submit. Please try again.";
-}
+if(!response.ok) throw new Error();
+
+status.textContent="✅ Request submitted successfully!";
+this.reset();
 
 }catch(error){
 
-msg.textContent="❌ Please try again.";
+status.textContent=
+"❌ Something went wrong. Please try again.";
 
 }
 
+});
+
+document.getElementById("collabForm")
+.addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const status=document.getElementById("collabStatus");
+const data=Object.fromEntries(new FormData(this));
+
+status.textContent="Sending...";
+
+try{
+
+const response=await fetch("/api/collaborations",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(data)
+});
+
+if(!response.ok) throw new Error();
+
+status.textContent=
+"✅ Collaboration request submitted!";
+
+this.reset();
+
+}catch(error){
+
+status.textContent=
+"❌ Something went wrong. Please try again.";
+
 }
 
-document.getElementById("request").addEventListener("submit",function(e){
-
-e.preventDefault();
-
-sendForm(
-this,
-"/api/requests",
-"rm"
-);
-
 });
 
-document.getElementById("collabForm").addEventListener("submit",function(e){
-
-e.preventDefault();
-
-sendForm(
-this,
-"/api/collaborations",
-"cm"
-);
-
-});
+loadResources();
 
 </script>
 
