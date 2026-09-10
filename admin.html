@@ -1,426 +1,1045 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>truth.oflifes | Admin</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f3f7fb;color:#102a43}
-header{background:#050505;color:white;padding:18px 6%;display:flex;align-items:center}
-.logo{font-size:22px;font-weight:800}
-.logo span{color:#16e2d8}
-header button{margin-left:auto;background:#e53935;color:white;border:0;padding:9px 15px;border-radius:7px}
-main{max-width:1100px;margin:auto;padding:30px 5%}
-.box{background:white;padding:24px;border-radius:14px;margin-bottom:22px;box-shadow:0 4px 20px #0000000d}
-h1,h2{margin-top:0}
-input,select,textarea{width:100%;padding:12px;margin:7px 0 12px;border:1px solid #d6e0e9;border-radius:7px;font:inherit}
-textarea{min-height:90px}
-button,.btn{background:#168de2;color:white;border:0;padding:12px 18px;border-radius:7px;font-weight:bold;cursor:pointer}
-.hidden{display:none}
-.msg{margin-top:10px;font-weight:bold}
-.item{border:1px solid #dde7ef;padding:15px;border-radius:9px;margin:10px 0}
-.item strong{display:block;margin-bottom:5px}
-.delete{background:#e53935;padding:7px 11px;margin-top:8px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:700px){.grid{grid-template-columns:1fr}}
-.small{color:#718397;font-size:13px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>truth.oflifes — Admin Panel</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    header {
+      background: #080b12;
+      color: white;
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .logout {
+      background: #ef4444;
+      color: white;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .login-box {
+      max-width: 420px;
+      margin: 80px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    }
+
+    .login-box h2 {
+      margin-top: 0;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 7px 0 12px;
+      border: 1px solid #d7dce5;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .primary {
+      background: #2563eb;
+      color: white;
+      width: 100%;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .stat small {
+      color: #667085;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 30px;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.06);
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .resource {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 10px 0;
+    }
+
+    .resource-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .meta {
+      color: #667085;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .delete {
+      background: #dc2626;
+      color: white;
+      margin-top: 10px;
+    }
+
+    .request {
+      border-left: 4px solid #2563eb;
+      background: #f8fafc;
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+
+    .request strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .empty {
+      color: #667085;
+      padding: 10px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .success {
+      color: #15803d;
+      margin: 8px 0;
+    }
+
+    .error {
+      color: #dc2626;
+      margin: 8px 0;
+    }
+
+    @media (max-width: 700px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .container {
+        padding: 14px;
+      }
+
+      .card {
+        padding: 15px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
-<div class="logo">truth<span>.oflifes</span> — Admin</div>
-<button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+  <h2>truth.oflifes — Admin Panel</h2>
+  <button class="logout hidden" id="logoutBtn" onclick="logout()">Logout</button>
 </header>
 
-<main>
+<!-- LOGIN -->
+<div id="loginSection" class="login-box">
+  <h2>Admin Login</h2>
 
-<div id="loginBox" class="box">
-<h1>🔐 Admin Login</h1>
+  <input
+    type="text"
+    id="username"
+    placeholder="Admin Username"
+    autocomplete="username"
+  >
 
-<input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Password">
+  <input
+    type="password"
+    id="password"
+    placeholder="Admin Password"
+    autocomplete="current-password"
+  >
 
-<button onclick="login()">Login</button>
+  <button class="primary" onclick="login()">Login</button>
 
-<div id="loginMsg" class="msg"></div>
+  <p id="loginMessage"></p>
 </div>
 
 
-<div id="dashboard" class="hidden">
+<!-- DASHBOARD -->
+<div id="dashboard" class="container hidden">
 
-<h1>Admin Dashboard</h1>
+  <!-- STATS -->
+  <div class="stats">
 
-<div class="grid">
+    <div class="stat">
+      <small>Visitors</small>
+      <strong id="visitorCount">0</strong>
+    </div>
 
-<div class="box">
-<h2>📚 Add Notes / PPT</h2>
+    <div class="stat">
+      <small>Registered Users</small>
+      <strong id="userCount">0</strong>
+    </div>
 
-<input id="title" placeholder="Resource title">
+    <div class="stat">
+      <small>Total Resources</small>
+      <strong id="resourceCount">0</strong>
+    </div>
 
-<select id="type">
-<option value="Notes">Notes</option>
-<option value="PPT">PPT</option>
-</select>
+  </div>
 
-<input id="subject" placeholder="Subject">
 
-<input id="fileUrl" placeholder="File URL">
+  <!-- ADD RESOURCE -->
+  <div class="card">
 
-<p class="small">
-File URL = uploaded PDF/PPT/Google Drive/Cloud storage link.
-</p>
+    <h3>📚 Add Medical Resource</h3>
 
-<button onclick="addResource()">Add Resource</button>
+    <input
+      type="text"
+      id="title"
+      placeholder="Resource Title"
+    >
 
-<div id="resourceMsg" class="msg"></div>
+    <select id="type">
+      <option value="Notes">Notes</option>
+      <option value="PPT">PPT</option>
+    </select>
+
+    <select id="subject">
+      <option value="">Select Subject</option>
+      <option>Anatomy</option>
+      <option>Physiology</option>
+      <option>Biochemistry</option>
+      <option>Pharmacology</option>
+      <option>Pathology</option>
+      <option>Microbiology</option>
+      <option>Forensic Medicine</option>
+      <option>Community Medicine</option>
+      <option>Medicine</option>
+      <option>Surgery</option>
+      <option>Pediatrics</option>
+      <option>OBG</option>
+      <option>Orthopedics</option>
+      <option>ENT</option>
+      <option>Ophthalmology</option>
+      <option>Radiology</option>
+      <option>Anesthesia</option>
+      <option>Psychiatry</option>
+      <option>Dermatology</option>
+      <option>Dentistry</option>
+      <option>Nursing</option>
+      <option>Other</option>
+    </select>
+
+    <input
+      type="url"
+      id="fileUrl"
+      placeholder="File URL"
+    >
+
+    <textarea
+      id="description"
+      placeholder="Description (optional)"
+    ></textarea>
+
+    <button class="primary" onclick="addResource()">
+      Add Resource
+    </button>
+
+    <p id="resourceMessage"></p>
+
+  </div>
+
+
+  <!-- RESOURCES -->
+  <div class="card">
+
+    <h3>📖 Resources</h3>
+
+    <div id="resourcesList">
+      Loading...
+    </div>
+
+  </div>
+
+
+  <!-- USERS -->
+  <div class="card">
+
+    <h3>👥 Registered Users</h3>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Instagram Username</th>
+            <th>Account Created</th>
+          </tr>
+        </thead>
+
+        <tbody id="usersTable">
+          <tr>
+            <td colspan="3">Loading...</td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <!-- RESOURCE REQUESTS -->
+  <div class="card">
+
+    <h3>📝 Resource Requests</h3>
+
+    <div id="requestsList">
+      Loading...
+    </div>
+
+  </div>
+
+
+  <!-- COLLABORATIONS -->
+  <div class="card">
+
+    <h3>🤝 Collaboration Requests</h3>
+
+    <div id="collaborationsList">
+      Loading...
+    </div>
+
+  </div>
+
 </div>
-
-
-<div class="box">
-<h2>📊 Resources</h2>
-<div id="resources">Loading...</div>
-</div>
-
-</div>
-
-
-<div class="box">
-<h2>📩 Resource Requests</h2>
-<div id="requests">Loading...</div>
-</div>
-
-
-<div class="box">
-<h2>🤝 Collaboration Requests</h2>
-<div id="collaborations">Loading...</div>
-</div>
-
-</div>
-
-</main>
 
 
 <script>
 
-let token="";
+const API = "";
 
-function showDashboard(){
-
-document.getElementById("loginBox").classList.add("hidden");
-document.getElementById("dashboard").classList.remove("hidden");
-document.getElementById("logoutBtn").classList.remove("hidden");
-
-loadAll();
-
-}
+let token = localStorage.getItem("adminToken");
 
 
-async function login(){
+function showDashboard() {
 
-const username=document.getElementById("username").value.trim();
-const password=document.getElementById("password").value;
+  document.getElementById("loginSection").classList.add("hidden");
 
-const msg=document.getElementById("loginMsg");
+  document.getElementById("dashboard").classList.remove("hidden");
 
-msg.textContent="Logging in...";
+  document.getElementById("logoutBtn").classList.remove("hidden");
 
-try{
-
-const r=await fetch("/api/admin/login",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({username,password})
-});
-
-const data=await r.json();
-
-if(!r.ok) throw new Error(data.message||"Login failed");
-
-token=data.token;
-
-localStorage.setItem("adminToken",token);
-
-msg.textContent="";
-
-showDashboard();
-
-}catch(e){
-
-msg.textContent="❌ "+e.message;
-
-}
+  loadAll();
 
 }
 
 
-function logout(){
+function showLogin() {
 
-localStorage.removeItem("adminToken");
-token="";
-location.reload();
+  document.getElementById("loginSection").classList.remove("hidden");
 
-}
+  document.getElementById("dashboard").classList.add("hidden");
 
-
-async function api(url,options={}){
-
-const headers=options.headers||{};
-
-headers["Authorization"]="Bearer "+token;
-
-options.headers=headers;
-
-const r=await fetch(url,options);
-
-if(r.status===401||r.status===403){
-
-logout();
-throw new Error("Session expired");
-
-}
-
-return r;
+  document.getElementById("logoutBtn").classList.add("hidden");
 
 }
 
 
-async function addResource(){
+async function login() {
 
-const title=document.getElementById("title").value.trim();
-const type=document.getElementById("type").value;
-const subject=document.getElementById("subject").value.trim();
-const file_url=document.getElementById("fileUrl").value.trim();
+  const username =
+    document.getElementById("username").value.trim();
 
-const msg=document.getElementById("resourceMsg");
+  const password =
+    document.getElementById("password").value;
 
-if(!title||!file_url){
+  const message =
+    document.getElementById("loginMessage");
 
-msg.textContent="❌ Title aur File URL zaroori hai.";
+  message.className = "";
 
-return;
+  if (!username || !password) {
 
-}
+    message.className = "error";
+    message.textContent = "Username aur password enter karein.";
 
-msg.textContent="Adding...";
+    return;
+  }
 
-try{
+  try {
 
-const r=await api("/api/resources",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-title,
-type,
-subject,
-file_url
-})
-});
+    const res = await fetch("/api/auth/login", {
 
-const data=await r.json();
+      method: "POST",
 
-if(!r.ok) throw new Error(data.message||"Failed");
+      headers: {
+        "Content-Type": "application/json"
+      },
 
-msg.textContent="✅ Resource added!";
+      body: JSON.stringify({
+        mode: "admin",
+        username,
+        password
+      })
 
-document.getElementById("title").value="";
-document.getElementById("subject").value="";
-document.getElementById("fileUrl").value="";
+    });
 
-loadResources();
+    const data = await res.json();
 
-}catch(e){
+    if (!res.ok) {
 
-msg.textContent="❌ "+e.message;
+      message.className = "error";
+      message.textContent =
+        data.error || "Login failed.";
 
-}
+      return;
+    }
 
-}
+    token = data.token;
 
+    localStorage.setItem("adminToken", token);
 
-async function loadResources(){
+    showDashboard();
 
-const box=document.getElementById("resources");
+  } catch (err) {
 
-try{
+    message.className = "error";
+    message.textContent =
+      "Server se connection nahi ho raha.";
 
-const r=await fetch("/api/resources");
-const data=await r.json();
-
-if(!data.length){
-
-box.innerHTML="<p>No resources yet.</p>";
-
-return;
-
-}
-
-box.innerHTML=data.map(x=>`
-
-<div class="item">
-
-<strong>${esc(x.title)}</strong>
-
-<div class="small">
-${esc(x.type)} • ${esc(x.subject||"Medical")}
-</div>
-
-<a href="${esc(x.file_url)}" target="_blank">Open file</a>
-<br>
-
-<button class="delete" onclick="deleteResource(${x.id})">
-Delete
-</button>
-
-</div>
-
-`).join("");
-
-}catch(e){
-
-box.innerHTML="Unable to load resources.";
-
-}
+  }
 
 }
 
 
-async function deleteResource(id){
+function logout() {
 
-if(!confirm("Delete this resource?")) return;
+  localStorage.removeItem("adminToken");
 
-try{
+  token = null;
 
-const r=await api("/api/resources/"+id,{
-method:"DELETE"
-});
-
-if(!r.ok) throw new Error("Delete failed");
-
-loadResources();
-
-}catch(e){
-
-alert("❌ "+e.message);
-
-}
+  showLogin();
 
 }
 
 
-async function loadRequests(){
+function authHeaders() {
 
-const box=document.getElementById("requests");
-
-try{
-
-const r=await api("/api/requests");
-const data=await r.json();
-
-if(!data.length){
-
-box.innerHTML="<p>No requests yet.</p>";
-
-return;
-
-}
-
-box.innerHTML=data.map(x=>`
-
-<div class="item">
-
-<strong>${esc(x.resource||"Resource request")}</strong>
-
-<div>Name: ${esc(x.name||"")}</div>
-<div>Contact: ${esc(x.contact||"")}</div>
-<div>Type: ${esc(x.type||"")}</div>
-<div>${esc(x.message||"")}</div>
-
-</div>
-
-`).join("");
-
-}catch(e){
-
-box.innerHTML="Unable to load requests.";
-
-}
+  return {
+    "Authorization": "Bearer " + token,
+    "Content-Type": "application/json"
+  };
 
 }
 
 
-async function loadCollaborations(){
+async function loadAll() {
 
-const box=document.getElementById("collaborations");
-
-try{
-
-const r=await api("/api/collaborations");
-const data=await r.json();
-
-if(!data.length){
-
-box.innerHTML="<p>No collaboration requests yet.</p>";
-
-return;
-
-}
-
-box.innerHTML=data.map(x=>`
-
-<div class="item">
-
-<strong>${esc(x.name||"Collaboration")}</strong>
-
-<div>Contact: ${esc(x.contact||"")}</div>
-<div>Organization: ${esc(x.organization||"")}</div>
-<div>${esc(x.message||"")}</div>
-
-</div>
-
-`).join("");
-
-}catch(e){
-
-box.innerHTML="Unable to load collaborations.";
-
-}
+  await Promise.all([
+    loadResources(),
+    loadUsers(),
+    loadVisitors(),
+    loadRequests(),
+    loadCollaborations()
+  ]);
 
 }
 
 
-function loadAll(){
+async function loadResources() {
 
-loadResources();
-loadRequests();
-loadCollaborations();
+  const box =
+    document.getElementById("resourcesList");
+
+  try {
+
+    const res =
+      await fetch("/api/resources");
+
+    const data =
+      await res.json();
+
+    document.getElementById("resourceCount").textContent =
+      Array.isArray(data) ? data.length : 0;
+
+    if (!Array.isArray(data) || data.length === 0) {
+
+      box.innerHTML =
+        '<div class="empty">No resources added yet.</div>';
+
+      return;
+    }
+
+    box.innerHTML =
+      data.map(r => `
+
+        <div class="resource">
+
+          <div class="resource-title">
+            ${escapeHtml(r.title)}
+          </div>
+
+          <div class="meta">
+            ${escapeHtml(r.type || "")}
+            ${r.subject ? " • " + escapeHtml(r.subject) : ""}
+          </div>
+
+          ${
+            r.description
+              ? `<p>${escapeHtml(r.description)}</p>`
+              : ""
+          }
+
+          <a
+            href="${escapeAttribute(r.file_url)}"
+            target="_blank"
+            rel="noopener"
+          >
+            Open File
+          </a>
+
+          <br>
+
+          <button
+            class="delete"
+            onclick="deleteResource(${Number(r.id)})"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      `).join("");
+
+  } catch (err) {
+
+    box.innerHTML =
+      '<div class="error">Resources load nahi ho paaye.</div>';
+
+  }
 
 }
 
 
-function esc(v){
+async function addResource() {
 
-return String(v??"")
-.replace(/&/g,"&amp;")
-.replace(/</g,"&lt;")
-.replace(/>/g,"&gt;")
-.replace(/"/g,"&quot;")
-.replace(/'/g,"&#039;");
+  const title =
+    document.getElementById("title").value.trim();
+
+  const type =
+    document.getElementById("type").value;
+
+  const subject =
+    document.getElementById("subject").value;
+
+  const file_url =
+    document.getElementById("fileUrl").value.trim();
+
+  const description =
+    document.getElementById("description").value.trim();
+
+  const message =
+    document.getElementById("resourceMessage");
+
+  message.className = "";
+
+  if (!title || !file_url) {
+
+    message.className = "error";
+    message.textContent =
+      "Title aur File URL required hai.";
+
+    return;
+  }
+
+  try {
+
+    const res = await fetch("/api/resources", {
+
+      method: "POST",
+
+      headers: authHeaders(),
+
+      body: JSON.stringify({
+        title,
+        type,
+        subject,
+        file_url,
+        description
+      })
+
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+
+      message.className = "error";
+      message.textContent =
+        data.error || "Resource add nahi hua.";
+
+      return;
+    }
+
+    message.className = "success";
+    message.textContent =
+      "Resource successfully add ho gaya.";
+
+    document.getElementById("title").value = "";
+    document.getElementById("fileUrl").value = "";
+    document.getElementById("description").value = "";
+    document.getElementById("subject").value = "";
+
+    loadResources();
+
+  } catch (err) {
+
+    message.className = "error";
+    message.textContent =
+      "Server error.";
+
+  }
 
 }
 
 
-token=localStorage.getItem("adminToken")||"";
+async function deleteResource(id) {
 
-if(token){
+  if (!confirm("Is resource ko delete karna hai?")) {
+    return;
+  }
 
-showDashboard();
+  try {
+
+    const res = await fetch(
+      "/api/resources/" + id,
+      {
+        method: "DELETE",
+        headers: authHeaders()
+      }
+    );
+
+    if (res.status === 401 || res.status === 403) {
+
+      alert("Session expire ho gaya. Dobara login karein.");
+
+      logout();
+
+      return;
+    }
+
+    if (!res.ok) {
+
+      const data = await res.json();
+
+      alert(data.error || "Delete failed.");
+
+      return;
+    }
+
+    loadResources();
+
+  } catch (err) {
+
+    alert("Server error.");
+
+  }
+
+}
+
+
+async function loadUsers() {
+
+  const tbody =
+    document.getElementById("usersTable");
+
+  try {
+
+    const res =
+      await fetch("/api/users", {
+        headers: authHeaders()
+      });
+
+    if (res.status === 401 || res.status === 403) {
+
+      logout();
+      return;
+    }
+
+    const data =
+      await res.json();
+
+    document.getElementById("userCount").textContent =
+      Array.isArray(data) ? data.length : 0;
+
+    if (!Array.isArray(data) || data.length === 0) {
+
+      tbody.innerHTML =
+        '<tr><td colspan="3">No registered users.</td></tr>';
+
+      return;
+    }
+
+    tbody.innerHTML =
+      data.map((user, index) => `
+
+        <tr>
+
+          <td>${index + 1}</td>
+
+          <td>
+            @${escapeHtml(user.instagram_username)}
+          </td>
+
+          <td>
+            ${formatDate(user.created_at)}
+          </td>
+
+        </tr>
+
+      `).join("");
+
+  } catch (err) {
+
+    tbody.innerHTML =
+      '<tr><td colspan="3">Users load nahi ho paaye.</td></tr>';
+
+  }
+
+}
+
+
+async function loadVisitors() {
+
+  const count =
+    document.getElementById("visitorCount");
+
+  try {
+
+    const res =
+      await fetch("/api/visits", {
+        headers: authHeaders()
+      });
+
+    if (res.status === 401 || res.status === 403) {
+
+      logout();
+      return;
+    }
+
+    const data =
+      await res.json();
+
+    count.textContent =
+      Number(data.total || 0);
+
+  } catch (err) {
+
+    count.textContent = "0";
+
+  }
+
+}
+
+
+async function loadRequests() {
+
+  const box =
+    document.getElementById("requestsList");
+
+  try {
+
+    const res =
+      await fetch("/api/requests", {
+        headers: authHeaders()
+      });
+
+    if (res.status === 401 || res.status === 403) {
+
+      logout();
+      return;
+    }
+
+    const data =
+      await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+
+      box.innerHTML =
+        '<div class="empty">No requests yet.</div>';
+
+      return;
+    }
+
+    box.innerHTML =
+      data.map(x => `
+
+        <div class="request">
+
+          <strong>
+            ${escapeHtml(x.name)}
+          </strong>
+
+          <div>
+            Contact:
+            ${escapeHtml(x.contact)}
+          </div>
+
+          ${
+            x.request_type
+              ? `<div>Type: ${escapeHtml(x.request_type)}</div>`
+              : ""
+          }
+
+          ${
+            x.resource_title
+              ? `<div>Resource: ${escapeHtml(x.resource_title)}</div>`
+              : ""
+          }
+
+          ${
+            x.message
+              ? `<p>${escapeHtml(x.message)}</p>`
+              : ""
+          }
+
+          <div class="meta">
+            ${formatDate(x.created_at)}
+          </div>
+
+        </div>
+
+      `).join("");
+
+  } catch (err) {
+
+    box.innerHTML =
+      '<div class="error">Requests load nahi ho paaye.</div>';
+
+  }
+
+}
+
+
+async function loadCollaborations() {
+
+  const box =
+    document.getElementById("collaborationsList");
+
+  try {
+
+    const res =
+      await fetch("/api/collaborations", {
+        headers: authHeaders()
+      });
+
+    if (res.status === 401 || res.status === 403) {
+
+      logout();
+      return;
+    }
+
+    const data =
+      await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+
+      box.innerHTML =
+        '<div class="empty">No collaboration requests yet.</div>';
+
+      return;
+    }
+
+    box.innerHTML =
+      data.map(x => `
+
+        <div class="request">
+
+          <strong>
+            ${escapeHtml(x.name)}
+          </strong>
+
+          <div>
+            Contact:
+            ${escapeHtml(x.contact)}
+          </div>
+
+          ${
+            x.category
+              ? `<div>Category: ${escapeHtml(x.category)}</div>`
+              : ""
+          }
+
+          ${
+            x.message
+              ? `<p>${escapeHtml(x.message)}</p>`
+              : ""
+          }
+
+          <div class="meta">
+            ${formatDate(x.created_at)}
+          </div>
+
+        </div>
+
+      `).join("");
+
+  } catch (err) {
+
+    box.innerHTML =
+      '<div class="error">Collaborations load nahi ho paaye.</div>';
+
+  }
+
+}
+
+
+function formatDate(date) {
+
+  if (!date) return "-";
+
+  try {
+
+    return new Date(date).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    });
+
+  } catch {
+
+    return date;
+
+  }
+
+}
+
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+function escapeAttribute(value) {
+
+  return escapeHtml(value);
+
+}
+
+
+if (token) {
+
+  showDashboard();
+
+} else {
+
+  showLogin();
 
 }
 
 </script>
 
 </body>
-  </html>
+</html>
