@@ -32,14 +32,20 @@ font-weight:800;
 margin-right:auto
 }
 .logo span{color:#16e2d8}
-nav a{
-color:white;
-font-size:14px
-}
+nav a{color:white;font-size:14px}
 .tg{
 background:#168de2;
 padding:9px 17px;
 border-radius:25px
+}
+.login-btn{
+background:#173b78;
+color:white;
+border:0;
+padding:9px 20px;
+border-radius:25px;
+font-weight:bold;
+cursor:pointer
 }
 
 .hero{
@@ -76,10 +82,7 @@ border-radius:9px;
 font-weight:bold;
 margin:5px
 }
-.blue{
-background:#168de2;
-color:white
-}
+.blue{background:#168de2;color:white}
 .outline{
 border:2px solid #62758c;
 color:#183b63
@@ -139,9 +142,7 @@ align-items:center;
 gap:12px;
 background:#fbfdff
 }
-.resource-info{
-flex:1
-}
+.resource-info{flex:1}
 .resource-title{
 font-weight:bold;
 color:#163a60
@@ -215,7 +216,16 @@ border-radius:8px;
 background:#168de2;
 color:white;
 font-weight:bold;
-font-size:15px
+font-size:15px;
+cursor:pointer
+}
+
+.visitor{
+text-align:center;
+background:#071e3d;
+color:white;
+padding:12px;
+font-size:14px
 }
 
 footer{
@@ -223,6 +233,61 @@ background:#03070b;
 color:#aebdca;
 padding:30px 6%;
 text-align:center
+}
+
+/* LOGIN MODAL */
+#loginModal{
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.78);
+z-index:9999;
+align-items:center;
+justify-content:center;
+padding:18px
+}
+.login-box{
+background:white;
+width:100%;
+max-width:450px;
+border-radius:18px;
+padding:28px;
+position:relative;
+max-height:90vh;
+overflow:auto
+}
+.close-login{
+position:absolute;
+right:14px;
+top:10px;
+width:auto;
+background:none;
+color:#333;
+font-size:28px;
+padding:0;
+cursor:pointer
+}
+.login-tabs{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:6px;
+margin:20px 0
+}
+.login-tabs button{
+font-size:12px;
+padding:10px 5px;
+background:#e9f1f8;
+color:#173b78
+}
+.login-tabs button.active{
+background:#168de2;
+color:white
+}
+.login-form{display:none}
+.login-form.active{display:block}
+.login-status{
+margin-top:10px;
+font-size:14px
 }
 
 @media(max-width:800px){
@@ -236,11 +301,10 @@ padding:22px 5%
 }
 .cards,.darkgrid,.formgrid{grid-template-columns:1fr}
 .subjects{grid-template-columns:1fr 1fr}
-.resource{
-align-items:flex-start
-}
+.resource{align-items:flex-start}
 .download{font-size:12px}
 section{padding:40px 5%}
+.login-btn{padding:8px 14px}
 }
 </style>
 </head>
@@ -249,25 +313,58 @@ section{padding:40px 5%}
 
 <nav>
 <div class="logo">truth<span>.oflifes</span></div>
+
 <a href="#home">Home</a>
 <a href="#notes">Notes</a>
 <a href="#ppts">PPTs</a>
 <a href="#collaboration">Collaboration</a>
 <a href="#about">About</a>
-<a href="#contact">Contact</a>
-<a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a>
+
+<a
+href="https://www.instagram.com/truth.oflifes"
+target="_blank">
+Contact
+</a>
+
+<a class="tg"
+href="https://t.me/+q3-9PiVKzbYyYWVl"
+target="_blank">
+Telegram
+</a>
+
+<button class="login-btn" onclick="openLogin()">
+Login
+</button>
 </nav>
+
+<div class="visitor">
+👥 <span id="visitorCount">Loading...</span> visitors
+</div>
 
 <header class="hero" id="home">
 <div class="hero-content">
-<div class="eyebrow">Your trusted medical learning space</div>
-<h1>Your Medical Journey Starts Here</h1>
+
+<div class="eyebrow">
+Your trusted medical learning space
+</div>
+
+<h1>
+Your Medical Journey Starts Here
+</h1>
+
 <p>
 Quality medical notes, PPTs and educational resources —
 simple, useful and easy to understand.
 </p>
-<a class="btn blue" href="#notes">Explore Notes</a>
-<a class="btn outline" href="#ppts">Explore PPTs</a>
+
+<a class="btn blue" href="#notes">
+Explore Notes
+</a>
+
+<a class="btn outline" href="#ppts">
+Explore PPTs
+</a>
+
 </div>
 </header>
 
@@ -278,8 +375,13 @@ simple, useful and easy to understand.
 <div class="feature">📚 Regular Updates</div>
 </div>
 
+
+<!-- NOTES -->
+
 <section id="notes">
+
 <h2>📚 Medical Notes</h2>
+
 <p class="muted">
 Handwritten & typed notes | Subject wise
 </p>
@@ -287,34 +389,62 @@ Handwritten & typed notes | Subject wise
 <div class="cards">
 
 <div class="card">
+
 <h2>📖 Subjects</h2>
+
 <div class="subjects">
+
 <div class="subject">🫀 Anatomy</div>
 <div class="subject">❤️ Physiology</div>
+<div class="subject">🧪 Biochemistry</div>
 <div class="subject">💊 Pharmacology</div>
 <div class="subject">🔬 Pathology</div>
+<div class="subject">🦠 Microbiology</div>
+<div class="subject">⚖️ Forensic Medicine</div>
+<div class="subject">🌍 Community Medicine</div>
 <div class="subject">🩺 Medicine</div>
 <div class="subject">🔪 Surgery</div>
-<div class="subject">👶 OBG</div>
+<div class="subject">👶 Pediatrics</div>
+<div class="subject">🤰 OBG</div>
+<div class="subject">🦴 Orthopedics</div>
+<div class="subject">👂 ENT</div>
+<div class="subject">👁️ Ophthalmology</div>
+<div class="subject">🩻 Radiology</div>
+<div class="subject">💉 Anesthesia</div>
+<div class="subject">🧠 Psychiatry</div>
+<div class="subject">🧴 Dermatology</div>
+<div class="subject">🦷 Dentistry</div>
 <div class="subject">👨‍⚕️ Nursing</div>
+<div class="subject">📚 Other</div>
+
 </div>
 </div>
 
+
 <div class="card">
+
 <h2>⬇️ Available Notes</h2>
+
 <p class="muted">
 Notes uploaded by the admin will appear here.
 </p>
+
 <div id="notesList" class="resource-list">
 <div class="empty">Loading notes...</div>
 </div>
+
 </div>
 
 </div>
 </section>
 
+
+<!-- PPT -->
+
 <section id="ppts">
+
 <h2>📊 Medical PPTs</h2>
+
 <p class="muted">
 Well-structured | Easy to Understand
 </p>
@@ -322,98 +452,153 @@ Well-structured | Easy to Understand
 <div class="cards">
 
 <div class="card">
+
 <h2>📚 Subjects</h2>
+
 <div class="subjects">
-<div class="subject">💊 Medicine</div>
-<div class="subject">🔪 Surgery</div>
+
 <div class="subject">🫀 Anatomy</div>
 <div class="subject">❤️ Physiology</div>
+<div class="subject">🧪 Biochemistry</div>
 <div class="subject">💊 Pharmacology</div>
 <div class="subject">🔬 Pathology</div>
-<div class="subject">👶 OBG</div>
-<div class="subject">📚 Others</div>
+<div class="subject">🦠 Microbiology</div>
+<div class="subject">⚖️ Forensic Medicine</div>
+<div class="subject">🌍 Community Medicine</div>
+<div class="subject">🩺 Medicine</div>
+<div class="subject">🔪 Surgery</div>
+<div class="subject">👶 Pediatrics</div>
+<div class="subject">🤰 OBG</div>
+<div class="subject">🦴 Orthopedics</div>
+<div class="subject">👂 ENT</div>
+<div class="subject">👁️ Ophthalmology</div>
+<div class="subject">🩻 Radiology</div>
+<div class="subject">💉 Anesthesia</div>
+<div class="subject">🧠 Psychiatry</div>
+<div class="subject">🧴 Dermatology</div>
+<div class="subject">🦷 Dentistry</div>
+<div class="subject">👨‍⚕️ Nursing</div>
+<div class="subject">📚 Other</div>
+
 </div>
 </div>
 
+
 <div class="card">
+
 <h2>⬇️ Available PPTs</h2>
+
 <p class="muted">
 PPTs uploaded by the admin will appear here.
 </p>
+
 <div id="pptsList" class="resource-list">
 <div class="empty">Loading PPTs...</div>
 </div>
+
 </div>
 
 </div>
 </section>
+
+
+<!-- SOCIAL -->
 
 <section class="dark">
 
 <div class="darkgrid">
 
 <div class="darkbox">
+
 <h2>📸 Instagram</h2>
+
 <p>
 Follow us for daily medical notes, tips,
 motivation and educational updates.
 </p>
+
 <a class="btn blue"
 href="https://www.instagram.com/truth.oflifes"
 target="_blank">
 Follow Instagram →
 </a>
+
 </div>
 
+
 <div class="darkbox">
+
 <h2>✈️ Telegram</h2>
+
 <p>
 Get instant updates, free notes,
 important PDFs and more.
 </p>
+
 <a class="btn blue"
 href="https://t.me/+q3-9PiVKzbYyYWVl"
 target="_blank">
 Join Telegram →
 </a>
+
 </div>
 
+
 <div class="darkbox" id="collaboration">
+
 <h2>🤝 Collaboration</h2>
+
 <p>
 Content Creators<br>
 Doctors & Educators<br>
 Brands & Medical Organizations
 </p>
+
 <a class="btn blue" href="#contact">
 Apply →
 </a>
+
 </div>
 
 </div>
 
 </section>
+
+
+<!-- ABOUT -->
 
 <section id="about">
+
 <h2>About truth.oflifes</h2>
+
 <p class="muted" style="max-width:800px;margin-top:12px">
+
 truth.oflifes is a medical education platform created to make
 useful medical learning resources easier to access.
+
 Students can find notes, PPTs and educational resources
 in one simple place.
+
 </p>
+
 </section>
+
+
+<!-- CONTACT -->
 
 <section id="contact">
 
 <h2>📩 Request a Resource</h2>
+
 <p class="muted">
 Can't find what you need? Send us a request.
 </p>
 
 <div class="formgrid" style="margin-top:20px">
 
+
 <form id="requestForm">
+
 <h3>Notes / PPT Request</h3>
 
 <input
@@ -432,22 +617,28 @@ placeholder="Which Notes or PPT do you need?"
 required>
 
 <select name="type">
+
 <option value="Notes">Notes</option>
 <option value="PPT">PPT</option>
+
 </select>
 
 <textarea
 name="message"
-placeholder="Additional details"></textarea>
+placeholder="Additional details">
+</textarea>
 
 <button type="submit">
 Send Request
 </button>
 
 <p id="requestStatus" class="muted"></p>
+
 </form>
 
+
 <form id="collabForm">
+
 <h3>🤝 Collaboration Request</h3>
 
 <input
@@ -467,55 +658,529 @@ placeholder="Organization / Page / Brand">
 <textarea
 name="message"
 placeholder="Tell us about your collaboration idea"
-required></textarea>
+required>
+</textarea>
 
 <button type="submit">
 Submit Collaboration
 </button>
 
 <p id="collabStatus" class="muted"></p>
+
 </form>
 
 </div>
+
 </section>
 
+
 <footer>
+
 <strong>truth.oflifes</strong>
+
 <br>
+
 Medical Education • Notes • PPTs • Collaboration
+
 <br><br>
+
 © 2026 truth.oflifes. All rights reserved.
+
 </footer>
+
+
+<!-- LOGIN MODAL -->
+
+<div id="loginModal">
+
+<div class="login-box">
+
+<button class="close-login"
+onclick="closeLogin()">
+×
+</button>
+
+<h2 style="color:#102a43">
+🔐 truth.oflifes Login
+</h2>
+
+<div class="login-tabs">
+
+<button
+id="tabUser"
+class="active"
+onclick="showTab('user')">
+User Login
+</button>
+
+<button
+id="tabAdmin"
+onclick="showTab('admin')">
+Admin Login
+</button>
+
+<button
+id="tabRegister"
+onclick="showTab('register')">
+Create Account
+</button>
+
+</div>
+
+
+<!-- USER LOGIN -->
+
+<form
+id="userLoginForm"
+class="login-form active">
+
+<input
+name="instagram_username"
+placeholder="Instagram Username"
+required>
+
+<input
+name="password"
+type="password"
+placeholder="Password"
+required>
+
+<button type="submit">
+Login
+</button>
+
+<p
+id="userLoginStatus"
+class="login-status muted">
+</p>
+
+</form>
+
+
+<!-- ADMIN LOGIN -->
+
+<form
+id="adminLoginForm"
+class="login-form">
+
+<input
+name="username"
+placeholder="Admin Username"
+required>
+
+<input
+name="password"
+type="password"
+placeholder="Admin Password"
+required>
+
+<button type="submit">
+Admin Login
+</button>
+
+<p
+id="adminLoginStatus"
+class="login-status muted">
+</p>
+
+</form>
+
+
+<!-- CREATE ACCOUNT -->
+
+<form
+id="registerForm"
+class="login-form">
+
+<input
+name="instagram_username"
+placeholder="Instagram Username"
+required>
+
+<input
+name="password"
+type="password"
+placeholder="Create Password"
+required>
+
+<input
+name="confirm_password"
+type="password"
+placeholder="Confirm Password"
+required>
+
+<button type="submit">
+Create Account
+</button>
+
+<p
+id="registerStatus"
+class="login-status muted">
+</p>
+
+</form>
+
+</div>
+</div>
+
 
 <script>
 
-async function loadResources(){
 
-const notesList=document.getElementById("notesList");
-const pptsList=document.getElementById("pptsList");
+// ===============================
+// LOGIN
+// ===============================
+
+function openLogin(){
+
+document.getElementById("loginModal").style.display="flex";
+
+showTab("user");
+
+}
+
+
+function closeLogin(){
+
+document.getElementById("loginModal").style.display="none";
+
+}
+
+
+function showTab(tab){
+
+document.querySelectorAll(".login-form")
+.forEach(x=>x.classList.remove("active"));
+
+document.querySelectorAll(".login-tabs button")
+.forEach(x=>x.classList.remove("active"));
+
+if(tab==="user"){
+
+document.getElementById("userLoginForm")
+.classList.add("active");
+
+document.getElementById("tabUser")
+.classList.add("active");
+
+}
+
+if(tab==="admin"){
+
+document.getElementById("adminLoginForm")
+.classList.add("active");
+
+document.getElementById("tabAdmin")
+.classList.add("active");
+
+}
+
+if(tab==="register"){
+
+document.getElementById("registerForm")
+.classList.add("active");
+
+document.getElementById("tabRegister")
+.classList.add("active");
+
+}
+
+}
+
+
+document.getElementById("userLoginForm")
+.addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const status=
+document.getElementById("userLoginStatus");
+
+const data=
+Object.fromEntries(new FormData(this));
+
+status.textContent="Logging in...";
 
 try{
 
-const response=await fetch("/api/resources");
+const response=await fetch("/api/auth/login",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+mode:"user",
+
+instagram_username:
+data.instagram_username,
+
+password:data.password
+
+})
+
+});
+
+const result=await response.json();
 
 if(!response.ok){
-throw new Error("Failed");
+
+throw new Error(
+result.error || "Login failed"
+);
+
 }
 
-const resources=await response.json();
+localStorage.setItem(
+"userToken",
+result.token
+);
 
-const notes=resources.filter(r =>
+localStorage.setItem(
+"userRole",
+result.role
+);
+
+localStorage.setItem(
+"instagramUsername",
+data.instagram_username
+);
+
+status.textContent=
+"✅ Login successful!";
+
+setTimeout(closeLogin,700);
+
+}catch(error){
+
+status.textContent=
+"❌ "+error.message;
+
+}
+
+});
+
+
+// ADMIN LOGIN
+
+document.getElementById("adminLoginForm")
+.addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const status=
+document.getElementById("adminLoginStatus");
+
+const data=
+Object.fromEntries(new FormData(this));
+
+status.textContent=
+"Checking admin login...";
+
+try{
+
+const response=await fetch(
+"/api/auth/login",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+mode:"admin",
+
+username:data.username,
+
+password:data.password
+
+})
+
+});
+
+const result=await response.json();
+
+if(!response.ok){
+
+throw new Error(
+result.error || "Admin login failed"
+);
+
+}
+
+localStorage.setItem(
+"adminToken",
+result.token
+);
+
+localStorage.setItem(
+"userRole",
+"admin"
+);
+
+window.location.href="/admin.html";
+
+}catch(error){
+
+status.textContent=
+"❌ "+error.message;
+
+}
+
+});
+
+
+// CREATE ACCOUNT
+
+document.getElementById("registerForm")
+.addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const status=
+document.getElementById("registerStatus");
+
+const data=
+Object.fromEntries(new FormData(this));
+
+if(data.password !== data.confirm_password){
+
+status.textContent=
+"❌ Passwords do not match.";
+
+return;
+
+}
+
+if(data.password.length < 6){
+
+status.textContent=
+"❌ Password must be at least 6 characters.";
+
+return;
+
+}
+
+status.textContent=
+"Creating account...";
+
+try{
+
+const response=await fetch(
+"/api/auth/register",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+instagram_username:
+data.instagram_username,
+
+password:data.password
+
+})
+
+});
+
+const result=await response.json();
+
+if(!response.ok){
+
+throw new Error(
+result.error ||
+"Account creation failed"
+);
+
+}
+
+localStorage.setItem(
+"userToken",
+result.token
+);
+
+localStorage.setItem(
+"userRole",
+result.role
+);
+
+localStorage.setItem(
+"instagramUsername",
+data.instagram_username
+);
+
+status.textContent=
+"✅ Account created successfully!";
+
+setTimeout(closeLogin,700);
+
+}catch(error){
+
+status.textContent=
+"❌ "+error.message;
+
+}
+
+});
+
+
+// ===============================
+// RESOURCES
+// ===============================
+
+async function loadResources(){
+
+const notesList=
+document.getElementById("notesList");
+
+const pptsList=
+document.getElementById("pptsList");
+
+try{
+
+const response=
+await fetch("/api/resources");
+
+if(!response.ok)
+throw new Error("Failed");
+
+const resources=
+await response.json();
+
+const notes=
+resources.filter(r=>
 String(r.type).toLowerCase()==="notes"
 );
 
-const ppts=resources.filter(r =>
-["ppt","ppts","presentation"].includes(
+const ppts=
+resources.filter(r=>
+["ppt","ppts","presentation"]
+.includes(
 String(r.type).toLowerCase()
 )
 );
 
-renderResources(notes,notesList,"notes");
-renderResources(ppts,pptsList,"PPTs");
+renderResources(
+notes,
+notesList,
+"notes"
+);
+
+renderResources(
+ppts,
+pptsList,
+"PPTs"
+);
 
 }catch(error){
 
@@ -529,38 +1194,55 @@ pptsList.innerHTML=
 
 }
 
-function renderResources(items,container,label){
+
+function renderResources(
+items,
+container,
+label
+){
 
 if(!items.length){
 
 container.innerHTML=
-`<div class="empty">No ${label} available yet.</div>`;
+`<div class="empty">
+No ${label} available yet.
+</div>`;
 
 return;
+
 }
 
-container.innerHTML=items.map(item=>`
+container.innerHTML=
+items.map(item=>`
 
 <div class="resource">
 
 <div class="resource-info">
 
 <div class="resource-title">
-${escapeHTML(item.title || "Untitled Resource")}
+${escapeHTML(
+item.title || "Untitled Resource"
+)}
 </div>
 
 <div class="resource-subject">
-${escapeHTML(item.subject || "Medical")}
+${escapeHTML(
+item.subject || "Medical"
+)}
 </div>
 
 </div>
 
 <a
 class="download"
-href="${escapeAttr(item.file_url || "#")}"
+href="${escapeAttr(
+item.file_url || "#"
+)}"
 target="_blank"
 rel="noopener"
-${item.file_url ? "" : 'onclick="return false"'}
+${item.file_url ?
+"" :
+'onclick="return false"'}
 >
 📥 Download
 </a>
@@ -571,9 +1253,11 @@ ${item.file_url ? "" : 'onclick="return false"'}
 
 }
 
+
 function escapeHTML(value){
 
 return String(value)
+
 .replace(/&/g,"&amp;")
 .replace(/</g,"&lt;")
 .replace(/>/g,"&gt;")
@@ -582,35 +1266,59 @@ return String(value)
 
 }
 
+
 function escapeAttr(value){
 
 return escapeHTML(value);
 
 }
 
+
+// ===============================
+// RESOURCE REQUEST
+// ===============================
+
 document.getElementById("requestForm")
-.addEventListener("submit",async function(e){
+.addEventListener(
+"submit",
+async function(e){
 
 e.preventDefault();
 
-const status=document.getElementById("requestStatus");
-const data=Object.fromEntries(new FormData(this));
+const status=
+document.getElementById(
+"requestStatus"
+);
+
+const data=
+Object.fromEntries(
+new FormData(this)
+);
 
 status.textContent="Sending...";
 
 try{
 
-const response=await fetch("/api/requests",{
+const response=
+await fetch("/api/requests",{
+
 method:"POST",
+
 headers:{
-"Content-Type":"application/json"
+"Content-Type":
+"application/json"
 },
+
 body:JSON.stringify(data)
+
 });
 
-if(!response.ok) throw new Error();
+if(!response.ok)
+throw new Error();
 
-status.textContent="✅ Request submitted successfully!";
+status.textContent=
+"✅ Request submitted successfully!";
+
 this.reset();
 
 }catch(error){
@@ -622,27 +1330,50 @@ status.textContent=
 
 });
 
+
+// ===============================
+// COLLABORATION
+// ===============================
+
 document.getElementById("collabForm")
-.addEventListener("submit",async function(e){
+.addEventListener(
+"submit",
+async function(e){
 
 e.preventDefault();
 
-const status=document.getElementById("collabStatus");
-const data=Object.fromEntries(new FormData(this));
+const status=
+document.getElementById(
+"collabStatus"
+);
+
+const data=
+Object.fromEntries(
+new FormData(this)
+);
 
 status.textContent="Sending...";
 
 try{
 
-const response=await fetch("/api/collaborations",{
+const response=
+await fetch(
+"/api/collaborations",
+{
+
 method:"POST",
+
 headers:{
-"Content-Type":"application/json"
+"Content-Type":
+"application/json"
 },
+
 body:JSON.stringify(data)
+
 });
 
-if(!response.ok) throw new Error();
+if(!response.ok)
+throw new Error();
 
 status.textContent=
 "✅ Collaboration request submitted!";
@@ -658,9 +1389,30 @@ status.textContent=
 
 });
 
-loadResources();
 
-</script>
+// ===============================
+// VISITOR COUNT
+// ===============================
 
-</body>
-</html>
+async function trackVisitor(){
+
+let visitorKey=
+localStorage.getItem(
+"truthVisitorKey"
+);
+
+if(!visitorKey){
+
+visitorKey=
+"v_"+crypto.randomUUID();
+
+localStorage.setItem(
+"truthVisitorKey",
+visitorKey
+);
+
+}
+
+try{
+
+co
