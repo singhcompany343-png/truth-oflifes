@@ -1,1328 +1,336 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>truth.oflifes | Medical Notes & PPTs</title>
-
-<style>
-:root{
-  --b:#087fc5;
-  --d:#04101f;
-  --i:#102b4d;
-  --s:#eef8ff;
-  --p:#7550a7
-}
-
-*{box-sizing:border-box}
-
-html{
-  scroll-behavior:smooth
-}
-
-body{
-  margin:0;
-  font-family:Arial,sans-serif;
-  color:var(--i);
-  background:#03070d
-}
-
-a{
-  text-decoration:none;
-  color:inherit
-}
-
-button{
-  font-family:inherit
-}
-
-.wrap{
-  max-width:1240px;
-  margin:auto;
-  padding:0 24px
-}
-
-nav{
-  min-height:78px;
-  background:#02060c;
-  color:#fff;
-  position:sticky;
-  top:0;
-  z-index:9
-}
-
-.nav{
-  min-height:78px;
-  display:flex;
-  align-items:center;
-  gap:14px
-}
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  font-size:25px;
-  font-weight:800;
-  margin-right:auto
-}
-
-.logo{
-  width:48px;
-  height:48px;
-  border-radius:12px;
-  background:linear-gradient(145deg,#fff,#9bdcff);
-  display:grid;
-  place-items:center;
-  font-size:25px
-}
-
-.links{
-  display:flex;
-  gap:18px;
-  font-size:14px;
-  font-weight:700
-}
-
-.links a:hover{
-  color:#35a9ff
-}
-
-.tg,
-.login,
-.btn{
-  background:#0b86d4;
-  color:white;
-  padding:12px 20px;
-  border-radius:23px;
-  font-weight:700;
-  border:0;
-  cursor:pointer;
-  display:inline-block
-}
-
-.login{
-  background:#18386d
-}
-
-.hero{
-  background:linear-gradient(90deg,#f7fcff,#eaf6fd)
-}
-
-.hero .wrap{
-  min-height:420px;
-  display:grid;
-  grid-template-columns:1fr 1fr
-}
-
-.copy{
-  padding:55px 0
-}
-
-.eyebrow{
-  font-family:cursive;
-  font-size:18px
-}
-
-.hero h1{
-  font-size:48px;
-  line-height:1.06;
-  margin:12px 0
-}
-
-.hero h1 span{
-  color:#087fc5
-}
-
-.hero p{
-  font-size:18px;
-  line-height:1.55;
-  color:#56687c;
-  max-width:600px
-}
-
-.buttons{
-  display:flex;
-  gap:18px;
-  margin-top:25px
-}
-
-.btn.alt{
-  background:#fff;
-  color:var(--i);
-  border:1px solid #60728a
-}
-
-.art{
-  min-height:420px;
-  position:relative;
-  display:grid;
-  place-items:center;
-  background:linear-gradient(135deg,#dcecf6,#fff)
-}
-
-.st{
-  font-size:125px;
-  opacity:.16
-}
-
-.books{
-  position:absolute;
-  right:5%;
-  bottom:45px
-}
-
-.book{
-  width:245px;
-  height:40px;
-  margin:3px;
-  background:#173d65;
-  color:#fff;
-  padding:10px 17px;
-  font-weight:800;
-  border-radius:3px
-}
-
-.book:nth-child(3n){
-  background:#1c6676
-}
-
-.visitorbar{
-  background:#09284b;
-  color:#fff;
-  text-align:center;
-  padding:12px;
-  font-size:18px;
-  font-weight:700
-}
-
-.visitorbar span{
-  color:#35a9ff
-}
-
-.trust{
-  background:#fff
-}
-
-.trust .wrap{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:20px;
-  padding-top:22px;
-  padding-bottom:22px
-}
-
-.trust div{
-  font-size:13px;
-  font-weight:700;
-  color:#64758a
-}
-
-.trust b{
-  font-size:25px;
-  color:#0b7fc3;
-  margin-right:8px
-}
-
-section{
-  padding:48px 0
-}
-
-.cards{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px
-}
-
-.panel{
-  padding:25px;
-  border-radius:14px;
-  background:linear-gradient(135deg,#edf8ff,#dceeff)
-}
-
-.purple{
-  background:linear-gradient(135deg,#f7f1ff,#ece3fb)
-}
-
-.head{
-  display:flex;
-  gap:14px;
-  align-items:center
-}
-
-.icon{
-  width:55px;
-  height:55px;
-  border-radius:13px;
-  background:#0b87d4;
-  color:#fff;
-  display:grid;
-  place-items:center;
-  font-size:28px
-}
-
-.purple .icon{
-  background:#7550a7
-}
-
-.panel h2{
-  margin:0 0 5px
-}
-
-.muted{
-  color:#607287
-}
-
-.subjects{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  margin-top:20px
-}
-
-.subject{
-  background:#fff;
-  border-radius:10px;
-  padding:14px 8px;
-  text-align:center;
-  font-size:13px;
-  font-weight:800;
-  cursor:pointer;
-  transition:.2s
-}
-
-.subject:hover{
-  transform:translateY(-2px);
-  box-shadow:0 5px 15px rgba(0,0,0,.12)
-}
-
-.dark{
-  background:#03070d;
-  color:#fff
-}
-
-.dark .muted{
-  color:#a9b7c9
-}
-
-.sectionhead{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:15px
-}
-
-.sectionhead h2{
-  font-size:32px
-}
-
-.view{
-  color:#35a9ff;
-  font-weight:800
-}
-
-.resourcegrid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:18px
-}
-
-.resource{
-  border:1px solid #263247;
-  background:#060c15;
-  border-radius:14px;
-  padding:22px
-}
-
-.resource h3{
-  margin-top:0;
-  margin-bottom:10px
-}
-
-.resource .btn{
-  display:inline-block;
-  border-radius:8px
-}
-
-.resource-empty{
-  grid-column:1/-1;
-  text-align:center
-}
-
-.three{
-  display:grid;
-  grid-template-columns:1.3fr 1fr 1fr;
-  gap:20px
-}
-
-.darkbox{
-  border:1px solid #263247;
-  border-radius:14px;
-  padding:22px
-}
-
-.posts{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:7px
-}
-
-.post{
-  height:140px;
-  border-radius:8px;
-  background:linear-gradient(145deg,#173b5a,#0a1422);
-  display:grid;
-  place-items:center;
-  text-align:center;
-  font-weight:800;
-  padding:8px
-}
-
-.tgbox{
-  background:linear-gradient(145deg,#0a90df,#126ca9);
-  padding:18px;
-  border-radius:12px
-}
-
-.tgbox .btn{
-  background:#fff;
-  color:#0877ba;
-  display:inline-block;
-  border-radius:8px
-}
-
-.checks{
-  line-height:2;
-  color:#b8c7d8
-}
-
-.formgrid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:22px
-}
-
-.form{
-  background:#fff;
-  border-radius:14px;
-  padding:25px
-}
-
-.form input,
-.form textarea,
-.form select{
-  width:100%;
-  padding:13px;
-  margin:6px 0 12px;
-  border:1px solid #d4dfeb;
-  border-radius:8px;
-  font:inherit
-}
-
-.form textarea{
-  min-height:110px
-}
-
-.form button{
-  width:100%;
-  border:0;
-  border-radius:8px;
-  padding:14px;
-  background:#0b83d2;
-  color:#fff;
-  font-weight:800;
-  cursor:pointer
-}
-
-footer{
-  background:#071b34;
-  color:#dce7f2;
-  padding:28px 0
-}
-
-.foot{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:20px
-}
-
-.footlinks{
-  display:flex;
-  gap:20px;
-  font-size:13px
-}
-
-.small{
-  text-align:center;
-  color:#8fa4bc;
-  font-size:12px;
-  margin-top:20px
-}
-
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.72);
-  z-index:100;
-  align-items:center;
-  justify-content:center;
-  padding:18px
-}
-
-.modal.show{
-  display:flex
-}
-
-.modalbox{
-  width:min(430px,100%);
-  background:#fff;
-  border-radius:16px;
-  padding:24px;
-  box-shadow:0 20px 60px rgba(0,0,0,.35);
-  position:relative
-}
-
-.close{
-  position:absolute;
-  right:14px;
-  top:10px;
-  border:0;
-  background:transparent;
-  font-size:28px;
-  cursor:pointer;
-  color:#536273
-}
-
-.modalbox h2{
-  margin:0 0 18px
-}
-
-.tabs{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:6px;
-  margin-bottom:16px
-}
-
-.tab{
-  border:0;
-  background:#edf3f8;
-  padding:11px 5px;
-  border-radius:8px;
-  font-weight:700;
-  cursor:pointer;
-  color:#345
-}
-
-.tab.active{
-  background:#0b83d2;
-  color:#fff
-}
-
-.loginform{
-  display:none
-}
-
-.loginform.active{
-  display:block
-}
-
-.loginform input{
-  width:100%;
-  padding:13px;
-  margin:7px 0 12px;
-  border:1px solid #ccd9e5;
-  border-radius:8px;
-  font:inherit
-}
-
-.loginform button{
-  width:100%;
-  padding:13px;
-  border:0;
-  border-radius:8px;
-  background:#0b83d2;
-  color:#fff;
-  font-weight:800;
-  cursor:pointer
-}
-
-.msg{
-  min-height:20px;
-  margin:10px 0 0;
-  font-size:14px
-}
-
-.adminhint{
-  font-size:12px;
-  color:#6a7785;
-  margin-top:10px
-}
-
-@media(max-width:900px){
-
-  .links{
-    display:none
-  }
-
-  .hero .wrap,
-  .cards,
-  .three,
-  .formgrid,
-  .resourcegrid{
-    grid-template-columns:1fr
-  }
-
-  .trust .wrap{
-    grid-template-columns:1fr 1fr
-  }
-
-  .hero h1{
-    font-size:40px
-  }
-
-  .art{
-    min-height:280px
-  }
-}
-
-@media(max-width:560px){
-
-  .wrap{
-    padding:0 16px
-  }
-
-  .nav{
-    gap:8px
-  }
-
-  .brand{
-    font-size:20px
-  }
-
-  .logo{
-    width:40px;
-    height:40px
-  }
-
-  .tg{
-    padding:10px 13px;
-    font-size:14px
-  }
-
-  .login{
-    display:inline-block;
-    padding:10px 14px;
-    font-size:14px
-  }
-
-  .hero h1{
-    font-size:36px
-  }
-
-  .subjects{
-    grid-template-columns:1fr 1fr
-  }
-
-  .posts{
-    grid-template-columns:1fr 1fr
-  }
-
-  .post{
-    height:120px
-  }
-
-  .trust .wrap{
-    grid-template-columns:1fr
-  }
-
-  .buttons{
-    flex-direction:column
-  }
-
-  .buttons .btn{
-    text-align:center
-  }
-
-  .book{
-    width:210px
-  }
-
-  .sectionhead{
-    align-items:flex-start;
-    flex-direction:column
-  }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>truth.oflifes - Medical Notes, PPTs & Resources</title>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --border-color: #374151;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-blue: #0284c7;
+            --accent-blue-hover: #0369a1;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --danger-red: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-primary); color: var(--text-main); line-height: 1.5; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 20px; font-weight: bold; color: #38bdf8; text-decoration: none; }
+        .nav-links { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 500; font-size: 14px; cursor: pointer; transition: color 0.2s; }
+        .nav-links a:hover { color: #38bdf8; }
+        .btn-auth-nav { background: var(--accent-blue); color: white; padding: 6px 14px; border-radius: 4px; font-size: 14px; border: none; cursor: pointer; }
+        .btn-auth-nav:hover { background: var(--accent-blue-hover); }
+
+        .hero { text-align: center; padding: 50px 20px; background: radial-gradient(circle at center, #1e293b 0%, var(--bg-primary) 100%); border-bottom: 1px solid var(--border-color); }
+        .hero h1 { font-size: 32px; margin-bottom: 10px; color: #fff; }
+        .hero p { color: var(--text-muted); font-size: 15px; margin-bottom: 15px; }
+        .visitor-box { color: #38bdf8; font-weight: 600; margin-bottom: 20px; font-size: 15px; background: rgba(56, 189, 248, 0.1); display: inline-block; padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(56, 189, 248, 0.2); }
+        
+        .container { max-width: 1200px; margin: auto; padding: 30px 20px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .section-title { font-size: 20px; font-weight: 600; color: #fff; }
+        
+        .filters-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .filter-btn { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .filter-btn:hover, .filter-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+
+        .resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); }
+        .card h3 { font-size: 16px; margin-bottom: 8px; color: #fff; }
+        .card p { color: var(--text-muted); font-size: 13px; margin-bottom: 15px; }
+        .card-meta { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-bottom: 12px; }
+        .btn-download { background: var(--accent-green); color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 600; text-align: center; border: none; cursor: pointer; display: block; }
+        .btn-download:hover { background: var(--accent-green-hover); }
+
+        .forms-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
+        .form-box { background: var(--bg-card); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .form-box h3 { margin-bottom: 15px; font-size: 18px; color: #fff; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: #fff; border-radius: 4px; font-size: 14px; }
+        .form-control:focus { outline: none; border-color: var(--accent-blue); }
+        .btn-submit { background: var(--accent-blue); color: white; width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; }
+        .btn-submit:hover { background: var(--accent-blue-hover); }
+
+        /* Modal Styles */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; padding: 15px; }
+        .modal-container { background: var(--bg-card); width: 100%; max-width: 400px; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-tabs { display: flex; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+        .modal-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-muted); border: none; background: none; }
+        .modal-tab.active { color: #38bdf8; border-bottom: 2px solid #38bdf8; background: var(--bg-card); }
+        .modal-body { padding: 20px; }
+        .modal-close { float: right; font-size: 20px; cursor: pointer; color: var(--text-muted); background: none; border: none; }
+        
+        .error-msg { color: var(--danger-red); font-size: 12px; margin-top: 5px; display: none; }
+        .success-msg { color: var(--accent-green); font-size: 12px; margin-top: 5px; display: none; }
+
+        footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 13px; border-top: 1px solid var(--border-color); margin-top: 50px; background: var(--bg-secondary); }
+
+        @media (max-width: 768px) {
+            header { padding: 12px 15px; }
+            .hero h1 { font-size: 24px; }
+            .container { padding: 20px 10px; }
+        }
+    </style>
 </head>
-
 <body>
 
-<nav>
-<div class="wrap nav">
-
-<a class="brand" href="#home">
-<span class="logo">🩺</span>
-truth.oflifes
-</a>
-
-<div class="links">
-<a href="#home">Home</a>
-<a href="#notes">Notes</a>
-<a href="#ppts">PPTs</a>
-<a href="#collab">Collaboration</a>
-<a href="#about">About</a>
-<a href="#contact">Contact</a>
-</div>
-
-<a class="tg"
-   href="https://t.me/+q3-9PiVKzbYyYWVl"
-   target="_blank">
-Telegram
-</a>
-
-<button class="login"
-        type="button"
-        onclick="openLogin()">
-Login
-</button>
-
-</div>
-</nav>
-
-
-<div class="visitorbar">
-👥 <span id="visitorCount">Loading...</span> visitors
-</div>
-
-
-<header id="home" class="hero">
-
-<div class="wrap">
-
-<div class="copy">
-
-<div class="eyebrow">
-For Every Medical Soul — ♡
-</div>
-
-<h1>
-Your Medical Journey<br>
-<span>Starts Here</span>
-</h1>
-
-<p>
-Get Notes, PPTs, Study Material & Latest Medical Updates
-all in one place. Join our community and grow together.
-</p>
-
-<div class="buttons">
-
-<a class="btn" href="#notes">
-▣ &nbsp; Explore Notes
-</a>
-
-<a class="btn alt" href="#ppts">
-▣ &nbsp; Explore PPTs
-</a>
-
-</div>
-
-</div>
-
-
-<div class="art">
-
-<div class="st">🩺</div>
-
-<div class="books">
-<div class="book">ANATOMY</div>
-<div class="book">PHYSIOLOGY</div>
-<div class="book">PHARMACOLOGY</div>
-<div class="book">PATHOLOGY</div>
-<div class="book">MEDICINE</div>
-<div class="book">SURGERY</div>
-</div>
-
-</div>
-
-</div>
-</header>
-
-
-<div class="trust">
-
-<div class="wrap">
-
-<div>
-<b>✓</b>
-Quality Content<br>
-Verified
-</div>
-
-<div>
-<b>⚡</b>
-Easy Access<br>
-& Fast
-</div>
-
-<div>
-<b>🎓</b>
-Student<br>
-Friendly
-</div>
-
-<div>
-<b>◷</b>
-Regular<br>
-Updates
-</div>
-
-</div>
-
-</div>
-
-
-<section id="notes">
-
-<div class="wrap">
-
-<div class="cards">
-
-
-<!-- NOTES -->
-
-<div class="panel">
-
-<div class="head">
-
-<div class="icon">▤</div>
-
-<div>
-<h2>Notes</h2>
-<div class="muted">
-Handwritten & Typed Notes | Subject Wise
-</div>
-</div>
-
-</div>
-
-
-<div class="subjects">
-
-<a class="subject" data-subject="Anatomy" data-type="Notes" href="#resources">Anatomy</a>
-<a class="subject" data-subject="Physiology" data-type="Notes" href="#resources">Physiology</a>
-<a class="subject" data-subject="Biochemistry" data-type="Notes" href="#resources">Biochemistry</a>
-<a class="subject" data-subject="Pharmacology" data-type="Notes" href="#resources">Pharmacology</a>
-<a class="subject" data-subject="Pathology" data-type="Notes" href="#resources">Pathology</a>
-<a class="subject" data-subject="Microbiology" data-type="Notes" href="#resources">Microbiology</a>
-<a class="subject" data-subject="Forensic Medicine" data-type="Notes" href="#resources">Forensic Medicine</a>
-<a class="subject" data-subject="Community Medicine" data-type="Notes" href="#resources">Community Medicine</a>
-<a class="subject" data-subject="Medicine" data-type="Notes" href="#resources">Medicine</a>
-<a class="subject" data-subject="Surgery" data-type="Notes" href="#resources">Surgery</a>
-<a class="subject" data-subject="Pediatrics" data-type="Notes" href="#resources">Pediatrics</a>
-<a class="subject" data-subject="OBG" data-type="Notes" href="#resources">OBG</a>
-<a class="subject" data-subject="Orthopedics" data-type="Notes" href="#resources">Orthopedics</a>
-<a class="subject" data-subject="ENT" data-type="Notes" href="#resources">ENT</a>
-<a class="subject" data-subject="Ophthalmology" data-type="Notes" href="#resources">Ophthalmology</a>
-<a class="subject" data-subject="Radiology" data-type="Notes" href="#resources">Radiology</a>
-<a class="subject" data-subject="Anesthesia" data-type="Notes" href="#resources">Anesthesia</a>
-<a class="subject" data-subject="Psychiatry" data-type="Notes" href="#resources">Psychiatry</a>
-<a class="subject" data-subject="Dermatology" data-type="Notes" href="#resources">Dermatology</a>
-<a class="subject" data-subject="Dentistry" data-type="Notes" href="#resources">Dentistry</a>
-<a class="subject" data-subject="Nursing" data-type="Notes" href="#resources">Nursing</a>
-<a class="subject" data-subject="Other" data-type="Notes" href="#resources">Other</a>
-
-</div>
-</div>
-
-
-<!-- PPT -->
-
-<div class="panel purple" id="ppts">
-
-<div class="head">
-
-<div class="icon">▣</div>
-
-<div>
-<h2>PPTs</h2>
-<div class="muted">
-Well-Structured | Easy to Understand
-</div>
-</div>
-
-</div>
-
-
-<div class="subjects">
-
-<a class="subject" data-subject="Anatomy" data-type="PPT" href="#resources">Anatomy</a>
-<a class="subject" data-subject="Physiology" data-type="PPT" href="#resources">Physiology</a>
-<a class="subject" data-subject="Biochemistry" data-type="PPT" href="#resources">Biochemistry</a>
-<a class="subject" data-subject="Pharmacology" data-type="PPT" href="#resources">Pharmacology</a>
-<a class="subject" data-subject="Pathology" data-type="PPT" href="#resources">Pathology</a>
-<a class="subject" data-subject="Microbiology" data-type="PPT" href="#resources">Microbiology</a>
-<a class="subject" data-subject="Forensic Medicine" data-type="PPT" href="#resources">Forensic Medicine</a>
-<a class="subject" data-subject="Community Medicine" data-type="PPT" href="#resources">Community Medicine</a>
-<a class="subject" data-subject="Medicine" data-type="PPT" href="#resources">Medicine</a>
-<a class="subject" data-subject="Surgery" data-type="PPT" href="#resources">Surgery</a>
-<a class="subject" data-subject="Pediatrics" data-type="PPT" href="#resources">Pediatrics</a>
-<a class="subject" data-subject="OBG" data-type="PPT" href="#resources">OBG</a>
-<a class="subject" data-subject="Orthopedics" data-type="PPT" href="#resources">Orthopedics</a>
-<a class="subject" data-subject="ENT" data-type="PPT" href="#resources">ENT</a>
-<a class="subject" data-subject="Ophthalmology" data-type="PPT" href="#resources">Ophthalmology</a>
-<a class="subject" data-subject="Radiology" data-type="PPT" href="#resources">Radiology</a>
-<a class="subject" data-subject="Anesthesia" data-type="PPT" href="#resources">Anesthesia</a>
-<a class="subject" data-subject="Psychiatry" data-type="PPT" href="#resources">Psychiatry</a>
-<a class="subject" data-subject="Dermatology" data-type="PPT" href="#resources">Dermatology</a>
-<a class="subject" data-subject="Dentistry" data-type="PPT" href="#resources">Dentistry</a>
-<a class="subject" data-subject="Nursing" data-type="PPT" href="#resources">Nursing</a>
-<a class="subject" data-subject="Other" data-type="PPT" href="#resources">Other</a>
-
-</div>
-</div>
-
-</div>
-</div>
-</section>
-
-
-<!-- RESOURCES -->
-
-<section id="resources" class="dark">
-
-<div class="wrap">
-
-<div class="sectionhead">
-
-<h2 id="resourceTitle">
-Latest Resources
-</h2>
-
-<a class="view"
-   href="#resources"
-   onclick="resetResources();return false;">
-All Resources →
-</a>
-
-</div>
-
-<div id="resourceList" class="resourcegrid">
-
-<div class="resource">
-Loading resources…
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-
-<section class="dark">
-
-<div class="wrap three">
-
-<div class="darkbox">
-
-<h2>◎ Latest from Instagram</h2>
-
-<p class="muted">
-Follow us for daily notes, tips, motivation & more.
-</p>
-
-<div class="posts">
-
-<div class="post">
-Medical<br>
-is not a course
-</div>
-
-<div class="post">
-Small Steps<br>
-Big Dreams
-</div>
-
-<div class="post">
-Future<br>
-Doctor ♡
-</div>
-
-<div class="post">
-Hard Work<br>
-Always Pays Off
-</div>
-
-</div>
-
-<p>
-<b>@truth.oflifes</b>
-</p>
-
-</div>
-
-
-<div class="darkbox">
-
-<h2>✈ Join Our Telegram Channel</h2>
-
-<p class="muted">
-Get instant updates, free notes, important PDFs & more.
-</p>
-
-<div class="tgbox">
-
-<a class="btn"
-   href="https://t.me/+q3-9PiVKzbYyYWVl"
-   target="_blank">
-Join Telegram →
-</a>
-
-</div>
-
-</div>
-
-
-<div class="darkbox" id="collab">
-
-<h2>🤝 Collaboration</h2>
-
-<p class="muted">
-Want to collaborate? Fill the form below and let's work together.
-</p>
-
-<div class="checks">
-
-✓ Content Creators<br>
-✓ Doctors & Educators<br>
-✓ Brands & Medical Organizations<br>
-✓ Instagram / YouTube / Telegram
-
-</div>
-
-<a class="btn" href="#contact">
-Apply for Collaboration →
-</a>
-
-</div>
-
-</div>
-
-</section>
-
-
-<section id="contact">
-
-<div class="wrap formgrid">
-
-
-<form class="form" onsubmit="sendReq(event)">
-
-<h2>Need a Note or PPT?</h2>
-
-<p class="muted">
-Send your request through the website.
-</p>
-
-<input
-name="name"
-placeholder="Your name"
-required>
-
-<input
-name="contact"
-placeholder="Phone / Email / Telegram"
-required>
-
-<select name="request_type">
-
-<option>Notes</option>
-<option>PPT</option>
-<option>Study Material</option>
-
-</select>
-
-<input
-name="resource_title"
-placeholder="What do you need?"
-required>
-
-<textarea
-name="message"
-placeholder="Any details">
-</textarea>
-
-<button>
-Send Request
-</button>
-
-<p id="rm" class="muted"></p>
-
-</form>
-
-
-<form class="form" onsubmit="sendCol(event)">
-
-<h2>Let's Collaborate</h2>
-
-<p class="muted">
-Creators, doctors, educators and brands are welcome.
-</p>
-
-<input
-name="name"
-placeholder="Your name / brand"
-required>
-
-<input
-name="contact"
-placeholder="Phone / Email / Social handle"
-required>
-
-<select name="category">
-
-<option>Content Creator</option>
-<option>Doctor / Educator</option>
-<option>Brand / Organization</option>
-<option>Instagram / YouTube / Telegram</option>
-
-</select>
-
-<textarea
-name="message"
-placeholder="Tell us about your collaboration idea"
-required>
-</textarea>
-
-<button>
-Apply for Collaboration
-</button>
-
-<p id="cm" class="muted"></p>
-
-</form>
-
-</div>
-
-</section>
-
-
-<section id="about" style="background:#eef7fd">
-
-<div class="wrap">
-
-<h2>
-About truth.oflifes
-</h2>
-
-<p
-class="muted"
-style="max-width:850px;font-size:17px;line-height:1.7">
-
-A student-friendly medical education platform for organized
-Notes, PPTs, study material and useful medical updates.
-Learn smarter, share knowledge and grow together.
-
-</p>
-
-</div>
-
-</section>
-
-
-<footer>
-
-<div class="wrap">
-
-<div class="foot">
-
-<strong style="font-size:20px">
-♡ truth.oflifes
-</strong>
-
-<div class="footlinks">
-
-<a href="#home">Home</a>
-<a href="#notes">Notes</a>
-<a href="#ppts">PPTs</a>
-<a href="#collab">Collaboration</a>
-<a href="#about">About</a>
-
-<a
-href="https://www.instagram.com/truth.oflifes"
-target="_blank">
-Contact
-</a>
-
-</div>
-
-<a
-class="tg"
-href="https://t.me/+q3-9PiVKzbYyYWVl"
-target="_blank">
-
-✈ Join us on Telegram →
-
-</a>
-
-</div>
-
-<div class="small">
-
-Founder — <b>Its Abhi</b>
-
-<br><br>
-
-© 2026 truth.oflifes.
-All rights reserved. |
-Built for Medical Students ♡
-
-</div>
-
-</div>
-
-</footer>
-
-
-<!-- LOGIN MODAL -->
-
-<div
-id="loginModal"
-class="modal"
-onclick="closeLoginOutside(event)">
-
-<div class="modalbox">
-
-<button
-class="close"
-type="button"
-onclick="closeLogin()">
-×
-</button>
-
-<h2>
-Login to truth.oflifes
-</h2>
-
-
-<div class="tabs">
-
-<button
-id="tabUser"
-class="tab active"
-type="button"
-onclick="showTab('user')">
-User Login
-</button>
-
-<button
-id="tabAdmin"
-class="tab"
-type="button"
-onclick="showTab('admin')">
-Admin Login
-</button>
-
-<button
-id="tabRegister"
-class="tab"
-type="button"
-onclick="showTab('register')">
-Create Account
-</button>
-
-</div>
-
-
-<form
-id="userLoginForm"
-class="loginform active"
-onsubmit="userLogin(event)">
-
-<input
-name="instagram_username"
-placeholder="Instagram username"
-required>
-
-<input
-name="password"
-type="password"
-placeholder="Password"
-required>
-
-<button type="submit">
-Login
-</button>
-
-<p id="userMsg" class="msg"></p>
-
-</form>
-
-
-<form
-id="adminLoginForm"
-class="loginform"
-onsubmit="adminLogin(event)">
-
-<input
-name="username"
-placeholder="Admin username"
-required>
-
-<input
-name="password"
-type="password"
-placeholder="Admin password"
-required>
-
-<button type="submit">
-Admin Login
-</button>
-
-<p id="adminMsg" class="msg"></p>
-
-</form>
-
-
-<form
-id="registerForm"
-class="loginform"
-onsubmit="registerUser(event)">
-
-<input
-name="instagram_username"
-placeholder="Instagram username"
-required>
-
-<input
-name="password"
-type="password"
-placeholder="Create password (6+ characters)"
-minlength="6"
-required>
-
-<input
-name="confirm_password"
-type="password"
-placeholder="Confirm password"
-minlength="6"
-required>
-
-<button type="submit">
-Create Account
-</button>
-
-<p id="registerMsg" class="msg"></p>
-
-</form>
-
-</div>
-
-</div>
-
-
-<scri
+    <header>
+        <a href="#" class="logo">truth.oflifes</a>
+        <div class="nav-links" id="nav-auth-container">
+            <a href="#notes-section">Notes</a>
+            <a href="#ppt-section">PPTs</a>
+            <a href="#requests-section">Request</a>
+            <a href="#collaboration-section">Collaboration</a>
+            <button class="btn-auth-nav" onclick="openAuthModal('user-login')">Login / Register</button>
+        </div>
+    </header>
+
+    <div class="hero">
+        <h1>Your Medical Journey Starts Here</h1>
+        <p>Get Notes, PPTs, Study Material & Latest Medical Updates all in one place.</p>
+        <div class="visitor-box">👥 Visitors: <span id="visitor-counter">Loading... visitors</span></div>
+        <div>
+            <a href="#notes-section" style="background: var(--accent-blue); color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-weight: 600; display: inline-block;">Explore Notes</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Latest Resources -->
+        <div style="margin-bottom: 40px;">
+            <div class="section-header">
+                <div class="section-title">Latest Resources</div>
+            </div>
+            <div id="latest-resources-container" class="resource-grid">
+                <p style="color: var(--text-muted);">Loading resources...</p>
+            </div>
+        </div>
+
+        <!-- Notes Section -->
+        <div id="notes-section" style="margin-bottom: 40px;">
+            <div class="section-header">
+                <div class="section-title">Subject-wise Notes</div>
+            </div>
+            <div class="filters-group" id="notes-subject-filters">
+                <button class="filter-btn active" onclick="filterResourcesByTypeAndSubject('notes', 'all', this)">All</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Anatomy', this)">Anatomy</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Physiology', this)">Physiology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Biochemistry', this)">Biochemistry</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Pathology', this)">Pathology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Pharmacology', this)">Pharmacology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Microbiology', this)">Microbiology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('notes', 'Other', this)">Other</button>
+            </div>
+            <div id="notes-container" class="resource-grid">
+                <p style="color: var(--text-muted);">Loading notes...</p>
+            </div>
+        </div>
+
+        <!-- PPT Section -->
+        <div id="ppt-section" style="margin-bottom: 40px;">
+            <div class="section-header">
+                <div class="section-title">Presentations (PPTs)</div>
+            </div>
+            <div class="filters-group" id="ppt-subject-filters">
+                <button class="filter-btn active" onclick="filterResourcesByTypeAndSubject('ppt', 'all', this)">All</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Anatomy', this)">Anatomy</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Physiology', this)">Physiology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Biochemistry', this)">Biochemistry</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Pathology', this)">Pathology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Pharmacology', this)">Pharmacology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Microbiology', this)">Microbiology</button>
+                <button class="filter-btn" onclick="filterResourcesByTypeAndSubject('ppt', 'Other', this)">Other</button>
+            </div>
+            <div id="ppt-container" class="resource-grid">
+                <p style="color: var(--text-muted);">Loading PPTs...</p>
+            </div>
+        </div>
+
+        <!-- Forms Section: Request & Collaboration -->
+        <div class="forms-section">
+            <div class="form-box" id="requests-section">
+                <h3>Request a Resource</h3>
+                <form id="resource-request-form" onsubmit="handleResourceRequest(event)">
+                    <div class="form-group">
+                        <label>Your Name / Username</label>
+                        <input type="text" id="req-name" class="form-control" required placeholder="Enter your name">
+                    </div>
+                    <div class="form-group">
+                        <label>Resource Title / Details</label>
+                        <textarea id="req-details" class="form-control" rows="3" required placeholder="What note or topic do you need?"></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Submit Request</button>
+                    <div id="req-success" class="success-msg">Request sent successfully!</div>
+                </form>
+            </div>
+
+            <div class="form-box" id="collaboration-section">
+                <h3>Collaboration</h3>
+                <form id="collaboration-form" onsubmit="handleCollaboration(event)">
+                    <div class="form-group">
+                        <label>Name / Channel</label>
+                        <input type="text" id="collab-name" class="form-control" required placeholder="Your name or handle">
+                    </div>
+                    <div class="form-group">
+                        <label>Message / Proposal</label>
+                        <textarea id="collab-msg" class="form-control" rows="3" required placeholder="How would you like to collaborate?"></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Send Proposal</button>
+                    <div id="collab-success" class="success-msg">Proposal sent successfully!</div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchAuthTab('user-login')" id="tab-user-login">User Login</button>
+                <button class="modal-tab" onclick="switchAuthTab('admin-login')" id="tab-admin-login">Admin Login</button>
+                <button class="modal-tab" onclick="switchAuthTab('register')" id="tab-register">Register</button>
+                <button class="modal-close" onclick="closeAuthModal()" style="padding: 10px 15px;">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- User Login Form -->
+                <form id="form-user-login" onsubmit="submitUserLogin(event)">
+                    <div class="form-group">
+                        <label>Instagram Username</label>
+                        <input type="text" id="ul-username" class="form-control" required placeholder="e.g. truth.oflifes">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="ul-password" class="form-control" required placeholder="********">
+                    </div>
+                    <div id="ul-error" class="error-msg"></div>
+                    <button type="submit" class="btn-submit">Login</button>
+                </form>
+
+                <!-- Admin Login Form -->
+                <form id="form-admin-login" onsubmit="submitAdminLogin(event)" style="display: none;">
+                    <div class="form-group">
+                        <label>Admin Username</label>
+                        <input type="text" id="al-username" class="form-control" required placeholder="Admin username">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="al-password" class="form-control" required placeholder="********">
+                    </div>
+                    <div id="al-error" class="error-msg"></div>
+                    <button type="submit" class="btn-submit">Admin Login</button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="form-register" onsubmit="submitRegister(event)" style="display: none;">
+                    <div class="form-group">
+                        <label>Instagram Username</label>
+                        <input type="text" id="reg-username" class="form-control" required placeholder="e.g. truth.oflifes">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="reg-password" class="form-control" required placeholder="********">
+                    </div>
+                    <div id="reg-error" class="error-msg"></div>
+                    <div id="reg-success" class="success-msg">Account created successfully! Please login.</div>
+                    <button type="submit" class="btn-submit">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 truth.oflifes. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const API_BASE = '/api';
+        let allResourcesCache = [];
+        let currentNotesSubject = 'all';
+        let currentPptSubject = 'all';
+
+        // Security Helper: Escape HTML strings to prevent XSS
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // Initialize application on load
+        window.onload = function() {
+            registerVisitor();
+            fetchResources();
+            checkAuthUI();
+        };
+
+        // Visitor Tracking
+        async function registerVisitor() {
+            try {
+                let visitorKey = localStorage.getItem('visitor_key');
+                if (!visitorKey) {
+                    visitorKey = 'visitor_' + Math.random().toString(36.substr(2, 9)) + Date.now();
+                    localStorage.setItem('visitor_key', visitorKey);
+                }
+                const res = await fetch(`${API_BASE}/visits`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ visitor_key: visitorKey })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const count = data.count || data.total || data.visits || 1;
+                    document.getElementById('visitor-counter').innerText = count;
+                } else {
+                    document.getElementById('visitor-counter').innerText = '1+';
+                }
+            } catch (err) {
+                console.error('Visitor registration error:', err);
+                document.getElementById('visitor-counter').innerText = '1+';
+            }
+        }
+
+        // Fetch Resources
+        async function fetchResources() {
+            try {
+                const res = await fetch(`${API_BASE}/resources`);
+                if (!res.ok) throw new Error('Failed to fetch resources');
+                allResourcesCache = await res.json();
+                renderAllSections();
+            } catch (err) {
+                console.error('Error fetching resources:', err);
+                document.getElementById('latest-resources-container').innerHTML = '<p style="color: var(--danger-red);">Failed to load resources.</p>';
+                document.getElementById('notes-container').innerHTML = '<p style="color: var(--danger-red);">Failed to load notes.</p>';
+                document.getElementById('ppt-container').innerHTML = '<p style="color: var(--danger-red);">Failed to load PPTs.</p>';
+            }
+        }
+
+        function renderAllSections() {
+            renderLatestResources();
+            renderNotes();
+            renderPPTs();
+        }
+
+        function renderLatestResources() {
+            const container = document.getElementById('latest-resources-container');
+            if (!allResourcesCache || allResourcesCache.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted);">No resources available.</p>';
+                return;
+            }
+            // Sort by latest (assuming _id or created_at or fallback order)
+            const sorted = [...allResourcesCache].reverse().slice(0, 4);
+            container.innerHTML = sorted.map(item => createResourceCard(item)).join('');
+        }
+
+        function renderNotes() {
+            const container = document.getE
