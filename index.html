@@ -16,12 +16,17 @@ nav{min-height:78px;background:#02060c;color:#fff;position:sticky;top:0;z-index:
 .buttons{display:flex;gap:18px;margin-top:25px}.btn.alt{background:#fff;color:var(--i);border:1px solid #60728a}.art{min-height:420px;position:relative;display:grid;place-items:center;background:linear-gradient(135deg,#dcecf6,#fff)}.st{font-size:125px;opacity:.16}.books{position:absolute;right:5%;bottom:45px}.book{width:245px;height:40px;margin:3px;background:#173d65;color:#fff;padding:10px 17px;font-weight:800;border-radius:3px}.book:nth-child(3n){background:#1c6676}
 .visitorbar{background:#09284b;color:#fff;text-align:center;padding:12px;font-size:18px;font-weight:700}.visitorbar span{color:#35a9ff}
 .trust{background:#fff}.trust .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding-top:22px;padding-bottom:22px}.trust div{font-size:13px;font-weight:700;color:#64758a}.trust b{font-size:25px;color:#0b7fc3;margin-right:8px}
-section{padding:48px 0}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{padding:25px;border-radius:14px;background:linear-gradient(135deg,#edf8ff,#dceeff)}.purple{background:linear-gradient(135deg,#f7f1ff,#ece3fb)}.head{display:flex;gap:14px;align-items:center}.icon{width:55px;height:55px;border-radius:13px;background:#0b87d4;color:#fff;display:grid;place-items:center;font-size:28px}.purple .icon{background:#7550a7}.panel h2{margin:0 0 5px}.muted{color:#607287}.subjects{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}.subject{background:#fff;border-radius:10px;padding:14px 8px;text-align:center;font-size:13px;font-weight:800}
-.dark{background:#03070d;color:#fff}.dark .muted{color:#a9b7c9}.sectionhead{display:flex;justify-content:space-between;align-items:center}.sectionhead h2{font-size:32px}.view{color:#35a9ff;font-weight:800}.resourcegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.resource{border:1px solid #263247;background:#060c15;border-radius:14px;padding:22px}.resource .btn{display:inline-block;border-radius:8px}
+section{padding:48px 0}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{padding:25px;border-radius:14px;background:linear-gradient(135deg,#edf8ff,#dceeff)}.purple{background:linear-gradient(135deg,#f7f1ff,#ece3fb)}.head{display:flex;gap:14px;align-items:center}.icon{width:55px;height:55px;border-radius:13px;background:#0b87d4;color:#fff;display:grid;place-items:center;font-size:28px}.purple .icon{background:#7550a7}.panel h2{margin:0 0 5px}.muted{color:#607287}.subjects{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}.subject{background:#fff;border-radius:10px;padding:14px 8px;text-align:center;font-size:13px;font-weight:800;cursor:pointer;border:none;width:100%}
+.subject:hover{background:#0b86d4;color:#fff}
+.dark{background:#03070d;color:#fff}.dark .muted{color:#a9b7c9}.sectionhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px}.sectionhead h2{font-size:32px;margin:0}.view{color:#35a9ff;font-weight:800;cursor:pointer}
+.filter-tabs{display:flex;gap:10px;margin-bottom:20px}
+.filter-tab{background:#11223b;color:#a9b7c9;border:0;padding:8px 16px;border-radius:20px;font-weight:700;cursor:pointer}
+.filter-tab.active{background:#0b86d4;color:#fff}
+.resourcegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.resource{border:1px solid #263247;background:#060c15;border-radius:14px;padding:22px}.resource .btn{display:inline-block;border-radius:8px}
 .three{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:20px}.darkbox{border:1px solid #263247;border-radius:14px;padding:22px}.posts{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.post{height:140px;border-radius:8px;background:linear-gradient(145deg,#173b5a,#0a1422);display:grid;place-items:center;text-align:center;font-weight:800;padding:8px}.tgbox{background:linear-gradient(145deg,#0a90df,#126ca9);padding:18px;border-radius:12px}.tgbox .btn{background:#fff;color:#0877ba;display:inline-block;border-radius:8px}.checks{line-height:2;color:#b8c7d8}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.form{background:#fff;border-radius:14px;padding:25px}.form input,.form textarea,.form select{width:100%;padding:13px;margin:6px 0 12px;border:1px solid #d4dfeb;border-radius:8px;font:inherit}.form textarea{min-height:110px}.form button{width:100%;border:0;border-radius:8px;padding:14px;background:#0b83d2;color:#fff;font-weight:800}
 footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justify-content:space-between;align-items:center;gap:20px}.footlinks{display:flex;gap:20px;font-size:13px}.small{text-align:center;color:#8fa4bc;font-size:12px;margin-top:20px}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.modalbox{width:min(430px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}.close{position:absolute;right:14px;top:10px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#536273}.modalbox h2{margin:0 0 18px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}.tab{border:0;background:#edf3f8;padding:11px 5px;border-radius:8px;font-weight:700;cursor:pointer;color:#345}.tab.active{background:#0b83d2;color:#fff}.loginform{display:none}.loginform.active{display:block}.loginform input{width:100%;padding:13px;margin:7px 0 12px;border:1px solid #ccd9e5;border-radius:8px;font:inherit}.loginform button{width:100%;padding:13px;border:0;border-radius:8px;background:#0b83d2;color:#fff;font-weight:800;cursor:pointer}.msg{min-height:20px;margin:10px 0 0;font-size:14px}.adminhint{font-size:12px;color:#6a7785;margin-top:10px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.modalbox{width:min(430px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}.close{position:absolute;right:14px;top:10px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#536273}.modalbox h2{margin:0 0 18px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}.tab{border:0;background:#edf3f8;padding:11px 5px;border-radius:8px;font-weight:700;cursor:pointer;color:#345}.tab.active{background:#0b83d2;color:#fff}.loginform{display:none}.loginform.active{display:block}.loginform input{width:100%;padding:13px;margin:7px 0 12px;border:1px solid #ccd9e5;border-radius:8px;font:inherit}.loginform button{width:100%;padding:13px;border:0;border-radius:8px;background:#0b83d2;color:#fff;font-weight:800;cursor:pointer}.msg{min-height:20px;margin:10px 0 0;font-size:14px}
 @media(max-width:900px){.links{display:none}.hero .wrap,.cards,.three,.formgrid,.resourcegrid{grid-template-columns:1fr}.trust .wrap{grid-template-columns:1fr 1fr}.hero h1{font-size:40px}.art{min-height:280px}}
 @media(max-width:560px){.wrap{padding:0 16px}.nav{gap:8px}.brand{font-size:20px}.logo{width:40px;height:40px}.tg{padding:10px 13px;font-size:14px}.login{display:inline-block;padding:10px 14px;font-size:14px}.hero h1{font-size:36px}.subjects{grid-template-columns:1fr 1fr}.posts{grid-template-columns:1fr 1fr}.post{height:120px}.trust .wrap{grid-template-columns:1fr}.buttons{flex-direction:column}.buttons .btn{text-align:center}.book{width:210px}}
 </style>
@@ -35,7 +40,7 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 <a href="#home">Home</a><a href="#notes">Notes</a><a href="#ppts">PPTs</a><a href="#collab">Collaboration</a><a href="#about">About</a><a href="#contact">Contact</a>
 </div>
 <a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a>
-<button class="login" type="button" onclick="openLogin()">Login</button>
+<button class="login" type="button" onclick="openLogin()" id="navLoginBtn">Login</button>
 </div>
 </nav>
 
@@ -51,15 +56,70 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 <div class="trust"><div class="wrap"><div><b>✓</b>Quality Content<br>Verified</div><div><b>⚡</b>Easy Access<br>& Fast</div><div><b>🎓</b>Student<br>Friendly</div><div><b>◷</b>Regular<br>Updates</div></div></div>
 
 <section id="notes"><div class="wrap"><div class="cards">
-<div class="panel"><div class="head"><div class="icon">▤</div><div><h2>Notes</h2><div class="muted">Handwritten & Typed Notes | Subject Wise</div></div></div><div class="subjects">
-<a class="subject" href="#resources">Anatomy</a><a class="subject" href="#resources">Physiology</a><a class="subject" href="#resources">Biochemistry</a><a class="subject" href="#resources">Pharmacology</a><a class="subject" href="#resources">Pathology</a><a class="subject" href="#resources">Microbiology</a><a class="subject" href="#resources">Forensic Medicine</a><a class="subject" href="#resources">Community Medicine</a><a class="subject" href="#resources">Medicine</a><a class="subject" href="#resources">Surgery</a><a class="subject" href="#resources">Pediatrics</a><a class="subject" href="#resources">OBG</a><a class="subject" href="#resources">Orthopedics</a><a class="subject" href="#resources">ENT</a><a class="subject" href="#resources">Ophthalmology</a><a class="subject" href="#resources">Radiology</a><a class="subject" href="#resources">Anesthesia</a><a class="subject" href="#resources">Psychiatry</a><a class="subject" href="#resources">Dermatology</a><a class="subject" href="#resources">Dentistry</a><a class="subject" href="#resources">Nursing</a><a class="subject" href="#resources">Other</a>
+<div class="panel"><div class="head"><div class="icon">▤</div><div><h2>Notes</h2><div class="muted">Handwritten & Typed Notes | Subject Wise</div></div></div><div class="subjects" id="notesSubjectsList">
+<button class="subject" type="button" onclick="selectSubject('notes','Anatomy')">Anatomy</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Physiology')">Physiology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Biochemistry')">Biochemistry</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Pharmacology')">Pharmacology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Pathology')">Pathology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Microbiology')">Microbiology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Forensic Medicine')">Forensic Medicine</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Community Medicine')">Community Medicine</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Medicine')">Medicine</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Surgery')">Surgery</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Pediatrics')">Pediatrics</button>
+<button class="subject" type="button" onclick="selectSubject('notes','OBG')">OBG</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Orthopedics')">Orthopedics</button>
+<button class="subject" type="button" onclick="selectSubject('notes','ENT')">ENT</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Ophthalmology')">Ophthalmology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Radiology')">Radiology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Anesthesia')">Anesthesia</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Psychiatry')">Psychiatry</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Dermatology')">Dermatology</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Dentistry')">Dentistry</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Nursing')">Nursing</button>
+<button class="subject" type="button" onclick="selectSubject('notes','Other')">Other</button>
 </div></div>
-<div class="panel purple" id="ppts"><div class="head"><div class="icon">▣</div><div><h2>PPTs</h2><div class="muted">Well-Structured | Easy to Understand</div></div></div><div class="subjects">
-<a class="subject" href="#resources">Anatomy</a><a class="subject" href="#resources">Physiology</a><a class="subject" href="#resources">Biochemistry</a><a class="subject" href="#resources">Pharmacology</a><a class="subject" href="#resources">Pathology</a><a class="subject" href="#resources">Microbiology</a><a class="subject" href="#resources">Forensic Medicine</a><a class="subject" href="#resources">Community Medicine</a><a class="subject" href="#resources">Medicine</a><a class="subject" href="#resources">Surgery</a><a class="subject" href="#resources">Pediatrics</a><a class="subject" href="#resources">OBG</a><a class="subject" href="#resources">Orthopedics</a><a class="subject" href="#resources">ENT</a><a class="subject" href="#resources">Ophthalmology</a><a class="subject" href="#resources">Radiology</a><a class="subject" href="#resources">Anesthesia</a><a class="subject" href="#resources">Psychiatry</a><a class="subject" href="#resources">Dermatology</a><a class="subject" href="#resources">Dentistry</a><a class="subject" href="#resources">Nursing</a><a class="subject" href="#resources">Other</a>
+<div class="panel purple" id="ppts"><div class="head"><div class="icon">▣</div><div><h2>PPTs</h2><div class="muted">Well-Structured | Easy to Understand</div></div></div><div class="subjects" id="pptsSubjectsList">
+<button class="subject" type="button" onclick="selectSubject('ppt','Anatomy')">Anatomy</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Physiology')">Physiology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Biochemistry')">Biochemistry</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Pharmacology')">Pharmacology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Pathology')">Pathology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Microbiology')">Microbiology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Forensic Medicine')">Forensic Medicine</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Community Medicine')">Community Medicine</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Medicine')">Medicine</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Surgery')">Surgery</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Pediatrics')">Pediatrics</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','OBG')">OBG</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Orthopedics')">Orthopedics</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','ENT')">ENT</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Ophthalmology')">Ophthalmology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Radiology')">Radiology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Anesthesia')">Anesthesia</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Psychiatry')">Psychiatry</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Dermatology')">Dermatology</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Dentistry')">Dentistry</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Nursing')">Nursing</button>
+<button class="subject" type="button" onclick="selectSubject('ppt','Other')">Other</button>
 </div></div>
 </div></div></section>
 
-<section id="resources" class="dark"><div class="wrap"><div class="sectionhead"><h2>Latest Resources</h2><a class="view" href="#contact">View All →</a></div><div id="resourceList" class="resourcegrid"><div class="resource">Loading resources…</div></div></div></section>
+<section id="resources" class="dark">
+<div class="wrap">
+<div class="sectionhead">
+<h2 id="resourceSectionTitle">Latest Resources</h2>
+<div class="filter-tabs">
+<button class="filter-tab active" type="button" onclick="setResourceTypeFilter('all')">All</button>
+<button class="filter-tab" type="button" onclick="setResourceTypeFilter('notes')">Notes</button>
+<button class="filter-tab" type="button" onclick="setResourceTypeFilter('ppt')">PPTs</button>
+</div>
+</div>
+<div id="activeFilterBadge" style="margin:12px 0;color:#35a9ff;font-weight:700;font-size:14px"></div>
+<div id="resourceList" class="resourcegrid"><div class="resource">Loading resources…</div></div>
+</div>
+</section>
 
 <section class="dark"><div class="wrap three">
 <div class="darkbox"><h2>◎ Latest from Instagram</h2><p class="muted">Follow us for daily notes, tips, motivation & more.</p><div class="posts"><div class="post">Medical<br>is not a course</div><div class="post">Small Steps<br>Big Dreams</div><div class="post">Future<br>Doctor ♡</div><div class="post">Hard Work<br>Always Pays Off</div></div><p><b>@truth.oflifes</b></p></div>
@@ -113,6 +173,10 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 function byId(id){return document.getElementById(id);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];});}
 
+let globalResources = [];
+let currentTypeFilter = 'all'; // 'all', 'notes', 'ppt'
+let currentSubjectFilter = ''; // '' means all subjects
+
 window.openLogin=function(){byId("loginModal").classList.add("show");showTab("user");};
 window.closeLogin=function(){byId("loginModal").classList.remove("show");};
 window.closeLoginOutside=function(e){if(e.target===byId("loginModal"))window.closeLogin();};
@@ -124,10 +188,28 @@ byId(x==="user"?"tabUser":x==="admin"?"tabAdmin":"tabRegister").classList.toggle
 });
 };
 
+function updateNavAuthState(){
+var token = localStorage.getItem("truthToken") || localStorage.getItem("adminToken");
+var loginBtn = byId("navLoginBtn");
+if(token){
+loginBtn.textContent = "Logout";
+loginBtn.onclick = function(){
+localStorage.removeItem("truthToken");
+  localStorage.removeItem("adminToken");
+localStorage.removeItem("truthRole");
+updateNavAuthState();
+alert("Logged out successfully.");
+};
+} else {
+loginBtn.textContent = "Login";
+loginBtn.onclick = function(){ openLogin(); };
+}
+}
+
 async function jsonPost(url,data){
 var r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
 var d={};try{d=await r.json();}catch(_){}
-if(!r.ok)throw new Error(d.error||"Request failed");
+if(!r.ok)throw new Error(d.error||d.message||"Request failed");
 return d;
 }
 
@@ -140,7 +222,7 @@ var d=await jsonPost("/api/auth/login",{mode:"user",instagram_username:f.instagr
 localStorage.setItem("truthToken",d.token||"");
 localStorage.setItem("truthRole","user");
 msg.textContent="Login successful!";
-setTimeout(function(){window.closeLogin();},500);
+setTimeout(function(){window.closeLogin();updateNavAuthState();},500);
 }catch(err){msg.textContent=err.message||"Login failed.";}
 };
 
@@ -169,7 +251,96 @@ localStorage.setItem("truthToken",d.token||"");
 localStorage.setItem("truthRole","user");
 msg.textContent="Account created successfully!";
 f.reset();
+setTimeout(function(){window.closeLogin();updateNavAuthState();},800);
 }catch(err){msg.textContent=err.message||"Could not create account.";}
+};
+
+window.setResourceTypeFilter = function(type){
+currentTypeFilter = type;
+currentSubjectFilter = ''; 
+document.querySelectorAll('.filter-tab').forEach(function(btn){
+btn.classList.toggle('active', btn.textContent.toLowerCase().includes(type) || (type==='all' && btn.textContent==='All'));
+});
+renderFilteredResources();
+};
+
+window.selectSubject = function(type, subject){
+currentTypeFilter = type;
+currentSubjectFilter = subject;
+document.querySelectorAll('.filter-tab').forEach(function(btn){
+btn.classList.toggle('active', btn.textContent.toLowerCase().includes(type));
+});
+var targetSection = byId('resources');
+if(targetSection) targetSection.scrollIntoView({behavior:'smooth'});
+renderFilteredResources();
+};
+
+function renderFilteredResources(){
+var box = byId("resourceList");
+var titleEl = byId("resourceSectionTitle");
+var badgeEl = byId("activeFilterBadge");
+
+var filtered = globalResources.filter(function(x){
+var matchesType = true;
+var matchesSubject = true;
+
+if(currentTypeFilter !== 'all'){
+var itemType = String(x.type || "").toLowerCase();
+if(currentTypeFilter === 'notes'){
+matchesType = itemType.includes('note');
+} else if(currentTypeFilter === 'ppt'){
+matchesType = itemType.includes('ppt') || itemType.includes('presentation');
+}
+}
+
+if(currentSubjectFilter){
+var itemSubj = String(x.subject || x.category || "").trim().toLowerCase();
+matchesSubject = (itemSubj === currentSubjectFilter.toLowerCase());
+}
+
+return matchesType && matchesSubject;
+});
+
+var titleText = "Latest Resources";
+var badgeText = "";
+if(currentSubjectFilter){
+titleText = currentSubjectFilter + " " + (currentTypeFilter==='all' ? 'Resources' : currentTypeFilter.toUpperCase());
+badgeText = "Filtered by Subject: " + currentSubjectFilter + (currentTypeFilter !== 'all' ? " (" + currentTypeFilter.toUpperCase() + ")" : "");
+} else if(currentTypeFilter !== 'all'){
+titleText = currentTypeFilter.toUpperCase() + " Resources";
+badgeText = "Showing all " + currentTypeFilter.toUpperCase();
+}
+titleEl.textContent = titleText;
+badgeEl.textContent = badgeText;
+
+if(!filtered.length){
+box.innerHTML='<div class="resource"><h3>No resources found</h3><p class="muted">No matching chapters or files found for this filter selection.</p></div>';
+return;
+}
+
+box.innerHTML = filtered.map(function(x){
+var resId = x.id || x._id || '';
+return '<div class="resource">' +
+'<h3>' + esc(x.title) + '</h3>' +
+'<p class="muted">' + esc(x.type || '') + (x.subject ? " • " + esc(x.subject) : "") + '</p>' +
+'<p class="muted">' + esc(x.description || '') + '</p>' +
+'<button class="btn" type="button" onclick="handleResourceDownload(\'' + resId + '\', \'' + esc(x.file_url || '#') + '\')">Download ' + esc(x.type || 'File') + ' →</button>' +
+'</div>';
+}).join("");
+}
+
+window.handleResourceDownload = function(id, fileUrl){
+var token = localStorage.getItem("truthToken") || localStorage.getItem("adminToken");
+if(!token){
+alert("Please login first to download notes and chapters.");
+openLogin();
+return;
+}
+if(fileUrl && fileUrl !== '#'){
+window.open(fileUrl, '_blank', 'noopener');
+} else {
+window.open('/api/resources/' + id + '/download', '_blank', 'noopener');
+}
 };
 
 window.loadResources=async function(){
@@ -177,9 +348,17 @@ var box=byId("resourceList");
 try{
 var r=await fetch("/api/resources");if(!r.ok)throw new Error("failed");
 var d=await r.json();
-if(!Array.isArray(d)||!d.length){box.innerHTML='<div class="resource"><h3>No resources added yet.</h3><p class="muted">Notes and PPTs will appear here when added from the admin system.</p></div>';return;}
-box.innerHTML=d.map(function(x){return '<div class="resource"><h3>'+esc(x.title)+'</h3><p class="muted">'+esc(x.type)+(x.subject?" • "+esc(x.subject):"")+'</p><p class="muted">'+esc(x.description||"")+'</p><a class="btn" href="'+esc(x.file_url)+'" target="_blank" rel="noopener">Open '+esc(x.type)+' →</a></div>';}).join("");
-}catch(_){box.innerHTML='<div class="resource"><h3>Resources temporarily unavailable</h3><p class="muted">Please try again shortly.</p></div>';}
+if(!Array.isArray(d)||!d.length){
+box.innerHTML='<div class="resource"><h3>No resources added yet.</h3><p class="muted">Notes and PPTs will appear here when added from the admin system.</p></div>';
+globalResources = [];
+return;
+}
+globalResources = d;
+renderFilteredResources();
+}catch(_){
+box.innerHTML='<div class="resource"><h3>Resources temporarily unavailable</h3><p class="muted">Please check your backend connection or try again shortly.</p></div>';
+globalResources = [];
+}
 };
 
 window.trackVisitor=async function(){
@@ -190,13 +369,38 @@ if(!key){
 key="v_"+Date.now()+"_"+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
 localStorage.setItem("truthVisitorKey",key);
 }
-var r=await fetch("/api/visit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({visitor_key:key})});
+var r=await fetch("/api/visits",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({visitor_key:key})});
 if(!r.ok)throw new Error("visitor api");
 var d=await r.json();
-el.textContent=Number(d.count||0).toLocaleString();
+var countVal = 0;
+if(d && typeof d === 'object'){
+  if(d.count !== undefined) countVal = d.count;
+  else if(d.total !== undefined) countVal = d.total;
+  else if(d.visits !== undefined) countVal = d.visits;
+  else if(d.visitor_count !== undefined) countVal = d.visitor_count;
+  else {
+    var keys = Object.keys(d);
+    for(var k=0; k<keys.length; k++){
+      if(typeof d[keys[k]] === 'number'){
+        countVal = d[keys[k]];
+        break;
+      }
+    }
+  }
+}
+if(!countVal || isNaN(countVal)){
+  var rGet = await fetch("/api/visits");
+  if(rGet.ok){
+    var dGet = await rGet.json();
+    if(dGet && typeof dGet === 'object'){
+      countVal = dGet.count !== undefined ? dGet.count : (dGet.total !== undefined ? dGet.total : 1);
+    }
+  }
+}
+el.textContent = Number(countVal || 1).toLocaleString();
 }catch(err){
 console.error("Visitor count error",err);
-el.textContent="0";
+el.textContent="1";
 }
 };
 
@@ -218,6 +422,7 @@ catch(err){msg.textContent=err.message||"Could not submit. Please try again.";}
 }
 
 document.addEventListener("DOMContentLoaded",function(){
+updateNavAuthState();
 window.loadResources();
 window.trackVisitor();
 });
