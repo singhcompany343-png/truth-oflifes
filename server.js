@@ -30,7 +30,7 @@ async function setupDatabase() {
     CREATE TABLE IF NOT EXISTS admins (
       id SERIAL PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
 
@@ -239,7 +239,7 @@ app.post("/api/auth/login", async (req, res) => {
 
     // ADMIN LOGIN
     const adminResult = await pool.query(
-      `SELECT id, username, password
+      `SELECT id, username, password_hash
        FROM admins
        WHERE LOWER(username)=LOWER($1)
        LIMIT 1`,
@@ -251,7 +251,7 @@ app.post("/api/auth/login", async (req, res) => {
 
       const valid = await bcrypt.compare(
         password,
-        admin.password
+        admin.password_hash
       );
 
       if (valid) {
