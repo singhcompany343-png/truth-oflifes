@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,12 +7,14 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+
 body{
 font-family:Arial,sans-serif;
 background:#f4f9ff;
 color:#102a43;
 line-height:1.5
 }
+
 a{text-decoration:none}
 
 nav{
@@ -26,18 +28,26 @@ position:sticky;
 top:0;
 z-index:10
 }
+
 .logo{
 font-size:23px;
 font-weight:800;
 margin-right:auto
 }
+
 .logo span{color:#16e2d8}
-nav a{color:white;font-size:14px}
+
+nav a{
+color:white;
+font-size:14px
+}
+
 .tg{
 background:#168de2;
 padding:9px 17px;
 border-radius:25px
 }
+
 .login-btn{
 background:#173b78;
 color:white;
@@ -45,7 +55,8 @@ border:0;
 padding:9px 20px;
 border-radius:25px;
 font-weight:bold;
-cursor:pointer
+cursor:pointer;
+width:auto
 }
 
 .hero{
@@ -58,23 +69,28 @@ linear-gradient(90deg,rgba(255,255,255,.96),rgba(255,255,255,.65)),
 url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=85")
 center/cover
 }
+
 .hero-content{max-width:680px}
+
 .eyebrow{
 color:#315477;
 margin-bottom:15px;
 font-style:italic
 }
+
 h1{
 font-size:52px;
 line-height:1.05;
 color:#071e3d
 }
+
 .hero p{
 font-size:18px;
 line-height:1.6;
 color:#40556e;
 margin:20px 0
 }
+
 .btn{
 display:inline-block;
 padding:12px 22px;
@@ -82,7 +98,12 @@ border-radius:9px;
 font-weight:bold;
 margin:5px
 }
-.blue{background:#168de2;color:white}
+
+.blue{
+background:#168de2;
+color:white
+}
+
 .outline{
 border:2px solid #62758c;
 color:#183b63
@@ -96,22 +117,37 @@ padding:25px 6%;
 background:white;
 color:#52677a
 }
-.feature{font-weight:bold;font-size:14px}
 
-section{padding:50px 6%}
+.feature{
+font-weight:bold;
+font-size:14px
+}
+
+section{
+padding:50px 6%
+}
+
 .cards{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:22px
 }
+
 .card{
 background:white;
 border-radius:16px;
 padding:25px;
 box-shadow:0 5px 25px rgba(0,0,0,.06)
 }
-.card h2{margin-bottom:8px}
-.muted{color:#65788c;line-height:1.5}
+
+.card h2{
+margin-bottom:8px
+}
+
+.muted{
+color:#65788c;
+line-height:1.5
+}
 
 .subjects{
 display:grid;
@@ -119,6 +155,7 @@ grid-template-columns:repeat(4,1fr);
 gap:10px;
 margin-top:20px
 }
+
 .subject{
 background:#f4f9ff;
 padding:14px 7px;
@@ -133,6 +170,7 @@ display:grid;
 gap:12px;
 margin-top:20px
 }
+
 .resource{
 border:1px solid #dce8f2;
 border-radius:12px;
@@ -142,15 +180,21 @@ align-items:center;
 gap:12px;
 background:#fbfdff
 }
-.resource-info{flex:1}
+
+.resource-info{
+flex:1
+}
+
 .resource-title{
 font-weight:bold;
 color:#163a60
 }
+
 .resource-subject{
 font-size:13px;
 color:#718397
 }
+
 .download{
 background:#168de2;
 color:white;
@@ -160,6 +204,7 @@ font-size:13px;
 font-weight:bold;
 white-space:nowrap
 }
+
 .empty{
 padding:20px;
 text-align:center;
@@ -172,16 +217,19 @@ border-radius:10px
 background:#050a10;
 color:white
 }
+
 .darkgrid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:22px
 }
+
 .darkbox{
 border:1px solid #28384c;
 border-radius:14px;
 padding:22px
 }
+
 .darkbox p{
 color:#abb9ca;
 line-height:1.5;
@@ -193,12 +241,14 @@ display:grid;
 grid-template-columns:1fr 1fr;
 gap:22px
 }
+
 form{
 background:white;
 padding:25px;
 border-radius:15px;
 box-shadow:0 5px 25px rgba(0,0,0,.06)
 }
+
 input,textarea,select{
 width:100%;
 padding:13px;
@@ -207,8 +257,12 @@ border:1px solid #d5e0ea;
 border-radius:8px;
 font:inherit
 }
-textarea{min-height:110px}
-button{
+
+textarea{
+min-height:110px
+}
+
+form button{
 width:100%;
 padding:14px;
 border:0;
@@ -235,7 +289,9 @@ padding:30px 6%;
 text-align:center
 }
 
+
 /* LOGIN MODAL */
+
 #loginModal{
 display:none;
 position:fixed;
@@ -246,6 +302,7 @@ align-items:center;
 justify-content:center;
 padding:18px
 }
+
 .login-box{
 background:white;
 width:100%;
@@ -256,6 +313,7 @@ position:relative;
 max-height:90vh;
 overflow:auto
 }
+
 .close-login{
 position:absolute;
 right:14px;
@@ -267,52 +325,105 @@ font-size:28px;
 padding:0;
 cursor:pointer
 }
+
 .login-tabs{
 display:grid;
 grid-template-columns:1fr 1fr 1fr;
 gap:6px;
 margin:20px 0
 }
+
 .login-tabs button{
 font-size:12px;
 padding:10px 5px;
 background:#e9f1f8;
 color:#173b78
 }
+
 .login-tabs button.active{
 background:#168de2;
 color:white
 }
-.login-form{display:none}
-.login-form.active{display:block}
+
+.login-form{
+display:none
+}
+
+.login-form.active{
+display:block
+}
+
 .login-status{
 margin-top:10px;
 font-size:14px
 }
 
+
 @media(max-width:800px){
-nav{padding:14px 4%;gap:10px}
-nav a:not(.tg){display:none}
-.hero{padding:55px 6%;min-height:430px}
-h1{font-size:39px}
+
+nav{
+padding:14px 4%;
+gap:10px
+}
+
+nav a:not(.tg){
+display:none
+}
+
+.hero{
+padding:55px 6%;
+min-height:430px
+}
+
+h1{
+font-size:39px
+}
+
 .features{
 grid-template-columns:1fr 1fr;
 padding:22px 5%
 }
-.cards,.darkgrid,.formgrid{grid-template-columns:1fr}
-.subjects{grid-template-columns:1fr 1fr}
-.resource{align-items:flex-start}
-.download{font-size:12px}
-section{padding:40px 5%}
-.login-btn{padding:8px 14px}
+
+.cards,
+.darkgrid,
+.formgrid{
+grid-template-columns:1fr
+}
+
+.subjects{
+grid-template-columns:1fr 1fr
+}
+
+.resource{
+align-items:flex-start
+}
+
+.download{
+font-size:12px
+}
+
+section{
+padding:40px 5%
+}
+
+.login-btn{
+padding:8px 14px
+}
+
 }
 </style>
 </head>
 
 <body>
 
+
+<!-- NAVBAR -->
+
 <nav>
-<div class="logo">truth<span>.oflifes</span></div>
+
+<div class="logo">
+truth<span>.oflifes</span>
+</div>
 
 <a href="#home">Home</a>
 <a href="#notes">Notes</a>
@@ -326,22 +437,38 @@ target="_blank">
 Contact
 </a>
 
-<a class="tg"
+<a
+class="tg"
 href="https://t.me/+q3-9PiVKzbYyYWVl"
 target="_blank">
 Telegram
 </a>
 
-<button class="login-btn" onclick="openLogin()">
+<button
+class="login-btn"
+type="button"
+onclick="openLogin()">
 Login
 </button>
+
 </nav>
 
+
+<!-- VISITOR COUNT -->
+
 <div class="visitor">
+
 👥 <span id="visitorCount">Loading...</span> visitors
+
 </div>
 
-<header class="hero" id="home">
+
+<!-- HERO -->
+
+<header
+class="hero"
+id="home">
+
 <div class="hero-content">
 
 <div class="eyebrow">
@@ -357,22 +484,43 @@ Quality medical notes, PPTs and educational resources —
 simple, useful and easy to understand.
 </p>
 
-<a class="btn blue" href="#notes">
+<a
+class="btn blue"
+href="#notes">
 Explore Notes
 </a>
 
-<a class="btn outline" href="#ppts">
+<a
+class="btn outline"
+href="#ppts">
 Explore PPTs
 </a>
 
 </div>
+
 </header>
 
+
+<!-- FEATURES -->
+
 <div class="features">
-<div class="feature">✅ Quality Content</div>
-<div class="feature">⚡ Easy Access</div>
-<div class="feature">🎓 Student Friendly</div>
-<div class="feature">📚 Regular Updates</div>
+
+<div class="feature">
+✅ Quality Content
+</div>
+
+<div class="feature">
+⚡ Easy Access
+</div>
+
+<div class="feature">
+🎓 Student Friendly
+</div>
+
+<div class="feature">
+📚 Regular Updates
+</div>
+
 </div>
 
 
@@ -387,6 +535,7 @@ Handwritten & typed notes | Subject wise
 </p>
 
 <div class="cards">
+
 
 <div class="card">
 
@@ -418,6 +567,7 @@ Handwritten & typed notes | Subject wise
 <div class="subject">📚 Other</div>
 
 </div>
+
 </div>
 
 
@@ -429,13 +579,20 @@ Handwritten & typed notes | Subject wise
 Notes uploaded by the admin will appear here.
 </p>
 
-<div id="notesList" class="resource-list">
-<div class="empty">Loading notes...</div>
+<div
+id="notesList"
+class="resource-list">
+
+<div class="empty">
+Loading notes...
 </div>
 
 </div>
 
 </div>
+
+</div>
+
 </section>
 
 
@@ -450,6 +607,7 @@ Well-structured | Easy to Understand
 </p>
 
 <div class="cards">
+
 
 <div class="card">
 
@@ -481,6 +639,7 @@ Well-structured | Easy to Understand
 <div class="subject">📚 Other</div>
 
 </div>
+
 </div>
 
 
@@ -492,13 +651,20 @@ Well-structured | Easy to Understand
 PPTs uploaded by the admin will appear here.
 </p>
 
-<div id="pptsList" class="resource-list">
-<div class="empty">Loading PPTs...</div>
+<div
+id="pptsList"
+class="resource-list">
+
+<div class="empty">
+Loading PPTs...
 </div>
 
 </div>
 
 </div>
+
+</div>
+
 </section>
 
 
@@ -507,6 +673,7 @@ PPTs uploaded by the admin will appear here.
 <section class="dark">
 
 <div class="darkgrid">
+
 
 <div class="darkbox">
 
@@ -517,7 +684,8 @@ Follow us for daily medical notes, tips,
 motivation and educational updates.
 </p>
 
-<a class="btn blue"
+<a
+class="btn blue"
 href="https://www.instagram.com/truth.oflifes"
 target="_blank">
 Follow Instagram →
@@ -535,7 +703,8 @@ Get instant updates, free notes,
 important PDFs and more.
 </p>
 
-<a class="btn blue"
+<a
+class="btn blue"
 href="https://t.me/+q3-9PiVKzbYyYWVl"
 target="_blank">
 Join Telegram →
@@ -544,7 +713,9 @@ Join Telegram →
 </div>
 
 
-<div class="darkbox" id="collaboration">
+<div
+class="darkbox"
+id="collaboration">
 
 <h2>🤝 Collaboration</h2>
 
@@ -554,7 +725,9 @@ Doctors & Educators<br>
 Brands & Medical Organizations
 </p>
 
-<a class="btn blue" href="#contact">
+<a
+class="btn blue"
+href="#contact">
 Apply →
 </a>
 
@@ -569,9 +742,13 @@ Apply →
 
 <section id="about">
 
-<h2>About truth.oflifes</h2>
+<h2>
+About truth.oflifes
+</h2>
 
-<p class="muted" style="max-width:800px;margin-top:12px">
+<p
+class="muted"
+style="max-width:800px;margin-top:12px">
 
 truth.oflifes is a medical education platform created to make
 useful medical learning resources easier to access.
@@ -584,22 +761,30 @@ in one simple place.
 </section>
 
 
-<!-- CONTACT -->
+<!-- CONTACT / REQUEST -->
 
 <section id="contact">
 
-<h2>📩 Request a Resource</h2>
+<h2>
+📩 Request a Resource
+</h2>
 
 <p class="muted">
 Can't find what you need? Send us a request.
 </p>
 
-<div class="formgrid" style="margin-top:20px">
+<div
+class="formgrid"
+style="margin-top:20px">
 
+
+<!-- RESOURCE REQUEST -->
 
 <form id="requestForm">
 
-<h3>Notes / PPT Request</h3>
+<h3>
+Notes / PPT Request
+</h3>
 
 <input
 name="name"
@@ -618,28 +803,38 @@ required>
 
 <select name="type">
 
-<option value="Notes">Notes</option>
-<option value="PPT">PPT</option>
+<option value="Notes">
+Notes
+</option>
+
+<option value="PPT">
+PPT
+</option>
 
 </select>
 
 <textarea
 name="message"
-placeholder="Additional details">
-</textarea>
+placeholder="Additional details"></textarea>
 
 <button type="submit">
 Send Request
 </button>
 
-<p id="requestStatus" class="muted"></p>
+<p
+id="requestStatus"
+class="muted"></p>
 
 </form>
 
 
+<!-- COLLABORATION -->
+
 <form id="collabForm">
 
-<h3>🤝 Collaboration Request</h3>
+<h3>
+🤝 Collaboration Request
+</h3>
 
 <input
 name="name"
@@ -658,14 +853,15 @@ placeholder="Organization / Page / Brand">
 <textarea
 name="message"
 placeholder="Tell us about your collaboration idea"
-required>
-</textarea>
+required></textarea>
 
 <button type="submit">
 Submit Collaboration
 </button>
 
-<p id="collabStatus" class="muted"></p>
+<p
+id="collabStatus"
+class="muted"></p>
 
 </form>
 
@@ -674,9 +870,13 @@ Submit Collaboration
 </section>
 
 
+<!-- FOOTER -->
+
 <footer>
 
-<strong>truth.oflifes</strong>
+<strong>
+truth.oflifes
+</strong>
 
 <br>
 
@@ -695,7 +895,9 @@ Medical Education • Notes • PPTs • Collaboration
 
 <div class="login-box">
 
-<button class="close-login"
+<button
+class="close-login"
+type="button"
 onclick="closeLogin()">
 ×
 </button>
@@ -704,9 +906,11 @@ onclick="closeLogin()">
 🔐 truth.oflifes Login
 </h2>
 
+
 <div class="login-tabs">
 
 <button
+type="button"
 id="tabUser"
 class="active"
 onclick="showTab('user')">
@@ -714,12 +918,14 @@ User Login
 </button>
 
 <button
+type="button"
 id="tabAdmin"
 onclick="showTab('admin')">
 Admin Login
 </button>
 
 <button
+type="button"
 id="tabRegister"
 onclick="showTab('register')">
 Create Account
@@ -751,8 +957,7 @@ Login
 
 <p
 id="userLoginStatus"
-class="login-status muted">
-</p>
+class="login-status muted"></p>
 
 </form>
 
@@ -780,13 +985,12 @@ Admin Login
 
 <p
 id="adminLoginStatus"
-class="login-status muted">
-</p>
+class="login-status muted"></p>
 
 </form>
 
 
-<!-- CREATE ACCOUNT -->
+<!-- REGISTER -->
 
 <form
 id="registerForm"
@@ -815,72 +1019,94 @@ Create Account
 
 <p
 id="registerStatus"
-class="login-status muted">
-</p>
+class="login-status muted"></p>
 
 </form>
 
 </div>
+
 </div>
 
 
 <script>
 
 
-// ===============================
-// LOGIN
-// ===============================
+// ========================================
+// LOGIN MODAL
+// ========================================
 
 function openLogin(){
 
-document.getElementById("loginModal").style.display="flex";
+const modal=document.getElementById("loginModal");
 
+if(modal){
+modal.style.display="flex";
 showTab("user");
+}
 
 }
 
 
 function closeLogin(){
 
-document.getElementById("loginModal").style.display="none";
+const modal=document.getElementById("loginModal");
+
+if(modal){
+modal.style.display="none";
+}
 
 }
 
 
 function showTab(tab){
 
-document.querySelectorAll(".login-form")
-.forEach(x=>x.classList.remove("active"));
+document
+.querySelectorAll(".login-form")
+.forEach(function(form){
+form.classList.remove("active");
+});
 
-document.querySelectorAll(".login-tabs button")
-.forEach(x=>x.classList.remove("active"));
+document
+.querySelectorAll(".login-tabs button")
+.forEach(function(button){
+button.classList.remove("active");
+});
+
 
 if(tab==="user"){
 
-document.getElementById("userLoginForm")
+document
+.getElementById("userLoginForm")
 .classList.add("active");
 
-document.getElementById("tabUser")
+document
+.getElementById("tabUser")
 .classList.add("active");
 
 }
+
 
 if(tab==="admin"){
 
-document.getElementById("adminLoginForm")
+document
+.getElementById("adminLoginForm")
 .classList.add("active");
 
-document.getElementById("tabAdmin")
+document
+.getElementById("tabAdmin")
 .classList.add("active");
 
 }
+
 
 if(tab==="register"){
 
-document.getElementById("registerForm")
+document
+.getElementById("registerForm")
 .classList.add("active");
 
-document.getElementById("tabRegister")
+document
+.getElementById("tabRegister")
 .classList.add("active");
 
 }
@@ -888,7 +1114,25 @@ document.getElementById("tabRegister")
 }
 
 
-document.getElementById("userLoginForm")
+// Close modal when clicking outside
+
+document
+.getElementById("loginModal")
+.addEventListener("click",function(e){
+
+if(e.target===this){
+closeLogin();
+}
+
+});
+
+
+// ========================================
+// USER LOGIN
+// ========================================
+
+document
+.getElementById("userLoginForm")
 .addEventListener("submit",async function(e){
 
 e.preventDefault();
@@ -897,20 +1141,22 @@ const status=
 document.getElementById("userLoginStatus");
 
 const data=
-Object.fromEntries(new FormData(this));
+Object.fromEntries(
+new FormData(this)
+);
 
 status.textContent="Logging in...";
 
 try{
 
-const response=await fetch("/api/auth/login",{
-
+const response=
+await fetch(
+"/api/auth/login",
+{
 method:"POST",
-
 headers:{
 "Content-Type":"application/json"
 },
-
 body:JSON.stringify({
 
 mode:"user",
@@ -918,18 +1164,21 @@ mode:"user",
 instagram_username:
 data.instagram_username,
 
-password:data.password
+password:
+data.password
 
 })
+}
+);
 
-});
-
-const result=await response.json();
+const result=
+await response.json();
 
 if(!response.ok){
 
 throw new Error(
-result.error || "Login failed"
+result.error ||
+"Login failed"
 );
 
 }
@@ -952,7 +1201,10 @@ data.instagram_username
 status.textContent=
 "✅ Login successful!";
 
-setTimeout(closeLogin,700);
+setTimeout(
+closeLogin,
+700
+);
 
 }catch(error){
 
@@ -964,9 +1216,12 @@ status.textContent=
 });
 
 
+// ========================================
 // ADMIN LOGIN
+// ========================================
 
-document.getElementById("adminLoginForm")
+document
+.getElementById("adminLoginForm")
 .addEventListener("submit",async function(e){
 
 e.preventDefault();
@@ -975,41 +1230,45 @@ const status=
 document.getElementById("adminLoginStatus");
 
 const data=
-Object.fromEntries(new FormData(this));
+Object.fromEntries(
+new FormData(this)
+);
 
 status.textContent=
 "Checking admin login...";
 
 try{
 
-const response=await fetch(
+const response=
+await fetch(
 "/api/auth/login",
 {
-
 method:"POST",
-
 headers:{
 "Content-Type":"application/json"
 },
-
 body:JSON.stringify({
 
 mode:"admin",
 
-username:data.username,
+username:
+data.username,
 
-password:data.password
+password:
+data.password
 
 })
+}
+);
 
-});
-
-const result=await response.json();
+const result=
+await response.json();
 
 if(!response.ok){
 
 throw new Error(
-result.error || "Admin login failed"
+result.error ||
+"Admin login failed"
 );
 
 }
@@ -1024,7 +1283,8 @@ localStorage.setItem(
 "admin"
 );
 
-window.location.href="/admin.html";
+window.location.href=
+"/admin.html";
 
 }catch(error){
 
@@ -1036,9 +1296,12 @@ status.textContent=
 });
 
 
+// ========================================
 // CREATE ACCOUNT
+// ========================================
 
-document.getElementById("registerForm")
+document
+.getElementById("registerForm")
 .addEventListener("submit",async function(e){
 
 e.preventDefault();
@@ -1047,9 +1310,15 @@ const status=
 document.getElementById("registerStatus");
 
 const data=
-Object.fromEntries(new FormData(this));
+Object.fromEntries(
+new FormData(this)
+);
 
-if(data.password !== data.confirm_password){
+
+if(
+data.password !==
+data.confirm_password
+){
 
 status.textContent=
 "❌ Passwords do not match.";
@@ -1058,7 +1327,10 @@ return;
 
 }
 
-if(data.password.length < 6){
+
+if(
+data.password.length < 6
+){
 
 status.textContent=
 "❌ Password must be at least 6 characters.";
@@ -1067,33 +1339,38 @@ return;
 
 }
 
+
 status.textContent=
 "Creating account...";
 
+
 try{
 
-const response=await fetch(
+const response=
+await fetch(
 "/api/auth/register",
 {
-
 method:"POST",
-
 headers:{
-"Content-Type":"application/json"
+"Content-Type":
+"application/json"
 },
-
 body:JSON.stringify({
 
 instagram_username:
 data.instagram_username,
 
-password:data.password
+password:
+data.password
 
 })
+}
+);
 
-});
 
-const result=await response.json();
+const result=
+await response.json();
+
 
 if(!response.ok){
 
@@ -1103,6 +1380,7 @@ result.error ||
 );
 
 }
+
 
 localStorage.setItem(
 "userToken",
@@ -1119,10 +1397,16 @@ localStorage.setItem(
 data.instagram_username
 );
 
+
 status.textContent=
 "✅ Account created successfully!";
 
-setTimeout(closeLogin,700);
+
+setTimeout(
+closeLogin,
+700
+);
+
 
 }catch(error){
 
@@ -1134,47 +1418,74 @@ status.textContent=
 });
 
 
-// ===============================
+// ========================================
 // RESOURCES
-// ===============================
+// ========================================
 
 async function loadResources(){
 
 const notesList=
-document.getElementById("notesList");
+document.getElementById(
+"notesList"
+);
 
 const pptsList=
-document.getElementById("pptsList");
+document.getElementById(
+"pptsList"
+);
+
 
 try{
 
 const response=
-await fetch("/api/resources");
+await fetch(
+"/api/resources"
+);
 
-if(!response.ok)
-throw new Error("Failed");
+
+if(!response.ok){
+
+throw new Error(
+"Failed to load resources"
+);
+
+}
+
 
 const resources=
 await response.json();
 
+
 const notes=
-resources.filter(r=>
-String(r.type).toLowerCase()==="notes"
-);
+resources.filter(function(r){
+
+return String(r.type)
+.toLowerCase()
+==="notes";
+
+});
+
 
 const ppts=
-resources.filter(r=>
-["ppt","ppts","presentation"]
-.includes(
+resources.filter(function(r){
+
+return [
+"ppt",
+"ppts",
+"presentation"
+].includes(
 String(r.type).toLowerCase()
-)
 );
+
+});
+
 
 renderResources(
 notes,
 notesList,
-"notes"
+"Notes"
 );
+
 
 renderResources(
 ppts,
@@ -1182,10 +1493,18 @@ pptsList,
 "PPTs"
 );
 
+
 }catch(error){
+
+console.error(
+"Resource loading error:",
+error
+);
+
 
 notesList.innerHTML=
 '<div class="empty">Notes are currently unavailable.</div>';
+
 
 pptsList.innerHTML=
 '<div class="empty">PPTs are currently unavailable.</div>';
@@ -1212,8 +1531,11 @@ return;
 
 }
 
+
 container.innerHTML=
-items.map(item=>`
+items.map(function(item){
+
+return `
 
 <div class="resource">
 
@@ -1221,13 +1543,15 @@ items.map(item=>`
 
 <div class="resource-title">
 ${escapeHTML(
-item.title || "Untitled Resource"
+item.title ||
+"Untitled Resource"
 )}
 </div>
 
 <div class="resource-subject">
 ${escapeHTML(
-item.subject || "Medical"
+item.subject ||
+"Medical"
 )}
 </div>
 
@@ -1236,7 +1560,8 @@ item.subject || "Medical"
 <a
 class="download"
 href="${escapeAttr(
-item.file_url || "#"
+item.file_url ||
+"#"
 )}"
 target="_blank"
 rel="noopener"
@@ -1249,7 +1574,9 @@ ${item.file_url ?
 
 </div>
 
-`).join("");
+`;
+
+}).join("");
 
 }
 
@@ -1274,14 +1601,13 @@ return escapeHTML(value);
 }
 
 
-// ===============================
+// ========================================
 // RESOURCE REQUEST
-// ===============================
+// ========================================
 
-document.getElementById("requestForm")
-.addEventListener(
-"submit",
-async function(e){
+document
+.getElementById("requestForm")
+.addEventListener("submit",async function(e){
 
 e.preventDefault();
 
@@ -1295,124 +1621,21 @@ Object.fromEntries(
 new FormData(this)
 );
 
-status.textContent="Sending...";
-
-try{
-
-const response=
-await fetch("/api/requests",{
-
-method:"POST",
-
-headers:{
-"Content-Type":
-"application/json"
-},
-
-body:JSON.stringify(data)
-
-});
-
-if(!response.ok)
-throw new Error();
-
 status.textContent=
-"✅ Request submitted successfully!";
+"Sending...";
 
-this.reset();
-
-}catch(error){
-
-status.textContent=
-"❌ Something went wrong. Please try again.";
-
-}
-
-});
-
-
-// ===============================
-// COLLABORATION
-// ===============================
-
-document.getElementById("collabForm")
-.addEventListener(
-"submit",
-async function(e){
-
-e.preventDefault();
-
-const status=
-document.getElementById(
-"collabStatus"
-);
-
-const data=
-Object.fromEntries(
-new FormData(this)
-);
-
-status.textContent="Sending...";
 
 try{
 
 const response=
 await fetch(
-"/api/collaborations",
+"/api/requests",
 {
-
 method:"POST",
-
 headers:{
 "Content-Type":
 "application/json"
 },
+body:JSON.stringify({
 
-body:JSON.stringify(data)
-
-});
-
-if(!response.ok)
-throw new Error();
-
-status.textContent=
-"✅ Collaboration request submitted!";
-
-this.reset();
-
-}catch(error){
-
-status.textContent=
-"❌ Something went wrong. Please try again.";
-
-}
-
-});
-
-
-// ===============================
-// VISITOR COUNT
-// ===============================
-
-async function trackVisitor(){
-
-let visitorKey=
-localStorage.getItem(
-"truthVisitorKey"
-);
-
-if(!visitorKey){
-
-visitorKey=
-"v_"+crypto.randomUUID();
-
-localStorage.setItem(
-"truthVisitorKey",
-visitorKey
-);
-
-}
-
-try{
-
-co
+name:data.name
