@@ -61,6 +61,8 @@ async function setupDatabase() {
       type TEXT,
       subject TEXT,
       message TEXT,
+      chapter TEXT,
+      status TEXT DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW()
     );
 
@@ -177,6 +179,9 @@ async function setupDatabase() {
   `);
   await pool.query(`
     ALTER TABLE requests ADD COLUMN IF NOT EXISTS message TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS chapter TEXT;
   `);
   await pool.query(`
     ALTER TABLE requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
@@ -981,21 +986,19 @@ app.post("/api/requests", async (req, res) => {
     const type = String(req.body.type || "").trim();
     const subject = String(req.body.subject || "").trim();
 
-    const message = String(
-      req.body.message || ""
-    ).trim();
+    const chapter = String(req.body.chapter || "").trim();
+    const message = String(req.body.message || "").trim();
+
+    // Keep the request endpoint compatible with older databases.
+    // setupDatabase() adds these columns, and IF NOT EXISTS makes redeploys safe.
+    await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS chapter TEXT;`);
+    await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';`);
 
     await pool.query(
       `INSERT INTO requests
-       (name, instagram_username, type, subject, message, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending')`,
-      [
-        name,
-        instagram_username,
-        type,
-        subject,
-        message
-      ]
+       (name, instagram_username, type, subject, chapter, message, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
+      [name, instagram_username, type, subject, chapter, message]
     );
 
     res.json({

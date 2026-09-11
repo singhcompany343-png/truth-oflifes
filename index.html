@@ -303,8 +303,14 @@ postForm("/api/collaborations",f,msg);
 async function postForm(url,f,msg){
 msg.textContent="Sending...";
 var data={};new FormData(f).forEach(function(v,k){data[k]=v;});
-try{await jsonPost(url,data);msg.textContent="Submitted successfully!";f.reset();}
-catch(err){msg.textContent=err.message||"Could not submit. Please try again.";}
+try{
+  var result=await jsonPost(url,data);
+  msg.textContent=result.message||"Request submitted successfully!";
+  f.reset();
+} catch(err){
+  console.error("Form submit error",err);
+  msg.textContent=err.message||"Could not submit. Please try again.";
+}
 }
 
 document.addEventListener("DOMContentLoaded",function(){
