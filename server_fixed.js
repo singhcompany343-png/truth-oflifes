@@ -1,0 +1,1369 @@
+const express = require("express");
+const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { Pool } = require("pg");
+const path = require("path");
+const crypto = require("crypto");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "truth-oflifes-secret";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL
+    ? { rejectUnauthorized: false }
+    : false
+});
+
+// =========================
+// DATABASE SETUP
+// =========================
+
+async function setupDatabase() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      instagram_username TEXT UNIQUE NOT NULL,
+      email TEXT,
+      password TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS resources (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL,
+      subject TEXT,
+      chapter TEXT,
+      description TEXT,
+      file_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS requests (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      instagram_username TEXT,
+      type TEXT,
+      subject TEXT,
+      message TEXT,
+      chapter TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS collaborations (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      instagram_username TEXT,
+      email TEXT,
+      message TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS visits (
+      id SERIAL PRIMARY KEY,
+      visitor_key TEXT UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS password_reset_requests (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL,
+      email TEXT,
+      token_hash TEXT,
+      expires_at TIMESTAMP,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS resource_downloads (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      resource_id INTEGER REFERENCES resources(id) ON DELETE CASCADE,
+      downloaded_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  // Migrate older users tables safely.
+  // Some older deployments used `username` and/or `password_hash`
+  // instead of the current `instagram_username` and `password` columns.
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS password TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS password_hash TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS email TEXT;
+  `);
+
+  // If an older table has `username`, copy it into the new column.
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'users'
+          AND column_name = 'username'
+      ) THEN
+        UPDATE users
+        SET instagram_username = username
+        WHERE instagram_username IS NULL
+          AND username IS NOT NULL;
+      END IF;
+    END $$;
+  `);
+
+  // Keep existing users' old password hashes usable.
+  await pool.query(`
+    UPDATE users
+    SET password = password_hash
+    WHERE password IS NULL
+      AND password_hash IS NOT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ALTER COLUMN password_hash DROP NOT NULL;
+  `);
+
+  // Allows old rows with NULL usernames while keeping new usernames unique.
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_instagram_username_unique
+    ON users(instagram_username)
+    WHERE instagram_username IS NOT NULL;
+  `);
+
+  // Older databases may have resources tables without the chapter column.
+  await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS chapter TEXT;`);
+
+  // Older databases may have requests/collaborations tables without the
+  // Instagram username columns. Add them safely for the admin dashboard.
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS name TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS type TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS subject TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS message TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS chapter TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS name TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS email TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS message TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+  `);
+  // Normalize legacy request columns so optional form fields can be empty.
+  // Older deployments may have stricter NOT NULL/default constraints.
+  await pool.query(`
+    ALTER TABLE requests
+      ALTER COLUMN name DROP NOT NULL,
+      ALTER COLUMN instagram_username DROP NOT NULL,
+      ALTER COLUMN type DROP NOT NULL,
+      ALTER COLUMN subject DROP NOT NULL,
+      ALTER COLUMN chapter DROP NOT NULL,
+      ALTER COLUMN message DROP NOT NULL,
+      ALTER COLUMN status DROP NOT NULL;
+  `);
+  await pool.query(`
+    ALTER TABLE requests
+      ALTER COLUMN status SET DEFAULT 'pending',
+      ALTER COLUMN created_at SET DEFAULT NOW();
+  `);
+
+  await pool.query(`UPDATE requests SET status='pending' WHERE status IS NULL;`);
+  await pool.query(`UPDATE collaborations SET status='pending' WHERE status IS NULL;`);
+
+  console.log("Database ready");
+}
+
+// =========================
+// AUTH MIDDLEWARE
+// =========================
+
+function auth(req, res, next) {
+  const header = req.headers.authorization || "";
+
+  if (!header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Login required" });
+  }
+
+  const token = header.substring(7);
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid or expired login" });
+  }
+}
+
+function adminAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+
+  if (!header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Admin login required" });
+  }
+
+  const token = header.substring(7);
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid or expired login" });
+  }
+}
+
+// =========================
+// PAGES
+// =========================
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
+
+app.get("/forgot-password.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "forgot-password.html"));
+});
+
+// =========================
+// HEALTH
+// =========================
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    message: "truth.oflifes server running"
+  });
+});
+
+// =========================
+// USER REGISTER
+// =========================
+
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const instagram_username =
+      String(req.body.instagram_username || "").trim();
+
+    const password = String(req.body.password || "");
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    if (!instagram_username || !password) {
+      return res.status(400).json({
+        error: "Instagram username and password are required"
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters"
+      });
+    }
+
+    const existing = await pool.query(
+      `SELECT id FROM users WHERE LOWER(instagram_username)=LOWER($1)`,
+      [instagram_username]
+    );
+
+    if (existing.rows.length) {
+      return res.status(409).json({
+        error: "Account already exists"
+      });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (instagram_username, email, password)
+       VALUES ($1, $2, $3)
+       RETURNING id, instagram_username, email, created_at`,
+      [instagram_username, email || null, hash]
+    );
+
+    const user = result.rows[0];
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.instagram_username,
+        role: "user"
+      },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      role: "user",
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Could not create account"
+    });
+  }
+});
+
+// =========================
+// USER + ADMIN LOGIN
+// =========================
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const username = String(
+      req.body.instagram_username ||
+      req.body.username ||
+      ""
+    ).trim();
+
+    const password = String(req.body.password || "");
+
+    if (!username || !password) {
+      return res.status(400).json({
+        error: "Username and password are required"
+      });
+    }
+
+    // ADMIN LOGIN
+    const adminResult = await pool.query(
+      `SELECT id, username, password_hash
+       FROM admins
+       WHERE LOWER(username)=LOWER($1)
+       LIMIT 1`,
+      [username]
+    );
+
+    if (adminResult.rows.length) {
+      const admin = adminResult.rows[0];
+
+      const valid = await bcrypt.compare(
+        password,
+        admin.password_hash
+      );
+
+      if (valid) {
+        const token = jwt.sign(
+          {
+            id: admin.id,
+            username: admin.username,
+            role: "admin"
+          },
+          JWT_SECRET,
+          { expiresIn: "30d" }
+        );
+
+        return res.json({
+          success: true,
+          token,
+          role: "admin",
+          user: {
+            id: admin.id,
+            username: admin.username
+          }
+        });
+      }
+    }
+
+    // NORMAL USER LOGIN
+    const userResult = await pool.query(
+      `SELECT id, instagram_username, email, password, created_at
+       FROM users
+       WHERE LOWER(instagram_username)=LOWER($1)
+       LIMIT 1`,
+      [username]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(401).json({
+        error: "Invalid username or password"
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    const valid = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!valid) {
+      return res.status(401).json({
+        error: "Invalid username or password"
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.instagram_username,
+        role: "user"
+      },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      role: "user",
+      user: {
+        id: user.id,
+        instagram_username: user.instagram_username,
+        email: user.email,
+        created_at: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Login failed"
+    });
+  }
+});
+
+// =========================
+// USER PROFILE + SECURITY
+// =========================
+
+app.get("/api/me", auth, async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT id, instagram_username, email, created_at FROM users WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    res.json({ user: result.rows[0] });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not load profile" }); }
+});
+
+app.patch("/api/me", auth, async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Enter a valid email address" });
+    const result = await pool.query(`UPDATE users SET email=$1 WHERE id=$2 RETURNING id, instagram_username, email, created_at`, [email || null, req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not update profile" }); }
+});
+
+app.post("/api/me/change-password", auth, async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 6) return res.status(400).json({ error: "New password must be at least 6 characters" });
+    const result = await pool.query(`SELECT password FROM users WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    if (!await bcrypt.compare(currentPassword, result.rows[0].password)) return res.status(401).json({ error: "Current password is incorrect" });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE users SET password=$1 WHERE id=$2`, [hash, req.user.id]);
+    res.json({ success: true, message: "Password changed successfully" });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not change password" }); }
+});
+
+app.get("/api/me/downloads", auth, async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT d.id, d.downloaded_at, r.id AS resource_id, r.title, r.type, r.subject FROM resource_downloads d JOIN resources r ON r.id=d.resource_id WHERE d.user_id=$1 ORDER BY d.downloaded_at DESC LIMIT 50`, [req.user.id]);
+    res.json({ downloads: result.rows });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not load download history" }); }
+});
+
+// =========================
+// PASSWORD RECOVERY
+// =========================
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    const username = String(req.body.username || req.body.instagram_username || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    // Always return the same public response to avoid account enumeration.
+    const generic = {
+      success: true,
+      message: "If the account details match, a reset request has been recorded. Please contact the admin to complete the password reset."
+    };
+
+    if (!username || !email) return res.json(generic);
+
+    const result = await pool.query(
+      `SELECT id FROM users
+       WHERE LOWER(instagram_username)=LOWER($1)
+       AND email IS NOT NULL
+       AND LOWER(email)=LOWER($2)
+       LIMIT 1`,
+      [username, email]
+    );
+
+    if (result.rows.length) {
+      await pool.query(
+        `INSERT INTO password_reset_requests (username, email, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '30 minutes')`,
+        [username, email]
+      );
+    }
+
+    return res.json(generic);
+  } catch (error) {
+    console.error(error);
+    return res.json({
+      success: true,
+      message: "If the account details match, a reset request has been recorded. Please contact the admin to complete the password reset."
+    });
+  }
+});
+
+app.post("/api/admin/change-password", adminAuth, async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 6) return res.status(400).json({ error: "New password must be at least 6 characters" });
+
+    const result = await pool.query(`SELECT password_hash FROM admins WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "Admin not found" });
+    const valid = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: "Current password is incorrect" });
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE admins SET password_hash=$1 WHERE id=$2`, [hash, req.user.id]);
+    res.json({ success: true, message: "Admin password changed" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not change admin password" });
+  }
+});
+
+app.get("/api/admin/password-reset-requests", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, username, email, expires_at, used_at, created_at
+      FROM password_reset_requests
+      ORDER BY created_at DESC
+      LIMIT 100
+    `);
+    res.json({ requests: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load password reset requests" });
+  }
+});
+
+app.post("/api/admin/users/:id/reset-password", adminAuth, async (req, res) => {
+  try {
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+    const hash = await bcrypt.hash(newPassword, 10);
+    const result = await pool.query(`UPDATE users SET password=$1 WHERE id=$2 RETURNING id, instagram_username`, [hash, req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    await pool.query(`UPDATE password_reset_requests SET used_at=NOW() WHERE LOWER(username)=LOWER($1) AND used_at IS NULL`, [result.rows[0].instagram_username]);
+    res.json({ success: true, message: "User password reset successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not reset user password" });
+  }
+});
+
+// Lightweight notification count for the admin header.
+app.get("/api/admin/notifications", adminAuth, async (req, res) => {
+  try {
+    const [r, c, p] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS count FROM requests WHERE status='pending'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM collaborations WHERE status='pending'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM password_reset_requests WHERE used_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())`)
+    ]);
+    res.json({
+      count: Number(r.rows[0].count) + Number(c.rows[0].count) + Number(p.rows[0].count),
+      requests: Number(r.rows[0].count),
+      collaborations: Number(c.rows[0].count),
+      passwordResets: Number(p.rows[0].count)
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load notifications" });
+  }
+});
+
+// =========================
+// OLD ADMIN LOGIN SUPPORT
+// =========================
+
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const username = String(req.body.username || "").trim();
+    const password = String(req.body.password || "");
+
+    const result = await pool.query(
+      `SELECT id, username, password_hash
+       FROM admins
+       WHERE LOWER(username)=LOWER($1)
+       LIMIT 1`,
+      [username]
+    );
+
+    if (!result.rows.length) {
+      return res.status(401).json({
+        error: "Invalid admin credentials"
+      });
+    }
+
+    const admin = result.rows[0];
+
+    const valid = await bcrypt.compare(
+      password,
+      admin.password_hash
+    );
+
+    if (!valid) {
+      return res.status(401).json({
+        error: "Invalid admin credentials"
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: admin.id,
+        username: admin.username,
+        role: "admin"
+      },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    res.json({
+      success: true,
+      token,
+      role: "admin"
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Admin login failed"
+    });
+  }
+});
+
+// =========================
+// RESOURCES - PUBLIC LIST
+// =========================
+
+app.get("/api/resources", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        title,
+        type,
+        subject,
+        chapter,
+        description,
+        file_url,
+        created_at
+      FROM resources
+      ORDER BY created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Could not load resources"
+    });
+  }
+});
+
+
+// =========================
+// CHAPTER MAP
+// =========================
+
+app.get("/api/chapters", (req, res) => {
+  res.json({
+    "Anatomy": ["General Anatomy","Osteology","Arthrology (Joints)","Myology (Muscles)","Cardiovascular System","Respiratory System","Digestive System","Urinary System","Reproductive System","Endocrine System","Nervous System","Head & Neck","Thorax","Abdomen","Pelvis & Perineum","Upper Limb","Lower Limb","Neuroanatomy","Cranial Nerves","Autonomic Nervous System","Histology","Embryology","Genetics","Radiological Anatomy"],
+    "Physiology": ["General Physiology","Blood","Nerve & Muscle Physiology","Cardiovascular System","Respiratory System","Gastrointestinal System","Renal Physiology","Endocrinology","Reproductive Physiology","Central Nervous System","Special Senses","Temperature Regulation","Exercise Physiology","Environmental Physiology","Acid-Base Balance"],
+    "Biochemistry": ["Biomolecules","Carbohydrates","Lipids","Proteins","Amino Acids","Enzymes","Vitamins","Minerals","Nucleic Acids","DNA & RNA","Molecular Biology","Carbohydrate Metabolism","Lipid Metabolism","Protein Metabolism","Heme Metabolism","Purine & Pyrimidine Metabolism","Biological Oxidation","Nutrition","Clinical Biochemistry","Acid-Base Balance","Liver Function Tests","Renal Function Tests"],
+    "Pharmacology": ["General Pharmacology","Pharmacokinetics","Pharmacodynamics","Autonomic Nervous System","Cholinergic Drugs","Adrenergic Drugs","Cardiovascular Drugs","Diuretics","Blood & Blood-forming Drugs","CNS Pharmacology","Antiepileptic Drugs","Antipsychotic Drugs","Antidepressants","Analgesics","Anti-inflammatory Drugs","Respiratory Drugs","GI Drugs","Endocrine Pharmacology","Antimicrobial Drugs","Antitubercular Drugs","Antileprotic Drugs","Antimalarial Drugs","Anticancer Drugs","Immunopharmacology","Toxicology"],
+    "Pathology": ["Introduction to Pathology","Cell Injury","Cell Death","Inflammation","Healing & Repair","Hemodynamic Disorders","Edema","Thrombosis","Embolism","Shock","Genetic Disorders","Immune Disorders","Neoplasia","Blood Disorders","RBC Disorders","WBC Disorders","Platelet Disorders","Leukemia","Lymphoma","Cardiovascular Pathology","Respiratory Pathology","GI Pathology","Liver Pathology","Renal Pathology","Endocrine Pathology","CNS Pathology","Female Genital Tract Pathology","Breast Pathology"],
+    "Microbiology": ["General Microbiology","Immunology","Bacteriology","Virology","Mycology","Parasitology","Sterilization & Disinfection","Biomedical Waste","Staphylococcus","Streptococcus","Mycobacteria","Enterobacteriaceae","Vibrio","Salmonella","Shigella","E. coli","TB","Diphtheria","Tetanus","Meningitis","Hepatitis Viruses","HIV/AIDS","Influenza","Rabies","Malaria","Amoebiasis","Giardiasis","Fungal Infections"],
+    "Forensic Medicine": ["Introduction to Forensic Medicine","Medical Jurisprudence","Identification","Death & its Changes","Postmortem Examination","Mechanical Injuries","Blunt Force Injury","Sharp Force Injury","Firearm Injuries","Burns","Asphyxial Deaths","Hanging","Strangulation","Drowning","Sexual Offences","Infanticide","Medicolegal Autopsy","Toxicology","Poisoning","Alcohol Poisoning","Snake Bite","Organophosphorus Poisoning","Medical Ethics","Consent","Medical Negligence"],
+    "Community Medicine": ["Concept of Health & Disease","Epidemiology","Screening","Biostatistics","Demography","Health Education","Nutrition","Communicable Diseases","Tuberculosis","Malaria","HIV/AIDS","Leprosy","Non-Communicable Diseases","Diabetes","Hypertension","Cancer","Maternal & Child Health","Family Planning","Immunization","National Health Programs","Environmental Health","Occupational Health","School Health","Geriatric Health","Disaster Management"],
+    "Medicine": ["Clinical Methods","Cardiovascular Diseases","Respiratory Diseases","Gastrointestinal Diseases","Liver Diseases","Renal Diseases","Neurology","Endocrinology","Diabetes Mellitus","Thyroid Disorders","Rheumatology","Hematology","Infectious Diseases","Fever","HIV/AIDS","Electrolyte Disorders","Acid-Base Disorders","Emergency Medicine","Poisoning","Geriatric Medicine"],
+    "Surgery": ["General Principles of Surgery","Wound Healing","Surgical Infections","Shock","Fluid & Electrolyte Management","Burns","Trauma","Head Injury","Neck Swellings","Breast Diseases","Thyroid","Esophagus","Stomach","Small Intestine","Large Intestine","Appendix","Rectum & Anal Canal","Liver","Gallbladder","Pancreas","Hernia","Vascular Surgery","Urology","Neurosurgery","Pediatric Surgery","Plastic Surgery"],
+    "Pediatrics": ["Growth & Development","Neonatology","Newborn Resuscitation","Nutrition","Breastfeeding","Immunization","Pediatric Infections","Respiratory Diseases","GI Diseases","CNS Diseases","Pediatric Cardiology","Congenital Heart Disease","Renal Diseases","Endocrine Disorders","Pediatric Hematology","Pediatric Emergencies","Genetic Disorders","Adolescent Health"],
+    "OBG": ["Obstetrics","Normal Pregnancy","Antenatal Care","Normal Labour","Abnormal Labour","Puerperium","High-Risk Pregnancy","Hypertensive Disorders","Gestational Diabetes","Antepartum Hemorrhage","Postpartum Hemorrhage","Ectopic Pregnancy","Abortion","Multiple Pregnancy","Rh Isoimmunization","Fetal Distress","Operative Obstetrics","Cesarean Section","Gynaecology","Menstrual Disorders","Infertility","PCOS","Endometriosis","Uterine Fibroids","Pelvic Inflammatory Disease","Cervical Cancer","Endometrial Cancer","Ovarian Tumors","Breast Diseases","Menopause","Contraception"],
+    "Orthopedics": ["General Orthopedics","Fractures","Dislocations","Bone Healing","Soft Tissue Injuries","Upper Limb Injuries","Lower Limb Injuries","Spine","Arthritis","Osteoarthritis","Rheumatoid Arthritis","Osteomyelitis","Bone Tumors","Congenital Disorders","Pediatric Orthopedics","Joint Replacement","Sports Injuries","Amputation","Orthopedic Emergencies"],
+    "ENT": ["Ear Anatomy","Hearing Physiology","External Ear","Middle Ear","Inner Ear","Otitis Media","Hearing Loss","Vertigo","Facial Nerve","Nose & Paranasal Sinuses","Rhinitis","Sinusitis","Epistaxis","Nasal Polyps","Throat","Tonsils","Adenoids","Larynx","Voice Disorders","Head & Neck Tumors","Foreign Bodies"],
+    "Ophthalmology": ["Anatomy of Eye","Physiology of Vision","Refractive Errors","Cataract","Glaucoma","Conjunctivitis","Corneal Diseases","Uveitis","Retinal Diseases","Diabetic Retinopathy","Hypertensive Retinopathy","Optic Nerve Disorders","Squint","Amblyopia","Eye Trauma","Ocular Emergencies","Orbit","Lacrimal System","Eyelid Disorders"],
+    "Radiology": ["X-Ray Basics","Chest X-Ray","Abdominal X-Ray","Skeletal X-Ray","Ultrasound","CT Scan","MRI","Contrast Media","Neuroimaging","Chest Imaging","Abdominal Imaging","Musculoskeletal Imaging","Obstetric Imaging","Breast Imaging","Interventional Radiology","Radiation Safety"],
+    "Anesthesia": ["Introduction to Anesthesia","Preoperative Assessment","General Anesthesia","Regional Anesthesia","Spinal Anesthesia","Epidural Anesthesia","Local Anesthesia","Airway Management","Endotracheal Intubation","Ventilation","Monitoring","Fluid Management","Blood Transfusion","Pain Management","CPR","Resuscitation","ICU Basics","Anesthetic Complications"],
+    "Psychiatry": ["Introduction to Psychiatry","Mental Status Examination","Anxiety Disorders","Depression","Bipolar Disorder","Schizophrenia","Psychosis","OCD","PTSD","Personality Disorders","Substance Abuse","Alcohol Dependence","Drug Dependence","Child Psychiatry","Eating Disorders","Sleep Disorders","Suicide & Self-Harm","Psychopharmacology"],
+    "Dermatology": ["Basic Dermatology","Skin Anatomy","Skin Examination","Bacterial Infections","Viral Infections","Fungal Infections","Scabies","Eczema","Psoriasis","Acne","Urticaria","Drug Reactions","Autoimmune Skin Diseases","Pigmentary Disorders","Hair Disorders","Nail Disorders","Sexually Transmitted Infections","Leprosy","Skin Tumors"],
+    "Dentistry": ["Dental Anatomy","Oral Cavity","Dental Caries","Gingivitis","Periodontitis","Oral Infections","Oral Ulcers","Oral Cancers","Dental Trauma","Tooth Extraction","Endodontics","Prosthodontics","Orthodontics","Pediatric Dentistry","Oral & Maxillofacial Surgery","Dental Materials","Oral Hygiene"],
+    "Nursing": ["Fundamentals of Nursing","Nursing Procedures","Health Assessment","Anatomy & Physiology","Nutrition","Pharmacology for Nurses","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Obstetric Nursing","Midwifery","Critical Care Nursing","Emergency Nursing","Infection Control","First Aid","Nursing Ethics","Nursing Research"],
+    "Other": ["First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Differential Diagnosis","Medical Calculations","Important Drug Charts","Investigation & Lab Values","Medical Mnemonics","Case Studies","Viva Questions","Practical Notes","OSCE/OSPE","Previous Year Questions","NEET-PG/INI-CET Revision","Image-Based Questions"]
+  });
+});
+
+// =========================
+// AUTHENTICATED RESOURCE DOWNLOAD
+// =========================
+
+app.get("/api/resources/:id/download", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT file_url FROM resources WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Resource not found"
+      });
+    }
+
+    const fileUrl = String(result.rows[0].file_url || "").trim();
+
+    if (!fileUrl) {
+      return res.status(404).json({
+        error: "File not available"
+      });
+    }
+
+    // Normalize common cloud-storage share links into downloadable URLs.
+    let downloadUrl = fileUrl;
+    try {
+      const parsed = new URL(fileUrl);
+      const host = parsed.hostname.toLowerCase();
+
+      if (host.includes("drive.google.com")) {
+        const idFromPath = (parsed.pathname.match(/\/d\/([^/]+)/) || [])[1];
+        const idFromQuery = parsed.searchParams.get("id");
+        const driveId = idFromPath || idFromQuery;
+        if (driveId) {
+          downloadUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(driveId)}&export=download&confirm=t`;
+        }
+      } else if (host === "dropbox.com" || host.endsWith(".dropbox.com")) {
+        parsed.searchParams.set("dl", "1");
+        downloadUrl = parsed.toString();
+      } else if (host === "github.com" && parsed.pathname.includes("/blob/")) {
+        downloadUrl = parsed.toString().replace("github.com/", "raw.githubusercontent.com/").replace("/blob/", "/");
+      }
+    } catch (_) {
+      // Keep the original URL; the clearer error below will be returned if it cannot be fetched.
+    }
+
+    const upstream = await fetch(downloadUrl, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TruthOfLifes/1.0)"
+      }
+    });
+
+    if (!upstream.ok) {
+      return res.status(502).json({
+        error: "Could not fetch resource file"
+      });
+    }
+
+    const contentType =
+      upstream.headers.get("content-type") ||
+      "application/octet-stream";
+
+    const contentLength =
+      upstream.headers.get("content-length");
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      "attachment"
+    );
+
+    if (contentLength) {
+      res.setHeader(
+        "Content-Length",
+        contentLength
+      );
+    }
+
+    const buffer = Buffer.from(
+      await upstream.arrayBuffer()
+    );
+
+    // Count only successful downloads. Tracking failure must not break the file download.
+    try {
+      await pool.query(
+        `INSERT INTO resource_downloads (user_id, resource_id) VALUES ($1, $2)`,
+        [req.user.id, req.params.id]
+      );
+    } catch (trackError) {
+      console.error("Download tracking failed:", trackError);
+    }
+
+    return res.send(buffer);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Could not open resource"
+    });
+  }
+});
+
+// =========================
+// ADMIN ADD RESOURCE
+// =========================
+
+app.post("/api/resources", adminAuth, async (req, res) => {
+  try {
+    const title = String(req.body.title || "").trim();
+    const type = String(req.body.type || "").trim();
+    const subject = String(req.body.subject || "").trim();
+    const chapter = String(req.body.chapter || "").trim();
+    const description = String(
+      req.body.description || ""
+    ).trim();
+
+    const file_url = String(
+      req.body.file_url ||
+      req.body.fileUrl ||
+      ""
+    ).trim();
+
+    if (!title || !type || !file_url) {
+      return res.status(400).json({
+        error: "Title, type and file URL are required"
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO resources
+       (title, type, subject, chapter, description, file_url)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, title, type, subject, chapter, description, file_url, created_at`,
+      [
+        title,
+        type,
+        subject,
+        chapter,
+        description,
+        file_url
+      ]
+    );
+
+    res.json({
+      success: true,
+      resource: result.rows[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Could not add resource"
+    });
+  }
+});
+
+// =========================
+// ADMIN EDIT RESOURCE
+// =========================
+
+app.put("/api/resources/:id", adminAuth, async (req, res) => {
+  try {
+    const title = String(req.body.title || "").trim();
+    const type = String(req.body.type || "").trim();
+    const subject = String(req.body.subject || "").trim();
+    const chapter = String(req.body.chapter || "").trim();
+    const description = String(req.body.description || "").trim();
+    const file_url = String(req.body.file_url || req.body.fileUrl || "").trim();
+
+    if (!title || !type || !file_url) {
+      return res.status(400).json({
+        error: "Title, type and file URL are required"
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE resources
+       SET title=$1, type=$2, subject=$3, chapter=$4, description=$5, file_url=$6
+       WHERE id=$7
+       RETURNING id, title, type, subject, chapter, description, file_url, created_at`,
+      [title, type, subject, chapter, description, file_url, req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+
+    res.json({ success: true, resource: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not update resource" });
+  }
+});
+
+// =========================
+// ADMIN DELETE RESOURCE
+// =========================
+
+app.delete("/api/resources/:id", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM resources
+       WHERE id = $1
+       RETURNING id`,
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Resource not found"
+      });
+    }
+
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Could not delete resource"
+    });
+  }
+});
+
+// =========================
+// REQUEST FORM
+// =========================
+
+async function submitRequest(req, res) {
+  try {
+    const body = req.body || {};
+
+    const name = String(body.name || body.your_name || "").trim();
+    const instagram_username = String(
+      body.instagram_username ||
+      body.instagramUsername ||
+      body.instagram ||
+      body.instagram_username_optional ||
+      ""
+    ).trim();
+
+    const type = String(
+      body.type ||
+      body.request_type ||
+      body.requestType ||
+      ""
+    ).trim();
+
+    const subject = String(
+      body.subject ||
+      body.topic ||
+      ""
+    ).trim();
+
+    const chapter = String(
+      body.chapter ||
+      body.chapter_name ||
+      body.chapterName ||
+      ""
+    ).trim();
+
+    const message = String(
+      body.message ||
+      body.details ||
+      body.description ||
+      body.need ||
+      ""
+    ).trim();
+
+    if (!type || !subject || !chapter) {
+      return res.status(400).json({
+        success: false,
+        error: "Subject, chapter and request type are required"
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO requests
+       (name, instagram_username, type, subject, chapter, message, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+       RETURNING id, name, instagram_username, type, subject, chapter, message, status, created_at`,
+      [
+        name || null,
+        instagram_username || null,
+        type,
+        subject,
+        chapter,
+        message || null
+      ]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Request submitted successfully",
+      request: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Request submission error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Could not submit request. Please try again.",
+      code: error && error.code ? error.code : undefined
+    });
+  }
+}
+
+// Support the current endpoint plus common frontend/older endpoint names.
+app.post(
+  ["/api/requests", "/api/request", "/api/requests/submit"],
+  submitRequest
+);
+
+// =========================
+// COLLABORATION
+// =========================
+
+app.post("/api/collaborations", async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+
+    const instagram_username = String(
+      req.body.instagram_username ||
+      req.body.instagram ||
+      ""
+    ).trim();
+
+    const email = String(
+      req.body.email || ""
+    ).trim();
+
+    const message = String(
+      req.body.message || ""
+    ).trim();
+
+    await pool.query(
+      `INSERT INTO collaborations
+       (name, instagram_username, email, message, status)
+       VALUES ($1, $2, $3, $4, 'pending')`,
+      [
+        name,
+        instagram_username,
+        email,
+        message
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: "Collaboration request submitted"
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Could not submit collaboration"
+    });
+  }
+});
+
+// =========================
+// ADMIN RESOURCE REQUESTS
+// =========================
+
+app.get("/api/requests", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, name, instagram_username, type, subject, chapter, message, status, created_at
+      FROM requests ORDER BY created_at DESC
+    `);
+    res.json({
+      total: result.rows.length,
+      pending: result.rows.filter(r => r.status === "pending").length,
+      requests: result.rows
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load requests" });
+  }
+});
+
+app.patch("/api/requests/:id/status", adminAuth, async (req, res) => {
+  try {
+    const status = String(req.body.status || "").trim().toLowerCase();
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    const result = await pool.query(
+      `UPDATE requests SET status=$1 WHERE id=$2
+       RETURNING id, name, instagram_username, type, subject, message, status, created_at`,
+      [status, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: "Request not found" });
+    res.json({ success: true, request: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not update request" });
+  }
+});
+
+app.delete("/api/requests/:id", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`DELETE FROM requests WHERE id=$1 RETURNING id`, [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "Request not found" });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not delete request" });
+  }
+});
+
+// =========================
+// ADMIN COLLABORATION REQUESTS
+// =========================
+
+app.get("/api/collaborations", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, name, instagram_username, email, message, status, created_at
+      FROM collaborations ORDER BY created_at DESC
+    `);
+    res.json({
+      total: result.rows.length,
+      pending: result.rows.filter(r => r.status === "pending").length,
+      collaborations: result.rows
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load collaborations" });
+  }
+});
+
+app.patch("/api/collaborations/:id/status", adminAuth, async (req, res) => {
+  try {
+    const status = String(req.body.status || "").trim().toLowerCase();
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    const result = await pool.query(
+      `UPDATE collaborations SET status=$1 WHERE id=$2
+       RETURNING id, name, instagram_username, email, message, status, created_at`,
+      [status, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: "Collaboration not found" });
+    res.json({ success: true, collaboration: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not update collaboration" });
+  }
+});
+
+app.delete("/api/collaborations/:id", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`DELETE FROM collaborations WHERE id=$1 RETURNING id`, [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "Collaboration not found" });
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not delete collaboration" });
+  }
+});
+
+// =========================
+// ADMIN ANALYTICS OVERVIEW
+// =========================
+
+app.get("/api/admin/analytics/overview", adminAuth, async (req, res) => {
+  try {
+    const [downloads, popular, recent] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS count FROM resource_downloads`),
+      pool.query(`SELECT r.id, r.title, r.type, r.subject, COUNT(d.id)::int AS downloads FROM resources r LEFT JOIN resource_downloads d ON d.resource_id=r.id GROUP BY r.id ORDER BY downloads DESC, r.created_at DESC LIMIT 10`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM resource_downloads WHERE downloaded_at >= NOW() - INTERVAL '7 days'`)
+    ]);
+    res.json({ totalDownloads: Number(downloads.rows[0].count), last7Days: Number(recent.rows[0].count), popular: popular.rows });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not load analytics overview" }); }
+});
+
+// =========================
+// VISITOR ANALYTICS
+// =========================
+
+app.get("/api/analytics/visits", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT TO_CHAR(DATE(created_at), 'YYYY-MM-DD') AS date, COUNT(*)::int AS count
+      FROM visits
+      WHERE created_at >= CURRENT_DATE - INTERVAL '29 days'
+      GROUP BY DATE(created_at)
+      ORDER BY DATE(created_at)
+    `);
+    res.json({ days: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load visitor analytics" });
+  }
+});
+
+// =========================
+// VISITOR COUNT
+// =========================
+
+app.post(["/api/visits", "/api/visit"], async (req, res) => {
+  try {
+    const visitor_key = String(
+      req.body.visitor_key || ""
+    ).trim();
+
+    if (!visitor_key) {
+      return res.status(400).json({
+        error: "visitor_key required"
+      });
+    }
+
+    await pool.query(
+      `INSERT INTO visits (visitor_key)
+       VALUES ($1)
+       ON CONFLICT (visitor_key) DO NOTHING`,
+      [visitor_key]
+    );
+
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM visits`
+    );
+
+    res.json({
+      count: result.rows[0].count
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: "Could not update visitor count"
+    });
+  }
+});
+
+// =========================
+// ADMIN VISITOR COUNT
+// =========================
+
+app.get("/api/visits", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM visits`
+    );
+
+    res.json({
+      count: result.rows[0].count
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: "Could not load visitor count"
+    });
+  }
+});
+
+// =========================
+// ADMIN USERS
+// =========================
+
+app.get("/api/users", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        instagram_username,
+        email,
+        created_at
+      FROM users
+      ORDER BY created_at DESC
+    `);
+
+    res.json({
+      total: result.rows.length,
+      users: result.rows
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: "Could not load users"
+    });
+  }
+});
+
+// =========================
+// START SERVER
+// =========================
+
+setupDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(
+        `truth.oflifes server running on port ${PORT}`
+      );
+    });
+  })
+  .catch((error) => {
+    console.error(
+      "Database setup failed:",
+      error
+    );
+    process.exit(1);
+  });
