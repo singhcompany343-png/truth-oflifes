@@ -268,8 +268,7 @@ async function deleteResource(id){
 function renderUsers(){
   const q=document.getElementById("userSearch").value.toLowerCase();
   const list=users.filter(u=>(String(u.instagram_username).toLowerCase()+" "+String(u.email||"").toLowerCase()).includes(q));
-  const userListEl=document.getElementById("userList");
-  userListEl.innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
+  document.getElementById("userList").innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
 }
 async function resetUserPassword(id){
   const p=prompt("Enter a new password (minimum 6 characters):");
@@ -281,8 +280,8 @@ async function resetUserPassword(id){
 
 function statusBadge(s){return `<span class="badge ${s}">${esc(s)}</span>`;}
 function renderRequests(){
-  const p=requests.filter(x=>x.status==="pending").length;requestBadge.textContent=p+" pending";
-  requestList.innerHTML=requests.length?requests.map(r=>`
+  const p=requests.filter(x=>x.status==="pending").length;document.getElementById("requestBadge").textContent=p+" pending";
+  document.getElementById("requestList").innerHTML=requests.length?requests.map(r=>`
     <div class="item">
       <h4>${esc(r.type||"Resource Request")} ${statusBadge(r.status)}</h4>
       <div class="meta">${esc(r.name||"")} ${r.instagram_username?"· @"+esc(r.instagram_username):""} · ${date(r.created_at)}</div>
@@ -300,8 +299,8 @@ async function setRequest(id,status){try{await api("/api/requests/"+id+"/status"
 async function deleteRequest(id){if(!confirm("Delete this request?"))return;try{await api("/api/requests/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}}
 
 function renderCollabs(){
-  const p=collaborations.filter(x=>x.status==="pending").length;collabBadge.textContent=p+" pending";
-  collabList.innerHTML=collaborations.length?collaborations.map(c=>`
+  const p=collaborations.filter(x=>x.status==="pending").length;document.getElementById("collabBadge").textContent=p+" pending";
+  document.getElementById("collabList").innerHTML=collaborations.length?collaborations.map(c=>`
     <div class="item">
       <h4>${esc(c.name||"Collaboration")} ${statusBadge(c.status)}</h4>
       <div class="meta">${c.instagram_username?"@"+esc(c.instagram_username):""} ${c.email?"· "+esc(c.email):""} · ${date(c.created_at)}</div>
