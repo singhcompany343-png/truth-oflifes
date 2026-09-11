@@ -1121,6 +1121,7 @@ app.get("/api/users", adminAuth, async (req, res) => {
       SELECT
         id,
         instagram_username,
+        email,
         created_at
       FROM users
       ORDER BY created_at DESC
