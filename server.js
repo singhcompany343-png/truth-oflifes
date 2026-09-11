@@ -973,39 +973,88 @@ app.delete("/api/resources/:id", adminAuth, async (req, res) => {
 // REQUEST FORM
 // =========================
 
-app.post("/api/requests", async (req, res) => {
+async function submitRequest(req, res) {
   try {
-    const name = String(req.body.name || "").trim();
-    const instagram_username = String(req.body.instagram_username || req.body.instagram || "").trim();
-    const type = String(req.body.type || "").trim();
-    const subject = String(req.body.subject || "").trim();
-    const chapter = String(req.body.chapter || "").trim();
-    const message = String(req.body.message || "").trim();
+    const body = req.body || {};
+
+    const name = String(body.name || body.your_name || "").trim();
+    const instagram_username = String(
+      body.instagram_username ||
+      body.instagramUsername ||
+      body.instagram ||
+      body.instagram_username_optional ||
+      ""
+    ).trim();
+
+    const type = String(
+      body.type ||
+      body.request_type ||
+      body.requestType ||
+      ""
+    ).trim();
+
+    const subject = String(
+      body.subject ||
+      body.topic ||
+      ""
+    ).trim();
+
+    const chapter = String(
+      body.chapter ||
+      body.chapter_name ||
+      body.chapterName ||
+      ""
+    ).trim();
+
+    const message = String(
+      body.message ||
+      body.details ||
+      body.description ||
+      body.need ||
+      ""
+    ).trim();
 
     if (!type || !subject || !chapter) {
-      return res.status(400).json({ error: "Subject, chapter and request type are required" });
+      return res.status(400).json({
+        success: false,
+        error: "Subject, chapter and request type are required"
+      });
     }
 
-    // Schema migrations are performed once during startup. The public endpoint
-    // only performs the INSERT, which also works with restricted DB roles.
     const result = await pool.query(
       `INSERT INTO requests
        (name, instagram_username, type, subject, chapter, message, status)
        VALUES ($1, $2, $3, $4, $5, $6, 'pending')
        RETURNING id, name, instagram_username, type, subject, chapter, message, status, created_at`,
-      [name, instagram_username, type, subject, chapter, message]
+      [
+        name || null,
+        instagram_username || null,
+        type,
+        subject,
+        chapter,
+        message || null
+      ]
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Request submitted successfully",
       request: result.rows[0]
     });
   } catch (error) {
     console.error("Request submission error:", error);
-    res.status(500).json({ error: "Could not submit request" });
+    return res.status(500).json({
+      success: false,
+      error: "Could not submit request"
+    });
   }
-});
+}
+
+// Support the current endpoint plus common frontend/older endpoint names.
+app.post(
+  ["/api/requests", "/api/request", "/api/requests/submit"],
+  submitRequest
+);
 
 // =========================
 // COLLABORATION
