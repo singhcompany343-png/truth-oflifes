@@ -80,6 +80,10 @@ async function setupDatabase() {
   ALTER TABLE users
   ADD COLUMN IF NOT EXISTS password TEXT;
 `);
+  await pool.query(`
+  ALTER TABLE users
+  ALTER COLUMN password_hash DROP NOT NULL;
+`);
   console.log("Database ready");
 }
 
