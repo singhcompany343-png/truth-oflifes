@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>truth.oflifes — Admin Panel</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fb;color:#172033;font-family:Arial,sans-serif}
+header{background:#070b12;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header strong{font-size:14px}
+button{border:0;border-radius:7px;padding:9px 13px;cursor:pointer;font-weight:600}
+.btn{background:#2563eb;color:#fff}.danger{background:#dc2626;color:#fff}.success{background:#16a34a;color:#fff}.muted{background:#e5e7eb;color:#111827}
+.small{padding:6px 9px;font-size:12px}
+.wrap{max-width:1100px;margin:auto;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card,.panel{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(15,23,42,.06)}
+.stat small{color:#64748b}.stat b{display:block;font-size:24px;margin-top:6px}
+h3{margin:0 0 12px;font-size:15px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #d7dce5;border-radius:8px;margin-bottom:8px;font:inherit}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters{display:grid;grid-template-columns:1fr 180px;gap:8px}
+.item{border:1px solid #e2e8f0;border-radius:9px;padding:11px;margin:8px 0}
+.item h4{margin:0 0 4px;font-size:14px}
+.meta{font-size:12px;color:#64748b;margin-bottom:8px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#e5e7eb;font-size:11px;margin-right:4px}
+.pending{background:#fef3c7;color:#92400e}.approved{background:#dcfce7;color:#166534}.rejected{background:#fee2e2;color:#991b1b}
+.notice{padding:10px;border-left:3px solid #2563eb;background:#f8fafc;border-radius:6px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left}
+.empty{color:#64748b;font-size:13px;padding:8px 0}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:15px;z-index:50}
+.modalbox{background:#fff;border-radius:12px;padding:16px;width:min(520px,100%)}
+.chart{height:170px;display:flex;align-items:flex-end;gap:5px;border-bottom:1px solid #cbd5e1;padding:8px 0;overflow:hidden}
+.bar{min-width:10px;background:#2563eb;border-radius:4px 4px 0 0;position:relative}
+.bar span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:9px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.row,.filters{grid-template-columns:1fr}header{padding:12px}.wrap{padding:10px}.stat b{font-size:21px}}
+</style>
+</head>
+<body>
+<section id="loginScreen" class="panel" style="max-width:420px;margin:80px auto;padding:20px">
+  <h2 style="margin-top:0">🔐 Admin Login</h2>
+  <input id="loginUser" placeholder="Admin username" autocomplete="username">
+  <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+  <button class="btn" style="width:100%" onclick="doLogin()">Login</button>
+  <div id="loginMsg" class="empty"></div>
+</section>
+
+<div id="dashboard" class="hidden">
+<header>
+  <strong>truth.oflifes — Admin Panel</strong>
+  <div>
+    <button class="muted small" onclick="loadAll()">↻ Refresh</button>
+    <button class="danger small" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="grid">
+    <div class="card stat"><small>👁 Visitors</small><b id="visitors">—</b></div>
+    <div class="card stat"><small>👥 Registered Users</small><b id="users">—</b></div>
+    <div class="card stat"><small>📚 Resources</small><b id="resources">—</b></div>
+  </section>
+
+  <section class="panel">
+    <h3>📊 Visitor Activity — Last 30 Days</h3>
+    <div id="chart" class="chart"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section class="panel">
+    <h3>📚 Add / Edit Medical Resource</h3>
+    <form id="resourceForm">
+      <input id="rid" type="hidden">
+      <div class="row">
+        <input id="title" placeholder="Resource Title" required>
+        <select id="type" required>
+          <option value="">Select Type</option>
+          <option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+        </select>
+      </div>
+      <select id="subject">
+        <option value="">Select Subject</option>
+        <option>Anatomy</option><option>Physiology</option><option>Biochemistry</option>
+        <option>Pathology</option><option>Pharmacology</option><option>Microbiology</option>
+        <option>Community Medicine</option><option>Other</option>
+      </select>
+      <input id="file_url" placeholder="File URL" required>
+      <textarea id="description" placeholder="Description (optional)"></textarea>
+      <div class="actions">
+        <button class="btn" type="submit" id="saveBtn">＋ Add Resource</button>
+        <button class="muted hidden" type="button" id="cancelEdit" onclick="cancelEdit()">Cancel Edit</button>
+      </div>
+      <div id="resourceMsg" class="empty"></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>📚 Resources</h3>
+    <div class="filters">
+      <input id="resourceSearch" oninput="renderResources()" placeholder="🔎 Search title, subject...">
+      <select id="resourceFilter" onchange="renderResources()">
+        <option value="">All Types</option><option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+      </select>
+    </div>
+    <div id="resourceList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>👥 Registered Users</h3>
+    <input id="userSearch" oninput="renderUsers()" placeholder="🔎 Search Instagram username...">
+    <div style="overflow:auto"><table><thead><tr><th>#</th><th>Instagram Username</th><th>Account Created</th></tr></thead><tbody id="userList"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h3>📝 Resource Requests <span id="requestBadge" class="badge pending">0 pending</span></h3>
+    <div id="requestList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>🤝 Collaboration Requests <span id="collabBadge" class="badge pending">0 pending</span></h3>
+    <div id="collabList"></div>
+  </section>
+</main>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modalbox">
+    <h3 id="modalTitle">Details</h3>
+    <div id="modalBody"></div>
+    <button class="muted" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+let resources=[], users=[], requests=[], collaborations=[];
+
+function headers(){ return {"Content-Type":"application/json","Authorization":"Bearer "+token}; }
+
+function showDashboard(){
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+}
+
+async function doLogin(){
+  const username=document.getElementById("loginUser").value.trim();
+  const password=document.getElementById("loginPass").value;
+  const msg=document.getElementById("loginMsg");
+  if(!username||!password){msg.textContent="Username and password required.";return;}
+  msg.textContent="Logging in…";
+  try{
+    const r=await fetch("/api/auth/login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({mode:"admin",username,password})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.role!=="admin") throw new Error(d.error||"Invalid admin credentials");
+    token=d.token;
+    localStorage.setItem("adminToken",token);
+    showDashboard();
+    await loadAll();
+  }catch(e){msg.textContent=e.message;}
+}
+async function api(url,opt={}) {
+  opt.headers={...(opt.headers||{}),...headers()};
+  const r=await fetch(url,opt);
+  if(r.status===401||r.status===403){ logout(); throw new Error("Login expired"); }
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||"Request failed");
+  return d;
+}
+function logout(){
+  localStorage.removeItem("adminToken");
+  localStorage.removeItem("token");
+  token="";
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+}
+
+async function loadAll(){
+  try{
+    const [v,u,r,an,req,co]=await Promise.all([
+      api("/api/visits"),api("/api/users"),api("/api/resources"),
+      api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations")
+    ]);
+    document.getElementById("visitors").textContent=v.count??0;
+    users=u.users||[]; resources=r||[]; requests=req.requests||[]; collaborations=co.collaborations||[];
+    document.getElementById("users").textContent=u.total??users.length;
+    document.getElementById("resources").textContent=resources.length;
+    renderResources();renderUsers();renderRequests();renderCollabs();renderChart(an.days||[]);
+  }catch(e){console.error(e);}
+}
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function date(s){return s?new Date(s).toLocaleString():"—";}
+
+function renderResources(){
+  const q=document.getElementById("resourceSearch").value.toLowerCase();
+  const f=document.getElementById("resourceFilter").value;
+  const list=resources.filter(r=>(!f||r.type===f)&&(`${r.title} ${r.subject||""} ${r.description||""}`.toLowerCase().includes(q)));
+  document.getElementById("resourceList").innerHTML=list.length?list.map(r=>`
+    <div class="item">
+      <h4>${esc(r.title)}</h4>
+      <div class="meta"><span class="badge">${esc(r.type)}</span>${esc(r.subject||"No subject")} · ${date(r.created_at)}</div>
+      ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
+      <div class="actions">
+        ${r.file_url?`<a class="btn small" href="${esc(r.file_url)}" target="_blank" rel="noopener">Open File</a>`:""}
+        <button class="muted small" onclick="editResource(${r.id})">✏️ Edit</button>
+        <button class="danger small" onclick="deleteResource(${r.id})">Delete</button>
+      </div>
+    </div>`).join(""):`<div class="empty">No resources found.</div>`;
+}
+
+function editResource(id){
+  const r=resources.find(x=>x.id===id); if(!r)return;
+  rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||"";
+  file_url.value=r.file_url||""; description.value=r.description||"";
+  saveBtn.textContent="💾 Save Changes";cancelEditBtn(true);
+  scrollTo({top:document.querySelectorAll(".panel")[2].offsetTop-60,behavior:"smooth"});
+}
+function cancelEditBtn(show){document.getElementById("cancelEdit").classList.toggle("hidden",!show);}
+function cancelEdit(){
+  document.getElementById("resourceForm").reset();rid.value="";
+  saveBtn.textContent="＋ Add Resource";cancelEditBtn(false);resourceMsg.textContent="";
+}
+document.getElementById("resourceForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  resourceMsg.textContent="Saving…";
+  const body={title:title.value.trim(),type:type.value,subject:subject.value,description:description.value.trim(),file_url:file_url.value.trim()};
+  try{
+    const id=rid.value;
+    await api(id?`/api/resources/${id}`:"/api/resources",{method:id?"PUT":"POST",body:JSON.stringify(body)});
+    cancelEdit();await loadAll();resourceMsg.textContent="Saved successfully.";
+  }catch(err){resourceMsg.textContent=err.message;}
+});
+async function deleteResource(id){
+  if(!confirm("Delete this resource?"))return;
+  try{await api("/api/resources/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}
+}
+
+function renderUsers(){
+  const q=document.getElementById("userSearch").value.toLowerCase();
+  const list=users.filter(u=>String(u.instagram_username).toLowerCase().includes(q));
+  userList.innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${date(u.created_at)}</td></tr>`).join("")||`<tr><td colspan="3" class="empty">No users found.</td></tr>`;
+}
+
+function statusBadge(s){return `<span class="badge ${s}">${esc(s)}</span>`;}
+function renderRequests(){
+  const p=requests.filter(x=>x.status==="pending").length;requestBadge.textContent=p+" pending";
+  requestList.innerHTML=requests.length?requests.map(r=>`
+    <div class="item">
+      <h4>${esc(r.type||"Resource Request")} ${statusBadge(r.status)}</h4>
+      <div class="meta">${esc(r.name||"")} ${r.instagram_username?"· @"+esc(r.instagram_username):""} · ${date(r.created_at)}</div>
+      ${r.subject?`<div><b>Subject:</b> ${esc(r.subject)}</div>`:""}
+      ${r.message?`<div style="margin:6px 0">${esc(r.message)}</div>`:""}
+      <div class="actions">
+        <button class="success small" onclick="setRequest(${r.id},'approved')">✓ Approve</button>
+        <button class="danger small" onclick="setRequest(${r.id},'rejected')">✕ Reject</button>
+        <button class="muted small" onclick="setRequest(${r.id},'pending')">↺ Pending</button>
+        <button class="danger small" onclick="deleteRequest(${r.id})">Delete</button>
+      </div>
+    </div>`).join(""):`<div class="empty">No resource requests yet.</div>`;
+}
+async function setRequest(id,status){try{await api("/api/requests/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});await loadAll();}catch(e){alert(e.message);}}
+async function deleteRequest(id){if(!confirm("Delete this request?"))return;try{await api("/api/requests/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}}
+
+function renderCollabs(){
+  const p=collaborations.filter(x=>x.status==="pending").length;collabBadge.textContent=p+" pending";
+  collabList.innerHTML=collaborations.length?collaborations.map(c=>`
+    <div class="item">
+      <h4>${esc(c.name||"Collaboration")} ${statusBadge(c.status)}</h4>
+      <div class="meta">${c.instagram_username?"@"+esc(c.instagram_username):""} ${c.email?"· "+esc(c.email):""} · ${date(c.created_at)}</div>
+      ${c.message?`<div style="margin:6px 0">${esc(c.message)}</div>`:""}
+      <div class="actions">
+        <button class="success small" onclick="setCollab(${c.id},'approved')">✓ Approve</button>
+        <button class="danger small" onclick="setCollab(${c.id},'rejected')">✕ Reject</button>
+        <button class="muted small" onclick="setCollab(${c.id},'pending')">↺ Pending</button>
+        <button class="danger small" onclick="deleteCollab(${c.id})">Delete</button>
+      </div>
+    </div>`).join(""):`<div class="empty">No collaboration requests yet.</div>`;
+}
+async function setCollab(id,status){try{await api("/api/collaborations/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});await loadAll();}catch(e){alert(e.message);}}
+async function deleteCollab(id){if(!confirm("Delete this collaboration?"))return;try{await api("/api/collaborations/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}}
+
+function renderChart(days){
+  const full=[]; const now=new Date();
+  for(let i=29;i>=0;i--){const d=new Date(now);d.setHours(0,0,0,0);d.setDate(d.getDate()-i);full.push(d.toISOString().slice(0,10));}
+  const map=Object.fromEntries((days||[]).map(x=>[x.date,Number(x.count)]));
+  const vals=full.map(d=>map[d]||0), max=Math.max(1,...vals);
+  chart.innerHTML=vals.map((v,i)=>`<div class="bar" title="${full[i]}: ${v}" style="height:${Math.max(4,(v/max)*145)}px"><span>${v||""}</span></div>`).join("");
+}
+
+if(token){
+  showDashboard();
+  loadAll();
+}
+</script>
+</body>
+</html>
