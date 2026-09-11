@@ -80,7 +80,7 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 <input name="instagram_username" placeholder="Instagram username (optional)">
 <select name="type"><option>Notes</option><option>PPT</option><option>Question Paper</option><option>Study Material</option></select>
 <input name="subject" placeholder="Subject" required>
-<input name="chapter" placeholder="Chapter (optional)">
+<input name="chapter" placeholder="Chapter" required>
 <textarea name="message" placeholder="What do you need? Any details"></textarea>
 <button type="submit">Send Request</button><p id="requestPageMsg" class="muted"></p>
 </form></div></section>
@@ -293,6 +293,10 @@ el.textContent="0";
 window.sendReq=function(e){
 e.preventDefault();
 var f=e.target,msg=byId(f.id==="requestPageForm"?"requestPageMsg":"rm");
+if(f.id==="requestPageForm"){
+  var sub=f.subject&&f.subject.value.trim(), ch=f.chapter&&f.chapter.value.trim(), typ=f.type&&f.type.value.trim();
+  if(!sub||!ch||!typ){msg.textContent="Please select Subject, Chapter and Notes/PPT.";return;}
+}
 postForm("/api/requests",f,msg);
 };
 window.sendCol=function(e){
@@ -306,7 +310,7 @@ var data={};new FormData(f).forEach(function(v,k){data[k]=v;});
 try{
   var result=await jsonPost(url,data);
   msg.textContent=result.message||"Request submitted successfully!";
-  f.reset();
+  if(f.id!=="requestPageForm") f.reset();
 } catch(err){
   console.error("Form submit error",err);
   msg.textContent=err.message||"Could not submit. Please try again.";

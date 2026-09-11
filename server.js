@@ -989,21 +989,24 @@ app.post("/api/requests", async (req, res) => {
     const chapter = String(req.body.chapter || "").trim();
     const message = String(req.body.message || "").trim();
 
-    // Keep the request endpoint compatible with older databases.
-    // setupDatabase() adds these columns, and IF NOT EXISTS makes redeploys safe.
-    await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS chapter TEXT;`);
-    await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';`);
+    if (!type || !subject) {
+      return res.status(400).json({ error: "Subject and request type are required" });
+    }
 
-    await pool.query(
+    // Database migrations are handled once during startup in setupDatabase().
+    // Do not run ALTER TABLE from the public request endpoint.
+    const result = await pool.query(
       `INSERT INTO requests
        (name, instagram_username, type, subject, chapter, message, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+       RETURNING id, name, instagram_username, type, subject, chapter, message, status, created_at`,
       [name, instagram_username, type, subject, chapter, message]
     );
 
-    res.json({
+    res.status(201).json({
       success: true,
-      message: "Request submitted successfully"
+      message: "Request submitted successfully",
+      request: result.rows[0]
     });
   } catch (error) {
     console.error(error);
@@ -1066,7 +1069,7 @@ app.post("/api/collaborations", async (req, res) => {
 app.get("/api/requests", adminAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, name, instagram_username, type, subject, message, status, created_at
+      SELECT id, name, instagram_username, type, subject, chapter, message, status, created_at
       FROM requests ORDER BY created_at DESC
     `);
     res.json({
