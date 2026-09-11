@@ -268,7 +268,8 @@ async function deleteResource(id){
 function renderUsers(){
   const q=document.getElementById("userSearch").value.toLowerCase();
   const list=users.filter(u=>(String(u.instagram_username).toLowerCase()+" "+String(u.email||"").toLowerCase()).includes(q));
-  userList.innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
+  const userListEl=document.getElementById("userList");
+  userListEl.innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
 }
 async function resetUserPassword(id){
   const p=prompt("Enter a new password (minimum 6 characters):");
@@ -326,11 +327,13 @@ function updateNotifications(n){
 }
 
 function renderChart(days){
+  const chartEl=document.getElementById("chart");
+  if(!chartEl)return;
   const full=[]; const now=new Date();
   for(let i=29;i>=0;i--){const d=new Date(now);d.setHours(0,0,0,0);d.setDate(d.getDate()-i);full.push(d.toISOString().slice(0,10));}
-  const map=Object.fromEntries((days||[]).map(x=>[x.date,Number(x.count)]));
+  const map=Object.fromEntries((days||[]).map(x=>[String(x.date),Number(x.count)||0]));
   const vals=full.map(d=>map[d]||0), max=Math.max(1,...vals);
-  chart.innerHTML=vals.map((v,i)=>`<div class="bar" title="${full[i]}: ${v}" style="height:${Math.max(4,(v/max)*145)}px"><span>${v||""}</span></div>`).join("");
+  chartEl.innerHTML=vals.map((v,i)=>`<div class="bar" title="${full[i]}: ${v}" style="height:${Math.max(4,(v/max)*145)}px"><span>${v||""}</span></div>`).join("");
 }
 
 document.getElementById("adminPasswordForm").addEventListener("submit",async e=>{
