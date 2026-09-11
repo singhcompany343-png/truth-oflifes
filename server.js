@@ -187,12 +187,6 @@ async function setupDatabase() {
     ALTER TABLE requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
   `);
   await pool.query(`
-    ALTER TABLE requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
-  `);
-  await pool.query(`
-    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
-  `);
-  await pool.query(`
     ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS name TEXT;
   `);
   await pool.query(`
@@ -207,26 +201,20 @@ async function setupDatabase() {
   await pool.query(`
     ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
   `);
-  // Normalize legacy request columns so optional form fields can be empty.
-  // Older deployments may have stricter NOT NULL/default constraints.
-  await pool.query(`
-    ALTER TABLE requests
-      ALTER COLUMN created_at SET DEFAULT NOW(),
-      ALTER COLUMN name DROP NOT NULL,
-      ALTER COLUMN instagram_username DROP NOT NULL,
-      ALTER COLUMN type DROP NOT NULL,
-      ALTER COLUMN subject DROP NOT NULL,
-      ALTER COLUMN chapter DROP NOT NULL,
-      ALTER COLUMN message DROP NOT NULL,
-      ALTER COLUMN status DROP NOT NULL;
-  `);
-  await pool.query(`
-    ALTER TABLE requests
-      ALTER COLUMN status SET DEFAULT 'pending',
-      ALTER COLUMN created_at SET DEFAULT NOW();
-  `);
-
+  // Legacy-schema compatibility for request submissions.
+  await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN name DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN instagram_username DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN type DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN subject DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN chapter DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN message DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN status DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN status SET DEFAULT 'pending';`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN created_at SET DEFAULT NOW();`);
   await pool.query(`UPDATE requests SET status='pending' WHERE status IS NULL;`);
+  await pool.query(`UPDATE requests SET created_at=NOW() WHERE created_at IS NULL;`);
+  await pool.query(`ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
   await pool.query(`UPDATE collaborations SET status='pending' WHERE status IS NULL;`);
 
   console.log("Database ready");
@@ -735,21 +723,6 @@ app.get("/api/resources", async (req, res) => {
   }
 });
 
-// Admin-only resource list includes the private file_url needed for editing.
-app.get("/api/admin/resources", adminAuth, async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT id, title, type, subject, chapter, description, file_url, created_at
-      FROM resources
-      ORDER BY created_at DESC
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Could not load admin resources" });
-  }
-});
-
 
 // =========================
 // CHAPTER MAP
@@ -788,9 +761,9 @@ app.get("/api/chapters", (req, res) => {
 
 app.get("/api/resources/:id/download", auth, async (req, res) => {
   try {
-    // Never allow browsers/proxies to cache protected resource responses.
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Cache-Control", "private, no-store, no-cache, must-revalidate");
     res.setHeader("Pragma", "no-cache");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     const result = await pool.query(
       `SELECT file_url FROM resources WHERE id = $1`,
       [req.params.id]
@@ -1087,8 +1060,7 @@ async function submitRequest(req, res) {
     console.error("Request submission error:", error);
     return res.status(500).json({
       success: false,
-      error: "Could not submit request. Please try again.",
-      code: error && error.code ? error.code : undefined
+      error: "Could not submit request"
     });
   }
 }

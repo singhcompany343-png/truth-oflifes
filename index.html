@@ -29,6 +29,7 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.modalbox{width:min(430px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}.close{position:absolute;right:14px;top:10px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#536273}.modalbox h2{margin:0 0 18px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}.tab{border:0;background:#edf3f8;padding:11px 5px;border-radius:8px;font-weight:700;cursor:pointer;color:#345}.tab.active{background:#0b83d2;color:#fff}.loginform{display:none}.loginform.active{display:block}.loginform input{width:100%;padding:13px;margin:7px 0 12px;border:1px solid #ccd9e5;border-radius:8px;font:inherit}.loginform button{width:100%;padding:13px;border:0;border-radius:8px;background:#0b83d2;color:#fff;font-weight:800;cursor:pointer}.msg{min-height:20px;margin:10px 0 0;font-size:14px}.adminhint{font-size:12px;color:#6a7785;margin-top:10px}.notice{padding:10px;background:#f1f7fb;border-radius:9px;font-size:13px}.profileitem{border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin:6px 0;font-size:13px}
 @media(max-width:900px){.links{display:none}.hero .wrap,.cards,.three,.formgrid,.resourcegrid{grid-template-columns:1fr}.trust .wrap{grid-template-columns:1fr 1fr}.hero h1{font-size:40px}.art{min-height:280px}}
 @media(max-width:560px){.wrap{padding:0 16px}.nav{gap:8px}.brand{font-size:20px}.logo{width:40px;height:40px}.tg{padding:10px 13px;font-size:14px}.login{display:inline-block;padding:10px 14px;font-size:14px}.hero h1{font-size:36px}.subjects{grid-template-columns:1fr 1fr}.posts{grid-template-columns:1fr 1fr}.post{height:120px}.trust .wrap{grid-template-columns:1fr}.buttons{flex-direction:column}.buttons .btn{text-align:center}.book{width:210px}}
+.msg.success{color:#128a42 !important;font-weight:700;}.msg.error{color:#c62828 !important;font-weight:700;}
 </style>
 </head>
 <body>
@@ -271,7 +272,12 @@ byId("chapterList").addEventListener("click",function(e){var btn=e.target.closes
 window.loadChapters=async function(){try{var r=await fetch("/api/chapters");if(r.ok)window.chapterMap=await r.json();}catch(_){}window.renderChapters();};
 window.resourceChapter=function(x){var raw=String(x.chapter||"").trim();if(raw)return raw;var title=String(x.title||"").trim();if(!title)return "";var map=window.chapterMap[window.currentResourceSubject]||[];var norm=function(v){return String(v||"").toLowerCase().replace(/[^a-z0-9]+/g,"");};var nt=norm(title);for(var i=0;i<map.length;i++){var nc=norm(map[i]);if(nt===nc||nt.indexOf(nc)!==-1||nc.indexOf(nt)!==-1)return map[i];}return "";};
 window.loadResources=async function(){var box=byId("resourceList");try{var r=await fetch("/api/resources");if(!r.ok)throw new Error("failed");var d=await r.json();if(!Array.isArray(d)||!d.length){box.innerHTML='<div class="resource"><h3>No resources added yet.</h3><p class="muted">Notes and PPTs will appear here when added from the admin system.</p></div>';return;}var norm=function(v){return String(v||"").toLowerCase().replace(/[^a-z0-9]+/g,"");};var subject=norm(window.currentResourceSubject),type=norm(window.currentResourceType),chapter=norm(window.currentResourceChapter);var filtered=d.filter(function(x){var xs=norm(x.subject),xt=norm(x.type),rc=window.resourceChapter(x),xr=norm(rc);return (!subject||xs===subject)&&(!type||xt===type)&&(!chapter||xr===chapter);});if(!filtered.length){var missing=(window.currentResourceChapter?window.currentResourceChapter+" — ":"")+(window.currentResourceType||"Resource");box.innerHTML='<div class="resource"><h3>❌ '+esc(window.currentResourceType||"Resource")+' Not Available</h3><p class="muted">📚 Available Soon — '+esc(missing)+' is not uploaded yet.</p><button class="btn" type="button" onclick="window.requestUnavailable()">📩 Request '+esc(window.currentResourceType||"Notes")+'</button></div>';return;}box.innerHTML=filtered.map(function(x){var rc=window.resourceChapter(x);return '<div class="resource"><h3>'+esc(x.title)+'</h3><p class="resourceMeta">'+esc(x.type)+(x.subject?' • '+esc(x.subject):'')+(rc?' • '+esc(rc):'')+'</p><p class="muted">'+esc(x.description||"")+'</p><button class="btn" type="button" onclick="requireLoginDownload('+Number(x.id)+')">🔒 Download '+esc(x.type)+' ↓</button></div>';}).join("");}catch(_){box.innerHTML='<div class="resource"><h3>Resources temporarily unavailable</h3><p class="muted">Please try again shortly.</p></div>';}};
-window.requireLoginDownload=async function(id){var token=localStorage.getItem("truthToken")||"",role=localStorage.getItem("truthRole")||"";if(!token||!role){window.pendingDownloadId=Number(id);window.openLogin();return false;}try{var r=await fetch("/api/resources/"+encodeURIComponent(id)+"/download",{headers:{"Authorization":"Bearer "+token}});if(!r.ok){var d={};try{d=await r.json();}catch(_){}if(r.status===401){localStorage.removeItem("truthToken");localStorage.removeItem("truthRole");window.pendingDownloadId=Number(id);window.openLogin();return false;}throw new Error(d.error||"Download failed");}var blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}catch(err){alert(err.message||"Download failed. Please try again.");}return false;};
+window.requireLoginDownload=async function(id){
+var token=localStorage.getItem("truthToken")||"",role=localStorage.getItem("truthRole")||"";
+if(!token || (role!=="user" && role!=="admin")){
+  window.pendingDownloadId=Number(id);window.openLogin();return false;
+}
+try{var r=await fetch("/api/resources/"+encodeURIComponent(id)+"/download",{headers:{"Authorization":"Bearer "+token,"Cache-Control":"no-cache"}});if(!r.ok){var d={};try{d=await r.json();}catch(_){}if(r.status===401){localStorage.removeItem("truthToken");localStorage.removeItem("truthRole");window.pendingDownloadId=Number(id);window.openLogin();return false;}throw new Error(d.error||"Download failed");}var blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}catch(err){alert(err.message||"Download failed. Please try again.");}return false;};
 document.querySelectorAll(".subject[data-subject]").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();window.openSubject(this.dataset.subject||"",this.dataset.type||"Notes");});});
 window.trackVisitor=async function(){
 var el=byId("visitorCount");
@@ -306,18 +312,12 @@ var f=e.target,msg=byId("cm");
 postForm("/api/collaborations",f,msg);
 };
 async function postForm(url,f,msg){
-msg.textContent="Sending...";
+msg.textContent="Sending...";msg.classList.remove("success","error");
 var data={};new FormData(f).forEach(function(v,k){data[k]=v;});
-try{
-  var result=await jsonPost(url,data);
-  msg.textContent=result.message||"Request submitted successfully!";
-  msg.style.color="#159447";
-  msg.style.fontWeight="700";
-  f.reset();
+try{var result=await jsonPost(url,data);msg.textContent=result.message||"Request submitted successfully!";msg.classList.add("success");f.reset();}
+catch(err){console.error("Form submit error",err);msg.textContent=err.message||"Could not submit. Please try again.";msg.classList.add("error");}
 } catch(err){
   console.error("Form submit error",err);
-  msg.style.color="";
-  msg.style.fontWeight="";
   msg.textContent=err.message||"Could not submit. Please try again.";
 }
 }
