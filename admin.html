@@ -45,12 +45,13 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
   <input id="loginUser" placeholder="Admin username" autocomplete="username">
   <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
   <button class="btn" style="width:100%" onclick="doLogin()">Login</button>
+  <div style="text-align:center;margin-top:8px"><a href="/forgot-password.html">Forgot password?</a></div>
   <div id="loginMsg" class="empty"></div>
 </section>
 
 <div id="dashboard" class="hidden">
 <header>
-  <strong>truth.oflifes — Admin Panel</strong>
+  <strong>truth.oflifes — Admin Panel <span id="notifyBadge" class="badge pending">🔔 0</span></strong>
   <div>
     <button class="muted small" onclick="loadAll()">↻ Refresh</button>
     <button class="danger small" onclick="logout()">Logout</button>
@@ -81,10 +82,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
         </select>
       </div>
       <select id="subject">
-        <option value="">Select Subject</option>
-        <option>Anatomy</option><option>Physiology</option><option>Biochemistry</option>
-        <option>Pathology</option><option>Pharmacology</option><option>Microbiology</option>
-        <option>Community Medicine</option><option>Other</option>
+        <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
       </select>
       <input id="file_url" placeholder="File URL" required>
       <textarea id="description" placeholder="Description (optional)"></textarea>
@@ -110,7 +108,22 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
   <section class="panel">
     <h3>👥 Registered Users</h3>
     <input id="userSearch" oninput="renderUsers()" placeholder="🔎 Search Instagram username...">
-    <div style="overflow:auto"><table><thead><tr><th>#</th><th>Instagram Username</th><th>Account Created</th></tr></thead><tbody id="userList"></tbody></table></div>
+    <div style="overflow:auto"><table><thead><tr><th>#</th><th>Instagram Username</th><th>Email</th><th>Account Created</th><th>Action</th></tr></thead><tbody id="userList"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h3>🔐 Password Reset Requests <span id="resetBadge" class="badge pending">0</span></h3>
+    <div id="resetList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>🛡️ Admin Security</h3>
+    <form id="adminPasswordForm" class="row">
+      <input id="currentAdminPassword" type="password" placeholder="Current password" required>
+      <input id="newAdminPassword" type="password" placeholder="New password (6+ chars)" minlength="6" required>
+      <button class="btn" type="submit">Change Admin Password</button>
+      <div id="adminPasswordMsg" class="empty"></div>
+    </form>
   </section>
 
   <section class="panel">
@@ -135,7 +148,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
 
 <script>
 let token = localStorage.getItem("adminToken") || localStorage.getItem("token");
-let resources=[], users=[], requests=[], collaborations=[];
+let resources=[], users=[], requests=[], collaborations=[], resetRequests=[];
 
 function headers(){ return {"Content-Type":"application/json","Authorization":"Bearer "+token}; }
 
@@ -182,25 +195,36 @@ function logout(){
 
 async function loadAll(){
   try{
-    const [v,u,r,an,req,co]=await Promise.all([
+    const [v,u,r,an,req,co,n,pr]=await Promise.all([
       api("/api/visits"),api("/api/users"),api("/api/resources"),
-      api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations")
+      api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations"),
+      api("/api/admin/notifications"),api("/api/admin/password-reset-requests")
     ]);
     document.getElementById("visitors").textContent=v.count??0;
-    users=u.users||[]; resources=r||[]; requests=req.requests||[]; collaborations=co.collaborations||[];
+    users=u.users||[]; resources=r||[]; requests=req.requests||[]; collaborations=co.collaborations||[]; resetRequests=pr.requests||[];
     document.getElementById("users").textContent=u.total??users.length;
     document.getElementById("resources").textContent=resources.length;
-    renderResources();renderUsers();renderRequests();renderCollabs();renderChart(an.days||[]);
+    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); updateNotifications(n);
   }catch(e){console.error(e);}
 }
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
 function date(s){return s?new Date(s).toLocaleString():"—";}
 
+function renderSubjects(){
+  const select=document.getElementById("subjectFilter");
+  if(!select)return;
+  const current=select.value;
+  const subjects=[...new Set(resources.map(r=>String(r.subject||"").trim()).filter(Boolean))].sort();
+  select.innerHTML='<option value="">All Subjects</option>'+subjects.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  select.value=subjects.includes(current)?current:"";
+}
+
 function renderResources(){
   const q=document.getElementById("resourceSearch").value.toLowerCase();
   const f=document.getElementById("resourceFilter").value;
-  const list=resources.filter(r=>(!f||r.type===f)&&(`${r.title} ${r.subject||""} ${r.description||""}`.toLowerCase().includes(q)));
+  const sf=document.getElementById("subjectFilter").value;
+  const list=resources.filter(r=>(!f||r.type===f)&&(!sf||r.subject===sf)&&(`${r.title} ${r.subject||""} ${r.description||""}`.toLowerCase().includes(q)));
   document.getElementById("resourceList").innerHTML=list.length?list.map(r=>`
     <div class="item">
       <h4>${esc(r.title)}</h4>
@@ -243,8 +267,15 @@ async function deleteResource(id){
 
 function renderUsers(){
   const q=document.getElementById("userSearch").value.toLowerCase();
-  const list=users.filter(u=>String(u.instagram_username).toLowerCase().includes(q));
-  userList.innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${date(u.created_at)}</td></tr>`).join("")||`<tr><td colspan="3" class="empty">No users found.</td></tr>`;
+  const list=users.filter(u=>(String(u.instagram_username).toLowerCase()+" "+String(u.email||"").toLowerCase()).includes(q));
+  userList.innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
+}
+async function resetUserPassword(id){
+  const p=prompt("Enter a new password (minimum 6 characters):");
+  if(p===null)return;
+  if(p.length<6){alert("Password must be at least 6 characters");return;}
+  try{await api(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify({newPassword:p})});alert("Password reset successfully.");await loadAll();}
+  catch(e){alert(e.message);}
 }
 
 function statusBadge(s){return `<span class="badge ${s}">${esc(s)}</span>`;}
@@ -285,6 +316,15 @@ function renderCollabs(){
 async function setCollab(id,status){try{await api("/api/collaborations/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});await loadAll();}catch(e){alert(e.message);}}
 async function deleteCollab(id){if(!confirm("Delete this collaboration?"))return;try{await api("/api/collaborations/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}}
 
+function renderResets(){
+  const active=resetRequests.filter(x=>!x.used_at && (!x.expires_at || new Date(x.expires_at)>new Date()));
+  resetBadge.textContent=active.length;
+  resetList.innerHTML=resetRequests.length?resetRequests.map(x=>`<div class="item"><h4>${esc(x.username)}</h4><div class="meta">${esc(x.email||"—")} · ${date(x.created_at)} · ${x.used_at?"completed":(x.expires_at&&new Date(x.expires_at)<new Date()?"expired":"pending")}</div></div>`).join(""):`<div class="empty">No password reset requests.</div>`;
+}
+function updateNotifications(n){
+  notifyBadge.textContent=`🔔 ${Number(n&&n.count||0)}`;
+}
+
 function renderChart(days){
   const full=[]; const now=new Date();
   for(let i=29;i>=0;i--){const d=new Date(now);d.setHours(0,0,0,0);d.setDate(d.getDate()-i);full.push(d.toISOString().slice(0,10));}
@@ -293,9 +333,20 @@ function renderChart(days){
   chart.innerHTML=vals.map((v,i)=>`<div class="bar" title="${full[i]}: ${v}" style="height:${Math.max(4,(v/max)*145)}px"><span>${v||""}</span></div>`).join("");
 }
 
+document.getElementById("adminPasswordForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  adminPasswordMsg.textContent="Changing…";
+  try{
+    await api("/api/admin/change-password",{method:"POST",body:JSON.stringify({currentPassword:currentAdminPassword.value,newPassword:newAdminPassword.value})});
+    adminPasswordMsg.textContent="Admin password changed successfully.";
+    e.target.reset();
+  }catch(err){adminPasswordMsg.textContent=err.message;}
+});
+
 if(token){
   showDashboard();
   loadAll();
+  setInterval(()=>loadAll().catch(()=>{}),30000);
 }
 </script>
 </body>
