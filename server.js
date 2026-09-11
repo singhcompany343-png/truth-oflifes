@@ -201,6 +201,11 @@ async function setupDatabase() {
   await pool.query(`
     ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
   `);
+  // Legacy-schema compatibility: some older deployments have a required
+  // `contact` column in requests, while the current form does not collect it.
+  await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS contact TEXT;`);
+  await pool.query(`ALTER TABLE requests ALTER COLUMN contact DROP NOT NULL;`);
+
   // Legacy-schema compatibility for request submissions.
   await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
   await pool.query(`ALTER TABLE requests ALTER COLUMN name DROP NOT NULL;`);
