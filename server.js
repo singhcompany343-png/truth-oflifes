@@ -87,6 +87,13 @@ async function setupDatabase() {
       used_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS resource_downloads (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      resource_id INTEGER REFERENCES resources(id) ON DELETE CASCADE,
+      downloaded_at TIMESTAMP DEFAULT NOW()
+    );
   `);
   // Migrate older users tables safely.
   // Some older deployments used `username` and/or `password_hash`
@@ -451,6 +458,49 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 // =========================
+// USER PROFILE + SECURITY
+// =========================
+
+app.get("/api/me", auth, async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT id, instagram_username, email, created_at FROM users WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    res.json({ user: result.rows[0] });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not load profile" }); }
+});
+
+app.patch("/api/me", auth, async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Enter a valid email address" });
+    const result = await pool.query(`UPDATE users SET email=$1 WHERE id=$2 RETURNING id, instagram_username, email, created_at`, [email || null, req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not update profile" }); }
+});
+
+app.post("/api/me/change-password", auth, async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 6) return res.status(400).json({ error: "New password must be at least 6 characters" });
+    const result = await pool.query(`SELECT password FROM users WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    if (!await bcrypt.compare(currentPassword, result.rows[0].password)) return res.status(401).json({ error: "Current password is incorrect" });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE users SET password=$1 WHERE id=$2`, [hash, req.user.id]);
+    res.json({ success: true, message: "Password changed successfully" });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not change password" }); }
+});
+
+app.get("/api/me/downloads", auth, async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT d.id, d.downloaded_at, r.id AS resource_id, r.title, r.type, r.subject FROM resource_downloads d JOIN resources r ON r.id=d.resource_id WHERE d.user_id=$1 ORDER BY d.downloaded_at DESC LIMIT 50`, [req.user.id]);
+    res.json({ downloads: result.rows });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not load download history" }); }
+});
+
+// =========================
 // PASSWORD RECOVERY
 // =========================
 
@@ -574,7 +624,7 @@ app.post("/api/admin/login", async (req, res) => {
     const password = String(req.body.password || "");
 
     const result = await pool.query(
-      `SELECT id, username, password
+      `SELECT id, username, password_hash
        FROM admins
        WHERE LOWER(username)=LOWER($1)
        LIMIT 1`,
@@ -591,7 +641,7 @@ app.post("/api/admin/login", async (req, res) => {
 
     const valid = await bcrypt.compare(
       password,
-      admin.password
+      admin.password_hash
     );
 
     if (!valid) {
@@ -707,6 +757,16 @@ app.get("/api/resources/:id/download", auth, async (req, res) => {
     const buffer = Buffer.from(
       await upstream.arrayBuffer()
     );
+
+    // Count only successful downloads. Tracking failure must not break the file download.
+    try {
+      await pool.query(
+        `INSERT INTO resource_downloads (user_id, resource_id) VALUES ($1, $2)`,
+        [req.user.id, req.params.id]
+      );
+    } catch (trackError) {
+      console.error("Download tracking failed:", trackError);
+    }
 
     return res.send(buffer);
   } catch (error) {
@@ -1031,6 +1091,21 @@ app.delete("/api/collaborations/:id", adminAuth, async (req, res) => {
 });
 
 // =========================
+// ADMIN ANALYTICS OVERVIEW
+// =========================
+
+app.get("/api/admin/analytics/overview", adminAuth, async (req, res) => {
+  try {
+    const [downloads, popular, recent] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS count FROM resource_downloads`),
+      pool.query(`SELECT r.id, r.title, r.type, r.subject, COUNT(d.id)::int AS downloads FROM resources r LEFT JOIN resource_downloads d ON d.resource_id=r.id GROUP BY r.id ORDER BY downloads DESC, r.created_at DESC LIMIT 10`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM resource_downloads WHERE downloaded_at >= NOW() - INTERVAL '7 days'`)
+    ]);
+    res.json({ totalDownloads: Number(downloads.rows[0].count), last7Days: Number(recent.rows[0].count), popular: popular.rows });
+  } catch (error) { console.error(error); res.status(500).json({ error: "Could not load analytics overview" }); }
+});
+
+// =========================
 // VISITOR ANALYTICS
 // =========================
 
@@ -1054,7 +1129,7 @@ app.get("/api/analytics/visits", adminAuth, async (req, res) => {
 // VISITOR COUNT
 // =========================
 
-app.post("/api/visits", async (req, res) => {
+app.post(["/api/visits", "/api/visit"], async (req, res) => {
   try {
     const visitor_key = String(
       req.body.visitor_key || ""
@@ -1121,6 +1196,7 @@ app.get("/api/users", adminAuth, async (req, res) => {
       SELECT
         id,
         instagram_username,
+        email,
         created_at
       FROM users
       ORDER BY created_at DESC
