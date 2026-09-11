@@ -1,29 +1,33 @@
-truth.oflifes — ALL-IN-ONE FINAL UPDATE
+truth.oflifes — FINAL COMPLETE PACKAGE
 
-Replace these 4 files in GitHub:
+Replace these files in the GitHub main branch:
 1. index.html
 2. server.js
 3. admin.html
 4. forgot-password.html
 
-Then Commit changes and wait for Render to deploy.
+Features included:
+- User + Admin login
+- User registration with recovery email
+- User Forgot Password request
+- Admin password-reset request list and user password reset
+- User profile, email update and change password
+- Notes/PPT resources with download tracking
+- Admin resource add/edit/delete
+- User search
+- Subject/type filters
+- Resource and collaboration request approval/rejection
+- Notifications
+- Visitor counter and 30-day activity chart
+- Download analytics/popular resources
+- Legacy database migration compatibility
+- /api/visit and /api/visits compatibility
 
-Included:
-- User forgot-password request flow
-- User profile + email update
-- User password change
-- Download history + download tracking
-- Admin download analytics + popular resources
-- Existing admin visitors/users/resources/request/collaboration features
-- All medical subjects in admin upload + filters
-- Search, edit/delete, notifications, reset controls
-- SEO/meta/mobile polish
-- Existing visitor counter and login preserved
+Forgot-password flow:
+User submits Instagram username + registered email.
+The request appears in Admin > Password Reset Requests.
+Admin can reset the user's password from the Users list.
+No external email service is required for this flow.
 
-Checked/fixed before packaging:
-- Admin subject filter is present and wired to its JavaScript.
-- User download tracking no longer references an undefined variable.
-- Visitor API supports both /api/visit and /api/visits.
-- Admin user list returns email.
-- Legacy /api/admin/login uses admins.password_hash correctly.
-- server.js and all embedded HTML JavaScript pass syntax checks.
+Validation:
+server.js and all inline JavaScript blocks passed Node syntax checks.
