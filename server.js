@@ -48,6 +48,7 @@ async function setupDatabase() {
       title TEXT NOT NULL,
       type TEXT NOT NULL,
       subject TEXT,
+      chapter TEXT,
       description TEXT,
       file_url TEXT,
       created_at TIMESTAMP DEFAULT NOW()
@@ -149,6 +150,8 @@ async function setupDatabase() {
     ALTER TABLE users
     ALTER COLUMN password_hash DROP NOT NULL;
   `);
+
+  await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS chapter TEXT;`);
 
   // Allows old rows with NULL usernames while keeping new usernames unique.
   await pool.query(`
@@ -674,6 +677,27 @@ app.post("/api/admin/login", async (req, res) => {
 });
 
 // =========================
+// CHAPTERS
+// =========================
+
+app.get("/api/chapters", async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT DISTINCT subject, chapter FROM resources WHERE subject IS NOT NULL AND chapter IS NOT NULL AND TRIM(chapter) <> '' ORDER BY subject, chapter`);
+    const map = {};
+    for (const row of result.rows) {
+      const subject = String(row.subject).trim();
+      const chapter = String(row.chapter).trim();
+      if (!map[subject]) map[subject] = [];
+      if (!map[subject].includes(chapter)) map[subject].push(chapter);
+    }
+    res.json(map);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load chapters" });
+  }
+});
+
+// =========================
 // RESOURCES - PUBLIC LIST
 // =========================
 
@@ -685,6 +709,7 @@ app.get("/api/resources", async (req, res) => {
         title,
         type,
         subject,
+        chapter,
         description,
         file_url,
         created_at
@@ -787,6 +812,7 @@ app.post("/api/resources", adminAuth, async (req, res) => {
     const title = String(req.body.title || "").trim();
     const type = String(req.body.type || "").trim();
     const subject = String(req.body.subject || "").trim();
+    const chapter = String(req.body.chapter || "").trim();
     const description = String(
       req.body.description || ""
     ).trim();
@@ -805,13 +831,14 @@ app.post("/api/resources", adminAuth, async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO resources
-       (title, type, subject, description, file_url)
-       VALUES ($1, $2, $3, $4, $5)
+       (title, type, subject, chapter, description, file_url)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, title, type, subject, description, file_url, created_at`,
       [
         title,
         type,
         subject,
+        chapter,
         description,
         file_url
       ]
@@ -838,6 +865,7 @@ app.put("/api/resources/:id", adminAuth, async (req, res) => {
     const title = String(req.body.title || "").trim();
     const type = String(req.body.type || "").trim();
     const subject = String(req.body.subject || "").trim();
+    const chapter = String(req.body.chapter || "").trim();
     const description = String(req.body.description || "").trim();
     const file_url = String(req.body.file_url || req.body.fileUrl || "").trim();
 
@@ -849,10 +877,10 @@ app.put("/api/resources/:id", adminAuth, async (req, res) => {
 
     const result = await pool.query(
       `UPDATE resources
-       SET title=$1, type=$2, subject=$3, description=$4, file_url=$5
-       WHERE id=$6
-       RETURNING id, title, type, subject, description, file_url, created_at`,
-      [title, type, subject, description, file_url, req.params.id]
+       SET title=$1, type=$2, subject=$3, chapter=$4, description=$5, file_url=$6
+       WHERE id=$7
+       RETURNING id, title, type, subject, chapter, description, file_url, created_at`,
+      [title, type, subject, chapter, description, file_url, req.params.id]
     );
 
     if (!result.rows.length) {

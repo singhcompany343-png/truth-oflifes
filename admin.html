@@ -94,6 +94,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
       <select id="subject">
         <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
       </select>
+      <input id="chapter" placeholder="Chapter (e.g. General Anatomy) — optional">
       <input id="file_url" placeholder="File URL" required>
       <textarea id="description" placeholder="Description (optional)"></textarea>
       <div class="actions">
@@ -242,11 +243,11 @@ function renderResources(){
   const q=document.getElementById("resourceSearch").value.toLowerCase();
   const f=document.getElementById("resourceFilter").value;
   const sf=document.getElementById("subjectFilter").value;
-  const list=resources.filter(r=>(!f||r.type===f)&&(!sf||r.subject===sf)&&(`${r.title} ${r.subject||""} ${r.description||""}`.toLowerCase().includes(q)));
+  const list=resources.filter(r=>(!f||r.type===f)&&(!sf||r.subject===sf)&&(`${r.title} ${r.subject||""} ${r.chapter||""} ${r.description||""}`.toLowerCase().includes(q)));
   document.getElementById("resourceList").innerHTML=list.length?list.map(r=>`
     <div class="item">
       <h4>${esc(r.title)}</h4>
-      <div class="meta"><span class="badge">${esc(r.type)}</span>${esc(r.subject||"No subject")} · ${date(r.created_at)}</div>
+      <div class="meta"><span class="badge">${esc(r.type)}</span>${esc(r.subject||"No subject")}${r.chapter?" · "+esc(r.chapter):""} · ${date(r.created_at)}</div>
       ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
       <div class="actions">
         ${r.file_url?`<a class="btn small" href="${esc(r.file_url)}" target="_blank" rel="noopener">Open File</a>`:""}
@@ -258,7 +259,7 @@ function renderResources(){
 
 function editResource(id){
   const r=resources.find(x=>x.id===id); if(!r)return;
-  rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||"";
+  rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||""; chapter.value=r.chapter||"";
   file_url.value=r.file_url||""; description.value=r.description||"";
   saveBtn.textContent="💾 Save Changes";cancelEditBtn(true);
   scrollTo({top:document.querySelectorAll(".panel")[2].offsetTop-60,behavior:"smooth"});
@@ -271,7 +272,7 @@ function cancelEdit(){
 document.getElementById("resourceForm").addEventListener("submit",async e=>{
   e.preventDefault();
   resourceMsg.textContent="Saving…";
-  const body={title:title.value.trim(),type:type.value,subject:subject.value,description:description.value.trim(),file_url:file_url.value.trim()};
+  const body={title:title.value.trim(),type:type.value,subject:subject.value,chapter:chapter.value.trim(),description:description.value.trim(),file_url:file_url.value.trim()};
   try{
     const id=rid.value;
     await api(id?`/api/resources/${id}`:"/api/resources",{method:id?"PUT":"POST",body:JSON.stringify(body)});
