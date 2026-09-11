@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
 const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -37,6 +38,7 @@ async function setupDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       instagram_username TEXT UNIQUE NOT NULL,
+      email TEXT,
       password TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
@@ -75,6 +77,16 @@ async function setupDatabase() {
       visitor_key TEXT UNIQUE NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS password_reset_requests (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL,
+      email TEXT,
+      token_hash TEXT,
+      expires_at TIMESTAMP,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
   `);
   // Migrate older users tables safely.
   // Some older deployments used `username` and/or `password_hash`
@@ -92,6 +104,11 @@ async function setupDatabase() {
   await pool.query(`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS password_hash TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS email TEXT;
   `);
 
   // If an older table has `username`, copy it into the new column.
@@ -231,6 +248,10 @@ app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 
+app.get("/forgot-password.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "forgot-password.html"));
+});
+
 // =========================
 // HEALTH
 // =========================
@@ -252,6 +273,7 @@ app.post("/api/auth/register", async (req, res) => {
       String(req.body.instagram_username || "").trim();
 
     const password = String(req.body.password || "");
+    const email = String(req.body.email || "").trim().toLowerCase();
 
     if (!instagram_username || !password) {
       return res.status(400).json({
@@ -279,10 +301,10 @@ app.post("/api/auth/register", async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (instagram_username, password)
-       VALUES ($1, $2)
-       RETURNING id, instagram_username, created_at`,
-      [instagram_username, hash]
+      `INSERT INTO users (instagram_username, email, password)
+       VALUES ($1, $2, $3)
+       RETURNING id, instagram_username, email, created_at`,
+      [instagram_username, email || null, hash]
     );
 
     const user = result.rows[0];
@@ -373,7 +395,7 @@ app.post("/api/auth/login", async (req, res) => {
 
     // NORMAL USER LOGIN
     const userResult = await pool.query(
-      `SELECT id, instagram_username, password, created_at
+      `SELECT id, instagram_username, email, password, created_at
        FROM users
        WHERE LOWER(instagram_username)=LOWER($1)
        LIMIT 1`,
@@ -416,6 +438,7 @@ app.post("/api/auth/login", async (req, res) => {
       user: {
         id: user.id,
         instagram_username: user.instagram_username,
+        email: user.email,
         created_at: user.created_at
       }
     });
@@ -424,6 +447,120 @@ app.post("/api/auth/login", async (req, res) => {
     res.status(500).json({
       error: "Login failed"
     });
+  }
+});
+
+// =========================
+// PASSWORD RECOVERY
+// =========================
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    const username = String(req.body.username || req.body.instagram_username || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    // Always return the same public response to avoid account enumeration.
+    const generic = {
+      success: true,
+      message: "If the account details match, a reset request has been recorded. Please contact the admin to complete the password reset."
+    };
+
+    if (!username || !email) return res.json(generic);
+
+    const result = await pool.query(
+      `SELECT id FROM users
+       WHERE LOWER(instagram_username)=LOWER($1)
+       AND email IS NOT NULL
+       AND LOWER(email)=LOWER($2)
+       LIMIT 1`,
+      [username, email]
+    );
+
+    if (result.rows.length) {
+      await pool.query(
+        `INSERT INTO password_reset_requests (username, email, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '30 minutes')`,
+        [username, email]
+      );
+    }
+
+    return res.json(generic);
+  } catch (error) {
+    console.error(error);
+    return res.json({
+      success: true,
+      message: "If the account details match, a reset request has been recorded. Please contact the admin to complete the password reset."
+    });
+  }
+});
+
+app.post("/api/admin/change-password", adminAuth, async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 6) return res.status(400).json({ error: "New password must be at least 6 characters" });
+
+    const result = await pool.query(`SELECT password_hash FROM admins WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "Admin not found" });
+    const valid = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: "Current password is incorrect" });
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE admins SET password_hash=$1 WHERE id=$2`, [hash, req.user.id]);
+    res.json({ success: true, message: "Admin password changed" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not change admin password" });
+  }
+});
+
+app.get("/api/admin/password-reset-requests", adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, username, email, expires_at, used_at, created_at
+      FROM password_reset_requests
+      ORDER BY created_at DESC
+      LIMIT 100
+    `);
+    res.json({ requests: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load password reset requests" });
+  }
+});
+
+app.post("/api/admin/users/:id/reset-password", adminAuth, async (req, res) => {
+  try {
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+    const hash = await bcrypt.hash(newPassword, 10);
+    const result = await pool.query(`UPDATE users SET password=$1 WHERE id=$2 RETURNING id, instagram_username`, [hash, req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "User not found" });
+    await pool.query(`UPDATE password_reset_requests SET used_at=NOW() WHERE LOWER(username)=LOWER($1) AND used_at IS NULL`, [result.rows[0].instagram_username]);
+    res.json({ success: true, message: "User password reset successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not reset user password" });
+  }
+});
+
+// Lightweight notification count for the admin header.
+app.get("/api/admin/notifications", adminAuth, async (req, res) => {
+  try {
+    const [r, c, p] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS count FROM requests WHERE status='pending'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM collaborations WHERE status='pending'`),
+      pool.query(`SELECT COUNT(*)::int AS count FROM password_reset_requests WHERE used_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())`)
+    ]);
+    res.json({
+      count: Number(r.rows[0].count) + Number(c.rows[0].count) + Number(p.rows[0].count),
+      requests: Number(r.rows[0].count),
+      collaborations: Number(c.rows[0].count),
+      passwordResets: Number(p.rows[0].count)
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Could not load notifications" });
   }
 });
 
