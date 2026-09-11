@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>truth.oflifes — Admin Panel</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
+header{background:#080b12;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:50}
+header h2{margin:0;font-size:18px}
+.header-actions{display:flex;gap:7px}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer}
+.logout{background:#ef4444;color:#fff}
+.refresh{background:#fff;color:#172033}
+.container{max-width:1100px;margin:auto;padding:14px}
+.hidden{display:none!important}
+.login-box{max-width:420px;margin:70px auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+input,select,textarea{width:100%;padding:12px;margin:6px 0 12px;border:1px solid #d7dce5;border-radius:9px;font-size:14px;background:#fff}
+textarea{min-height:100px;resize:vertical}
+.primary{background:#2563eb;color:#fff;width:100%}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:15px}
+.stat{background:#fff;border-radius:14px;padding:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
+.stat small{color:#667085}.stat strong{display:block;font-size:29px;margin-top:6px}
+.card{background:#fff;padding:16px;border-radius:15px;margin-bottom:15px;box-shadow:0 5px 20px rgba(0,0,0,.06)}
+.card h3{margin:0 0 12px;font-size:16px}
+.toolbar{display:flex;gap:8px;margin-bottom:10px}
+.toolbar input,.toolbar select{margin:0}.toolbar select{max-width:170px}
+.resource{border:1px solid #e5e7eb;border-radius:11px;padding:13px;margin:9px 0}
+.resource-title{font-weight:700;font-size:16px}
+.meta{color:#667085;font-size:13px;margin-top:5px}
+.badge{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:20px;padding:4px 8px;font-size:11px;font-weight:700}
+.resource-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.open{background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700}
+.delete{background:#dc2626;color:#fff}
+.empty,.muted{color:#667085;padding:8px 0;font-size:13px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:13px;white-space:nowrap}
+th{background:#f8fafc}
+.success{color:#15803d}.error{color:#dc2626}
+.notice{background:#f8fafc;border-left:4px solid #2563eb;border-radius:8px;padding:12px;font-size:13px}
+@media(max-width:700px){
+ .stats{grid-template-columns:1fr 1fr}
+ .stats .stat:last-child{grid-column:1/-1}
+ .toolbar{flex-direction:column}
+ .toolbar select{max-width:none}
+ header h2{font-size:15px}
+ .container{padding:11px}
+ .card{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h2>truth.oflifes — Admin Panel</h2>
+  <div class="header-actions">
+    <button class="refresh hidden" id="refreshBtn" onclick="loadAll()">↻ Refresh</button>
+    <button class="logout hidden" id="logoutBtn" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div id="loginSection" class="login-box">
+  <h2>Admin Login</h2>
+  <input id="username" type="text" placeholder="Admin Username" autocomplete="username">
+  <input id="password" type="password" placeholder="Admin Password" autocomplete="current-password">
+  <button class="primary" onclick="login()">Login</button>
+  <p id="loginMessage"></p>
+</div>
+
+<div id="dashboard" class="container hidden">
+
+  <div class="stats">
+    <div class="stat"><small>👀 Visitors</small><strong id="visitorCount">0</strong></div>
+    <div class="stat"><small>👥 Registered Users</small><strong id="userCount">0</strong></div>
+    <div class="stat"><small>📚 Total Resources</small><strong id="resourceCount">0</strong></div>
+  </div>
+
+  <div class="card">
+    <h3>📚 Add Medical Resource</h3>
+    <input id="title" type="text" placeholder="Resource Title">
+    <select id="type">
+      <option value="Notes">Notes</option>
+      <option value="PPT">PPT</option>
+    </select>
+    <select id="subject">
+      <option value="">Select Subject</option>
+      <option>Anatomy</option><option>Physiology</option><option>Biochemistry</option>
+      <option>Pharmacology</option><option>Pathology</option><option>Microbiology</option>
+      <option>Forensic Medicine</option><option>Community Medicine</option><option>Medicine</option>
+      <option>Surgery</option><option>Pediatrics</option><option>OBG</option><option>Orthopedics</option>
+      <option>ENT</option><option>Ophthalmology</option><option>Radiology</option><option>Anesthesia</option>
+      <option>Psychiatry</option><option>Dermatology</option><option>Dentistry</option><option>Nursing</option><option>Other</option>
+    </select>
+    <input id="fileUrl" type="url" placeholder="File URL">
+    <textarea id="description" placeholder="Description (optional)"></textarea>
+    <button class="primary" onclick="addResource()">➕ Add Resource</button>
+    <p id="resourceMessage"></p>
+  </div>
+
+  <div class="card">
+    <h3>📖 Resources</h3>
+    <div class="toolbar">
+      <input id="resourceSearch" placeholder="🔎 Search title, subject..." oninput="renderResources()">
+      <select id="resourceFilter" onchange="renderResources()">
+        <option value="">All Types</option><option value="Notes">Notes</option><option value="PPT">PPT</option>
+      </select>
+    </div>
+    <div id="resourcesList">Loading...</div>
+  </div>
+
+  <div class="card">
+    <h3>👥 Registered Users</h3>
+    <div class="toolbar">
+      <input id="userSearch" placeholder="🔎 Search Instagram username..." oninput="renderUsers()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Instagram Username</th><th>Account Created</th></tr></thead>
+        <tbody id="usersTable"><tr><td colspan="3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📝 Resource Requests</h3>
+    <div class="notice"><b>Request inbox</b><br><span class="muted">Requests section is ready for the existing request system. Approval/rejection buttons require matching server endpoints, so they are not added here to avoid breaking your live app.</span></div>
+    <div id="requestsList" class="muted">No request data endpoint is currently exposed to the admin panel.</div>
+  </div>
+
+  <div class="card">
+    <h3>🤝 Collaboration Requests</h3>
+    <div class="notice"><b>Collaboration inbox</b><br><span class="muted">Collaboration submissions remain available. Approval/rejection workflow can be connected after the corresponding admin API is added.</span></div>
+    <div id="collaborationsList" class="muted">No collaboration data endpoint is currently exposed to the admin panel.</div>
+  </div>
+
+</div>
+
+<script>
+let token=localStorage.getItem("adminToken");
+let allResources=[];
+let allUsers=[];
+
+const $=id=>document.getElementById(id);
+
+function showDashboard(){
+  $("loginSection").classList.add("hidden");
+  $("dashboard").classList.remove("hidden");
+  $("logoutBtn").classList.remove("hidden");
+  $("refreshBtn").classList.remove("hidden");
+  loadAll();
+}
+
+function showLogin(){
+  $("loginSection").classList.remove("hidden");
+  $("dashboard").classList.add("hidden");
+  $("logoutBtn").classList.add("hidden");
+  $("refreshBtn").classList.add("hidden");
+}
+
+async function login(){
+  const username=$("username").value.trim();
+  const password=$("password").value;
+  const msg=$("loginMessage");
+  msg.className="";
+  if(!username||!password){
+    msg.className="error";
+    msg.textContent="Username aur password enter karein.";
+    return;
+  }
+  try{
+    const res=await fetch("/api/auth/login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({mode:"admin",username,password})
+    });
+    const data=await res.json();
+    if(!res.ok){
+      msg.className="error";
+      msg.textContent=data.error||"Login failed.";
+      return;
+    }
+    token=data.token;
+    localStorage.setItem("adminToken",token);
+    showDashboard();
+  }catch(e){
+    msg.className="error";
+    msg.textContent="Server se connection nahi ho raha.";
+  }
+}
+
+function logout(){
+  localStorage.removeItem("adminToken");
+  token=null;
+  showLogin();
+}
+
+function authHeaders(){
+  return {"Authorization":"Bearer "+token,"Content-Type":"application/json"};
+}
+
+async function loadAll(){
+  await Promise.all([loadResources(),loadUsers(),loadVisitors()]);
+}
+
+async function loadResources(){
+  try{
+    const res=await fetch("/api/resources");
+    const data=await res.json();
+    allResources=Array.isArray(data)?data:[];
+    $("resourceCount").textContent=allResources.length;
+    renderResources();
+  }catch(e){
+    $("resourcesList").innerHTML='<div class="error">Resources load nahi ho paaye.</div>';
+  }
+}
+
+function renderResources(){
+  const q=($("resourceSearch")?.value||"").toLowerCase().trim();
+  const filter=$("resourceFilter")?.value||"";
+  const data=allResources.filter(r=>{
+    const text=((r.title||"")+" "+(r.subject||"")+" "+(r.description||"")).toLowerCase();
+    return (!q||text.includes(q))&&(!filter||r.type===filter);
+  });
+  if(!data.length){
+    $("resourcesList").innerHTML='<div class="empty">No matching resources.</div>';
+    return;
+  }
+  $("resourcesList").innerHTML=data.map(r=>`
+    <div class="resource">
+      <div class="resource-title">${escapeHtml(r.title)}</div>
+      <div class="meta"><span class="badge">${escapeHtml(r.type||"Resource")}</span>${r.subject?" • "+escapeHtml(r.subject):""}</div>
+      ${r.description?`<p>${escapeHtml(r.description)}</p>`:""}
+      <div class="resource-actions">
+        ${r.file_url?`<a class="open" href="${escapeAttribute(r.file_url)}" target="_blank" rel="noopener">Open File</a>`:""}
+        <button class="delete" onclick="deleteResource(${Number(r.id)})">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function addResource(){
+  const title=$("title").value.trim();
+  const type=$("type").value;
+  const subject=$("subject").value;
+  const file_url=$("fileUrl").value.trim();
+  const description=$("description").value.trim();
+  const msg=$("resourceMessage");
+  msg.className="";
+  if(!title||!file_url){
+    msg.className="error";
+    msg.textContent="Title aur File URL required hai.";
+    return;
+  }
+  try{
+    const res=await fetch("/api/resources",{
+      method:"POST",
+      headers:authHeaders(),
+      body:JSON.stringify({title,type,subject,file_url,description})
+    });
+    const data=await res.json();
+    if(!res.ok){
+      msg.className="error";
+      msg.textContent=data.error||"Resource add nahi hua.";
+      return;
+    }
+    msg.className="success";
+    msg.textContent="Resource successfully add ho gaya.";
+    $("title").value="";
+    $("fileUrl").value="";
+    $("description").value="";
+    $("subject").value="";
+    await loadResources();
+  }catch(e){
+    msg.className="error";
+    msg.textContent="Server error.";
+  }
+}
+
+async function deleteResource(id){
+  if(!confirm("Is resource ko delete karna hai?")) return;
+  try{
+    const res=await fetch("/api/resources/"+id,{method:"DELETE",headers:authHeaders()});
+    const data=await res.json();
+    if(!res.ok){alert(data.error||"Delete failed.");return;}
+    await loadResources();
+  }catch(e){alert("Server error.");}
+}
+
+async function loadUsers(){
+  try{
+    const res=await fetch("/api/users",{headers:authHeaders()});
+    const data=await res.json();
+    if(res.status===401||res.status===403){logout();return;}
+    allUsers=Array.isArray(data.users)?data.users:[];
+    $("userCount").textContent=Number(data.total)||allUsers.length;
+    renderUsers();
+  }catch(e){
+    $("usersTable").innerHTML='<tr><td colspan="3">Users load nahi ho paaye.</td></tr>';
+  }
+}
+
+function renderUsers(){
+  const q=($("userSearch")?.value||"").toLowerCase().trim();
+  const data=allUsers.filter(u=>(u.instagram_username||"").toLowerCase().includes(q));
+  $("usersTable").innerHTML=data.length?data.map((u,i)=>`
+    <tr><td>${i+1}</td><td>${escapeHtml(u.instagram_username||"")}</td><td>${formatDate(u.created_at)}</td></tr>
+  `).join(""):'<tr><td colspan="3">No users found.</td></tr>';
+}
+
+async function loadVisitors(){
+  try{
+    const res=await fetch("/api/visits",{headers:authHeaders()});
+    const data=await res.json();
+    if(res.ok) $("visitorCount").textContent=Number(data.count)||0;
+  }catch(e){}
+}
+
+function formatDate(v){
+  if(!v)return"-";
+  const d=new Date(v);
+  if(isNaN(d.getTime()))return v;
+  return d.toLocaleString("en-IN",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+}
+
+function escapeHtml(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function escapeAttribute(v){
+  return escapeHtml(v).replace(/`/g,"&#96;");
+}
+
+if(token) showDashboard(); else showLogin();
+</script>
+</body>
+</html>
