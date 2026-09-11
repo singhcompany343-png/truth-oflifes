@@ -188,6 +188,15 @@ window.openProfile=async function(){
   await loadProfile();
 };
 window.closeProfile=function(){byId("profileModal").classList.remove("show");};
+window.userLogout=function(){
+  localStorage.removeItem("truthToken");
+  localStorage.removeItem("truthRole");
+  localStorage.removeItem("adminToken");
+  window.pendingDownloadId=null;
+  window.closeProfile();
+  setAuthUI();
+  window.scrollTo({top:0,behavior:"smooth"});
+};
 window.closeProfileOutside=function(e){if(e.target===byId("profileModal"))window.closeProfile();};
 async function loadProfile(){
   try{

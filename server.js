@@ -755,7 +755,7 @@ app.get("/api/resources/:id/download", auth, async (req, res) => {
       });
     }
 
-    const fileUrl = result.rows[0].file_url;
+    const fileUrl = String(result.rows[0].file_url || "").trim();
 
     if (!fileUrl) {
       return res.status(404).json({
@@ -763,7 +763,35 @@ app.get("/api/resources/:id/download", auth, async (req, res) => {
       });
     }
 
-    const upstream = await fetch(fileUrl);
+    // Normalize common cloud-storage share links into downloadable URLs.
+    let downloadUrl = fileUrl;
+    try {
+      const parsed = new URL(fileUrl);
+      const host = parsed.hostname.toLowerCase();
+
+      if (host.includes("drive.google.com")) {
+        const idFromPath = (parsed.pathname.match(/\/d\/([^/]+)/) || [])[1];
+        const idFromQuery = parsed.searchParams.get("id");
+        const driveId = idFromPath || idFromQuery;
+        if (driveId) {
+          downloadUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(driveId)}&export=download&confirm=t`;
+        }
+      } else if (host === "dropbox.com" || host.endsWith(".dropbox.com")) {
+        parsed.searchParams.set("dl", "1");
+        downloadUrl = parsed.toString();
+      } else if (host === "github.com" && parsed.pathname.includes("/blob/")) {
+        downloadUrl = parsed.toString().replace("github.com/", "raw.githubusercontent.com/").replace("/blob/", "/");
+      }
+    } catch (_) {
+      // Keep the original URL; the clearer error below will be returned if it cannot be fetched.
+    }
+
+    const upstream = await fetch(downloadUrl, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TruthOfLifes/1.0)"
+      }
+    });
 
     if (!upstream.ok) {
       return res.status(502).json({
