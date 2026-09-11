@@ -311,9 +311,13 @@ var data={};new FormData(f).forEach(function(v,k){data[k]=v;});
 try{
   var result=await jsonPost(url,data);
   msg.textContent=result.message||"Request submitted successfully!";
-  if(f.id!=="requestPageForm") f.reset();
+  msg.style.color="#159447";
+  msg.style.fontWeight="700";
+  f.reset();
 } catch(err){
   console.error("Form submit error",err);
+  msg.style.color="";
+  msg.style.fontWeight="";
   msg.textContent=err.message||"Could not submit. Please try again.";
 }
 }

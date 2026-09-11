@@ -210,7 +210,7 @@ function logout(){
 async function loadAll(){
   try{
     const [v,u,r,an,req,co,n,pr,ov]=await Promise.all([
-      api("/api/visits"),api("/api/users"),api("/api/resources"),
+      api("/api/visits"),api("/api/users"),api("/api/admin/resources"),
       api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations"),
       api("/api/admin/notifications"),api("/api/admin/password-reset-requests"),api("/api/admin/analytics/overview")
     ]);
