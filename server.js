@@ -136,15 +136,34 @@ async function setupDatabase() {
   // Older databases may have requests/collaborations tables without the
   // Instagram username columns. Add them safely for the admin dashboard.
   await pool.query(`
-    ALTER TABLE requests
-    ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS name TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS type TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS subject TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE requests ADD COLUMN IF NOT EXISTS message TEXT;
   `);
   await pool.query(`
     ALTER TABLE requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
   `);
   await pool.query(`
-    ALTER TABLE collaborations
-    ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS name TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS instagram_username TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS email TEXT;
+  `);
+  await pool.query(`
+    ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS message TEXT;
   `);
   await pool.query(`
     ALTER TABLE collaborations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
