@@ -94,7 +94,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
       <select id="subject">
         <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
       </select>
-      <input id="chapter" placeholder="Chapter (e.g. General Anatomy) — optional">
+      <select id="chapter"><option value="">Select Chapter</option></select>
       <input id="file_url" placeholder="File URL" required>
       <textarea id="description" placeholder="Description (optional)"></textarea>
       <div class="actions">
@@ -230,6 +230,25 @@ async function loadAll(){
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
 function date(s){return s?new Date(s).toLocaleString():"—";}
 
+
+let chapterMap={};
+async function loadChapterOptions(selected="") {
+  const sel=document.getElementById("chapter");
+  const subject=document.getElementById("subject").value;
+  if(!sel)return;
+  try {
+    if(!Object.keys(chapterMap).length){
+      const r=await fetch("/api/chapters");
+      if(r.ok) chapterMap=await r.json();
+    }
+  } catch(e) { console.error("Chapter list error",e); }
+  const chapters=chapterMap[subject]||[];
+  sel.innerHTML='<option value="">Select Chapter</option>'+chapters.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  if(selected) sel.value=selected;
+}
+document.getElementById("subject").addEventListener("change",()=>loadChapterOptions());
+loadChapterOptions();
+
 function renderSubjects(){
   const select=document.getElementById("subjectFilter");
   if(!select)return;
@@ -259,7 +278,7 @@ function renderResources(){
 
 function editResource(id){
   const r=resources.find(x=>x.id===id); if(!r)return;
-  rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||""; chapter.value=r.chapter||"";
+  rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||""; loadChapterOptions(r.chapter||"");
   file_url.value=r.file_url||""; description.value=r.description||"";
   saveBtn.textContent="💾 Save Changes";cancelEditBtn(true);
   scrollTo({top:document.querySelectorAll(".panel")[2].offsetTop-60,behavior:"smooth"});
