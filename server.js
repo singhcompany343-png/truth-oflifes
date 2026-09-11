@@ -76,7 +76,10 @@ async function setupDatabase() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-
+  await pool.query(`
+  ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS password TEXT;
+`);
   console.log("Database ready");
 }
 
