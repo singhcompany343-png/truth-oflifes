@@ -96,10 +96,13 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
 
   <section class="panel">
     <h3>📚 Resources</h3>
-    <div class="filters">
+    <div class="filters" style="grid-template-columns:1fr 180px 180px">
       <input id="resourceSearch" oninput="renderResources()" placeholder="🔎 Search title, subject...">
       <select id="resourceFilter" onchange="renderResources()">
         <option value="">All Types</option><option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+      </select>
+      <select id="subjectFilter" onchange="renderResources()">
+        <option value="">All Subjects</option>
       </select>
     </div>
     <div id="resourceList"></div>
@@ -318,11 +321,11 @@ async function deleteCollab(id){if(!confirm("Delete this collaboration?"))return
 
 function renderResets(){
   const active=resetRequests.filter(x=>!x.used_at && (!x.expires_at || new Date(x.expires_at)>new Date()));
-  resetBadge.textContent=active.length;
-  resetList.innerHTML=resetRequests.length?resetRequests.map(x=>`<div class="item"><h4>${esc(x.username)}</h4><div class="meta">${esc(x.email||"—")} · ${date(x.created_at)} · ${x.used_at?"completed":(x.expires_at&&new Date(x.expires_at)<new Date()?"expired":"pending")}</div></div>`).join(""):`<div class="empty">No password reset requests.</div>`;
+  document.getElementById("resetBadge").textContent=active.length;
+  document.getElementById("resetList").innerHTML=resetRequests.length?resetRequests.map(x=>`<div class="item"><h4>${esc(x.username)}</h4><div class="meta">${esc(x.email||"—")} · ${date(x.created_at)} · ${x.used_at?"completed":(x.expires_at&&new Date(x.expires_at)<new Date()?"expired":"pending")}</div></div>`).join(""):`<div class="empty">No password reset requests.</div>`;
 }
 function updateNotifications(n){
-  notifyBadge.textContent=`🔔 ${Number(n&&n.count||0)}`;
+  document.getElementById("notifyBadge").textContent=`🔔 ${Number(n&&n.count||0)}`;
 }
 
 function renderChart(days){
@@ -337,12 +340,12 @@ function renderChart(days){
 
 document.getElementById("adminPasswordForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  adminPasswordMsg.textContent="Changing…";
+  document.getElementById("adminPasswordMsg").textContent="Changing…";
   try{
     await api("/api/admin/change-password",{method:"POST",body:JSON.stringify({currentPassword:currentAdminPassword.value,newPassword:newAdminPassword.value})});
-    adminPasswordMsg.textContent="Admin password changed successfully.";
+    document.getElementById("adminPasswordMsg").textContent="Admin password changed successfully.";
     e.target.reset();
-  }catch(err){adminPasswordMsg.textContent=err.message;}
+  }catch(err){document.getElementById("adminPasswordMsg").textContent=err.message;}
 });
 
 if(token){
