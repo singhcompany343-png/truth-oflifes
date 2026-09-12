@@ -239,6 +239,7 @@ async function setupDatabase() {
       ALTER COLUMN name DROP NOT NULL,
       ALTER COLUMN instagram_username DROP NOT NULL,
       ALTER COLUMN email DROP NOT NULL,
+      ALTER COLUMN contact DROP NOT NULL,
       ALTER COLUMN source DROP NOT NULL,
       ALTER COLUMN message DROP NOT NULL,
       ALTER COLUMN status DROP NOT NULL,
