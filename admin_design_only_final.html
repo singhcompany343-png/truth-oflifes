@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>truth.oflifes — Admin Panel</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fb;color:#172033;font-family:Arial,sans-serif}
+header{background:#070b12;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header strong{font-size:14px}
+button{border:0;border-radius:7px;padding:9px 13px;cursor:pointer;font-weight:600}
+.btn{background:#2563eb;color:#fff}.danger{background:#dc2626;color:#fff}.success{background:#16a34a;color:#fff}.muted{background:#e5e7eb;color:#111827}
+.small{padding:6px 9px;font-size:12px}
+.wrap{max-width:1100px;margin:auto;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card,.panel{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(15,23,42,.06)}
+.stat small{color:#64748b}.stat b{display:block;font-size:24px;margin-top:6px}
+h3{margin:0 0 12px;font-size:15px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #d7dce5;border-radius:8px;margin-bottom:8px;font:inherit}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters{display:grid;grid-template-columns:1fr 160px 160px;gap:8px}
+.item{border:1px solid #e2e8f0;border-radius:9px;padding:11px;margin:8px 0}
+.item h4{margin:0 0 4px;font-size:14px}
+.meta{font-size:12px;color:#64748b;margin-bottom:8px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#e5e7eb;font-size:11px;margin-right:4px}
+.pending{background:#fef3c7;color:#92400e}.approved{background:#dcfce7;color:#166534}.rejected{background:#fee2e2;color:#991b1b}
+.notice{padding:10px;border-left:3px solid #2563eb;background:#f8fafc;border-radius:6px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left}
+.empty{color:#64748b;font-size:13px;padding:8px 0}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:15px;z-index:50}
+.modalbox{background:#fff;border-radius:12px;padding:16px;width:min(520px,100%)}
+.chart{height:170px;display:flex;align-items:flex-end;gap:5px;border-bottom:1px solid #cbd5e1;padding:8px 0;overflow:hidden}
+.bar{min-width:10px;background:#2563eb;border-radius:4px 4px 0 0;position:relative}
+.bar span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:9px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.row,.filters{grid-template-columns:1fr}header{padding:12px}.wrap{padding:10px}.stat b{font-size:21px}}
+
+/* ===== Premium dashboard design only ===== */
+:root{
+  --bg:#020b18;--panel:#061729;--panel2:#071c31;--line:#0b4776;
+  --blue:#079cff;--blue2:#006fe8;--text:#eaf5ff;--muted:#8eacc4;
+}
+html{background:var(--bg)}
+body{
+  margin:0!important;min-height:100vh;background:
+  radial-gradient(circle at 70% 0%,rgba(0,121,255,.16),transparent 34%),
+  linear-gradient(135deg,#020813,#031425 55%,#020b17)!important;
+  color:var(--text)!important;font-family:Inter,Arial,sans-serif!important;
+}
+header{
+  height:70px!important;padding:10px 28px!important;
+  background:rgba(2,10,23,.92)!important;border-bottom:1px solid #0b416d!important;
+  box-shadow:0 0 30px rgba(0,135,255,.12)!important;position:sticky!important;
+}
+header strong{font-size:15px!important;letter-spacing:.2px}
+.wrap{max-width:none!important;margin:0!important;padding:24px 28px 45px 270px!important}
+.neoSidebar{
+  position:fixed;left:0;top:70px;bottom:0;width:238px;z-index:15;
+  background:linear-gradient(180deg,rgba(3,20,39,.98),rgba(2,12,25,.98));
+  border-right:1px solid #0a3e68;padding:22px 14px;
+}
+.neoBrand{display:flex;align-items:center;gap:10px;padding:4px 8px 26px}
+.neoBrand b{font-size:20px;letter-spacing:.2px}.neoBrand em{color:#18a6ff;font-style:normal}
+.neoBrand small{display:block;color:#8eacc4;font-size:9px;margin-top:2px}
+.neoLogo{font-size:28px;color:#12a8ff;line-height:1;filter:drop-shadow(0 0 8px #008cff)}
+.neoLogo span{display:block;font-size:24px;margin-top:-7px}
+.neoSidebar nav a{
+  display:flex;align-items:center;gap:12px;color:#b8d3e9;text-decoration:none;
+  padding:12px 14px;border-radius:9px;margin:5px 0;font-size:13px;font-weight:600;
+  border:1px solid transparent;cursor:default;
+}
+.neoSidebar nav a.active{
+  color:#fff;background:linear-gradient(90deg,#087be5,#0662bb);
+  border-color:#159dff;box-shadow:0 0 18px rgba(0,137,255,.28)
+}
+.neoSidebar nav a i{
+  margin-left:auto;font-style:normal;background:#078eff;color:#fff;border-radius:50%;
+  min-width:19px;height:19px;text-align:center;line-height:19px;font-size:10px
+}
+.sideQuote{
+  position:absolute;left:24px;right:24px;bottom:55px;height:130px;border:1px solid #0875c9;
+  border-radius:15px;background:radial-gradient(circle at 30% 30%,rgba(0,150,255,.18),transparent 55%),#041426;
+  box-shadow:0 0 22px rgba(0,130,255,.22);padding:15px;color:#d7edff;text-align:center
+}
+.sideQuote strong{font-size:30px;color:#1aaaff;display:block;text-shadow:0 0 12px #008cff}
+.sideQuote div{font-size:18px;font-style:italic;line-height:1.12}.sideQuote span{color:#0fa4ff;font-size:19px}
+.neoWelcome{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:18px
+}
+.neoWelcome h1{margin:0;font-size:23px;color:#f4f9ff}.neoWelcome p{margin:5px 0 0;color:#8daac2;font-size:12px}
+.neoDate{text-align:right;color:#c7e0f5;font-size:12px;line-height:1.5}.neoDate small{color:#9ab6cd;font-style:italic}
+.grid{gap:14px!important}
+.card,.panel{
+  background:linear-gradient(145deg,rgba(6,25,44,.96),rgba(3,17,31,.96))!important;
+  border:1px solid #0a4774!important;border-radius:13px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 0 20px rgba(0,91,170,.08)!important;
+}
+.stat{position:relative;overflow:hidden;padding:17px 19px!important;min-height:112px}
+.stat:after{content:"";position:absolute;right:-25px;bottom:-38px;width:110px;height:80px;border-top:2px solid #058cff;border-radius:50%;transform:rotate(-12deg);opacity:.65}
+.stat small{color:#9db8ce!important;font-size:11px}.stat b{color:#f5fbff!important;font-size:25px!important;margin-top:8px!important}
+h3{color:#e9f5ff!important;font-size:14px!important}
+input,select,textarea{
+  background:#041526!important;color:#dceeff!important;border:1px solid #0a3d62!important;
+  border-radius:9px!important;outline:none
+}
+input::placeholder,textarea::placeholder{color:#607d95}
+input:focus,select:focus,textarea:focus{border-color:#0b9cff!important;box-shadow:0 0 0 2px rgba(0,150,255,.1)}
+.btn{background:linear-gradient(90deg,#0a9cf5,#0878e6)!important;box-shadow:0 0 13px rgba(0,145,255,.22)}
+.danger{background:linear-gradient(90deg,#ef334d,#d91f3a)!important}
+.success{background:linear-gradient(90deg,#00a98f,#008f72)!important}
+.muted{background:#0b253b!important;color:#c8dceb!important;border:1px solid #174666!important}
+.item{
+  background:linear-gradient(90deg,rgba(4,23,40,.9),rgba(3,17,30,.8))!important;
+  border:1px solid #0a3b60!important;border-radius:9px!important
+}
+.meta,.empty,.stat small{color:#7f9db5!important}
+.notice{background:#041a2c!important;border-left-color:#0a9dff!important;color:#b8d4e8}
+table{color:#cfe3f4}th{color:#91b4ce;border-bottom-color:#0b3b5f!important}td{border-bottom-color:#0a2d49!important}
+.badge{background:#0b2d48!important;color:#b8d8ed!important}.pending{background:#4b3a08!important;color:#ffd45d!important}
+.approved{background:#063d31!important;color:#4de0b9!important}.rejected{background:#491d27!important;color:#ff8da0!important}
+.chart{height:210px!important;border-bottom-color:#0a3b5f!important}
+.bar{background:linear-gradient(180deg,#16b0ff,#0879e8)!important;box-shadow:0 0 7px rgba(0,157,255,.28)}
+.modal{background:rgba(0,6,15,.78)!important}.modalbox{background:#061a2d!important;border:1px solid #0b4776!important;color:#eaf5ff}
+.neoWelcome + .grid{margin-bottom:14px}
+@media(min-width:1000px){
+  main.wrap{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.9fr);gap:14px}
+  .neoWelcome{grid-column:1/-1}
+  main.wrap > section:nth-of-type(1){grid-column:1/-1}
+  main.wrap > section:nth-of-type(2){grid-column:1;grid-row:3}
+  main.wrap > section:nth-of-type(3){grid-column:2;grid-row:3}
+  main.wrap > section:nth-of-type(4){grid-column:1/-1}
+  main.wrap > section:nth-of-type(5){grid-column:1}
+  main.wrap > section:nth-of-type(6){grid-column:2}
+  main.wrap > section:nth-of-type(7){grid-column:1/-1}
+  main.wrap > section:nth-of-type(8){grid-column:1/-1}
+  main.wrap > section:nth-of-type(9){grid-column:1}
+  main.wrap > section:nth-of-type(10){grid-column:2}
+  main.wrap > section:nth-of-type(2) #chart{min-width:0}
+}
+main.wrap > section:nth-of-type(3){margin-top:0}
+main.wrap > section:nth-of-type(3) .grid{grid-template-columns:1fr 1fr!important}
+main.wrap > section:nth-of-type(4),
+main.wrap > section:nth-of-type(5){margin-top:0}
+main.wrap > section:nth-of-type(6),
+main.wrap > section:nth-of-type(7),
+main.wrap > section:nth-of-type(8),
+main.wrap > section:nth-of-type(9),
+main.wrap > section:nth-of-type(10){margin-top:0}
+main.wrap > section:nth-of-type(5) #resourceList,
+main.wrap > section:nth-of-type(9) #requestList,
+main.wrap > section:nth-of-type(10) #collabList{max-height:390px;overflow:auto;padding-right:4px}
+main.wrap > section:nth-of-type(6) > div{max-height:330px;overflow:auto}
+main.wrap > section:nth-of-type(7){ }
+main.wrap > section:nth-of-type(8){ }
+main.wrap > section:nth-of-type(9),
+main.wrap > section:nth-of-type(10){ }
+::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-track{background:#031321}::-webkit-scrollbar-thumb{background:#075c91;border-radius:10px}
+@media(max-width:900px){
+  main.wrap{display:block}.neoSidebar{display:none}.wrap{padding:16px!important}
+  .neoWelcome{padding-top:8px}.neoDate{display:none}
+  main.wrap > section:nth-of-type(2){display:block}
+  .chart{height:180px!important}
+}
+@media(max-width:700px){
+  header{height:58px!important;padding:9px 10px!important}
+  header strong{font-size:11px!important}.wrap{padding:10px!important}
+  .neoWelcome h1{font-size:19px}.grid{grid-template-columns:1fr!important}
+  .neoWelcome{margin-bottom:12px}.sideQuote{display:none}
+}
+
+</style>
+</head>
+<body>
+<section id="loginScreen" class="panel" style="max-width:420px;margin:80px auto;padding:20px">
+  <h2 style="margin-top:0">🔐 Admin Login</h2>
+  <input id="loginUser" placeholder="Admin username" autocomplete="username">
+  <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+  <button class="btn" style="width:100%" onclick="doLogin()">Login</button>
+  <div style="text-align:center;margin-top:8px"><a href="/forgot-password.html">Forgot password?</a></div>
+  <div id="loginMsg" class="empty"></div>
+</section>
+
+<div id="dashboard" class="hidden">
+<header>
+  <strong>truth.oflifes — Admin Panel <span id="notifyBadge" class="badge pending">🔔 0</span></strong>
+  <div>
+    <button class="muted small" onclick="loadAll()">↻ Refresh</button>
+    <button class="danger small" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+
+<aside class="neoSidebar">
+  <div class="neoBrand">
+    <div class="neoLogo">✚<span>▱</span></div>
+    <div><b>truth.<em>oflifes</em></b><small>Learn Today | Build Tomorrow</small></div>
+  </div>
+  <nav>
+    <a class="active">⌂ <span>Dashboard</span></a>
+    <a>▤ <span>Resources</span></a>
+    <a>♟ <span>Users</span></a>
+    <a>➤ <span>Resource Requests</span><i id="sideReq">0</i></a>
+    <a>♢ <span>Collaboration Requests</span><i id="sideCol">0</i></a>
+    <a>⬡ <span>Admin Security</span></a>
+  </nav>
+  <div class="sideQuote">
+    <strong>♧</strong>
+    <div>Better<br>Mindset<br>Better Life</div>
+    <span>〰〰〰</span>
+  </div>
+</aside>
+
+<main class="wrap">
+
+<div class="neoWelcome">
+  <div>
+    <h1>Welcome Back, Admin 👋</h1>
+    <p>Here's what's happening with your platform today.</p>
+  </div>
+  <div class="neoDate">▣ &nbsp; 12 Sep 2026 &nbsp;&nbsp; 11:44 AM<br><small>Keep <b>Growing</b> 〰</small></div>
+</div>
+
+  <section class="grid">
+    <div class="card stat"><small>👁 Visitors</small><b id="visitors">—</b></div>
+    <div class="card stat"><small>👥 Registered Users</small><b id="users">—</b></div>
+    <div class="card stat"><small>📚 Resources</small><b id="resources">—</b></div>
+    <div class="card stat"><small>📥 Downloads</small><b id="downloads">—</b></div>
+  </section>
+
+  <section class="panel">
+    <h3>📊 Visitor Activity — Last 30 Days</h3>
+    <div id="chart" class="chart"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section class="panel">
+    <h3>📈 Resource Analytics</h3>
+    <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:8px">
+      <div class="notice">Total downloads: <b id="totalDownloads">0</b></div>
+      <div class="notice">Last 7 days: <b id="last7Downloads">0</b></div>
+    </div>
+    <div id="popularResources" class="empty">Loading analytics…</div>
+  </section>
+
+  <section class="panel">
+    <h3>📚 Add / Edit Medical Resource</h3>
+    <form id="resourceForm">
+      <input id="rid" type="hidden">
+      <div class="row">
+        <input id="title" placeholder="Resource Title" required>
+        <select id="type" required>
+          <option value="">Select Type</option>
+          <option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+        </select>
+      </div>
+      <select id="subject">
+        <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
+      </select>
+      <select id="chapter"><option value="">Select Chapter</option></select>
+      <input id="file_url" placeholder="File URL" required>
+      <textarea id="description" placeholder="Description (optional)"></textarea>
+      <div class="actions">
+        <button class="btn" type="submit" id="saveBtn">＋ Add Resource</button>
+        <button class="muted hidden" type="button" id="cancelEdit" onclick="cancelEdit()">Cancel Edit</button>
+      </div>
+      <div id="resourceMsg" class="empty"></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>📚 Resources</h3>
+    <div class="filters">
+      <input id="resourceSearch" oninput="renderResources()" placeholder="🔎 Search title, subject...">
+      <select id="resourceFilter" onchange="renderResources()">
+        <option value="">All Types</option><option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+      </select>
+      <select id="subjectFilter" onchange="renderResources()">
+        <option value="">All Subjects</option>
+      </select>
+    </div>
+    <div id="resourceList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>👥 Registered Users</h3>
+    <input id="userSearch" oninput="renderUsers()" placeholder="🔎 Search Instagram username...">
+    <div style="overflow:auto"><table><thead><tr><th>#</th><th>Instagram Username</th><th>Email</th><th>Account Created</th><th>Action</th></tr></thead><tbody id="userList"></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h3>🔐 Password Reset Requests <span id="resetBadge" class="badge pending">0</span></h3>
+    <div id="resetList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>🛡️ Admin Security</h3>
+    <form id="adminPasswordForm" class="row">
+      <input id="currentAdminPassword" type="password" placeholder="Current password" required>
+      <input id="newAdminPassword" type="password" placeholder="New password (6+ chars)" minlength="6" required>
+      <button class="btn" type="submit">Change Admin Password</button>
+      <div id="adminPasswordMsg" class="empty"></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>📝 Resource Requests <span id="requestBadge" class="badge pending">0 pending</span></h3>
+    <div id="requestList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>🤝 Collaboration Requests <span id="collabBadge" class="badge pending">0 pending</span></h3>
+    <div id="collabList"></div>
+  </section>
+</main>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modalbox">
+    <h3 id="modalTitle">Details</h3>
+    <div id="modalBody"></div>
+    <button class="muted" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+let resources=[], users=[], requests=[], collaborations=[], resetRequests=[];
+
+function headers(){ return {"Content-Type":"application/json","Authorization":"Bearer "+token}; }
+
+function showDashboard(){
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+}
+
+async function doLogin(){
+  const username=document.getElementById("loginUser").value.trim();
+  const password=document.getElementById("loginPass").value;
+  const msg=document.getElementById("loginMsg");
+  if(!username||!password){msg.textContent="Username and password required.";return;}
+  msg.textContent="Logging in…";
+  try{
+    const r=await fetch("/api/auth/login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({mode:"admin",username,password})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.role!=="admin") throw new Error(d.error||"Invalid admin credentials");
+    token=d.token;
+    localStorage.setItem("adminToken",token);
+    showDashboard();
+    await loadAll();
+  }catch(e){msg.textContent=e.message;}
+}
+async function api(url,opt={}) {
+  opt.headers={...(opt.headers||{}),...headers()};
+  const r=await fetch(url,opt);
+  if(r.status===401||r.status===403){ logout(); throw new Error("Login expired"); }
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||"Request failed");
+  return d;
+}
+function logout(){
+  localStorage.removeItem("adminToken");
+  localStorage.removeItem("token");
+  token="";
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+}
+
+async function loadAll(){
+  try{
+    const [v,u,r,an,req,co,n,pr,ov]=await Promise.all([
+      api("/api/visits"),api("/api/users"),api("/api/resources"),
+      api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations"),
+      api("/api/admin/notifications"),api("/api/admin/password-reset-requests"),api("/api/admin/analytics/overview")
+    ]);
+    document.getElementById("visitors").textContent=v.count??0;
+    users=u.users||[]; resources=r||[]; requests=req.requests||[]; collaborations=co.collaborations||[]; resetRequests=pr.requests||[];
+    document.getElementById("users").textContent=u.total??users.length;
+    document.getElementById("resources").textContent=resources.length;
+    document.getElementById("downloads").textContent=ov.totalDownloads??0;
+    document.getElementById("totalDownloads").textContent=ov.totalDownloads??0;
+    document.getElementById("last7Downloads").textContent=ov.last7Days??0;
+    const pop=ov.popular||[];
+    document.getElementById("popularResources").innerHTML=pop.length?pop.map((x,i)=>`<div class="item"><b>${i+1}. ${esc(x.title)}</b><div class="meta">${esc(x.type)}${x.subject?" · "+esc(x.subject):""} · ${Number(x.downloads||0)} downloads</div></div>`).join(""):"No downloads yet.";
+    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); updateNotifications(n);
+  }catch(e){console.error(e);}
+}
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function date(s){return s?new Date(s).toLocaleString():"—";}
+
+
+let chapterMap={};
+async function loadChapterOptions(selected="") {
+  const sel=document.getElementById("chapter");
+  const subject=document.getElementById("subject").value;
+  if(!sel)return;
+  try {
+    if(!Object.keys(chapterMap).length){
+      const r=await fetch("/api/chapters");
+      if(r.ok) chapterMap=await r.json();
+    }
+  } catch(e) { console.error("Chapter list error",e); }
+  const chapters=chapterMap[subject]||[];
+  sel.innerHTML='<option value="">Select Chapter</option>'+chapters.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  if(selected) sel.value=selected;
+}
+document.getElementById("subject").addEventListener("change",()=>loadChapterOptions());
+loadChapterOptions();
+
+function renderSubjects(){
+  const select=document.getElementById("subjectFilter");
+  if(!select)return;
+  const current=select.value;
+  const subjects=[...new Set(resources.map(r=>String(r.subject||"").trim()).filter(Boolean))].sort();
+  select.innerHTML='<option value="">All Subjects</option>'+subjects.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  select.value=subjects.includes(current)?current:"";
+}
+
+function renderResources(){
+  const q=document.getElementById("resourceSearch").value.toLowerCase();
+  const f=document.getElementById("resourceFilter").value;
+  const sf=document.getElementById("subjectFilter").value;
+  const list=resources.filter(r=>(!f||r.type===f)&&(!sf||r.subject===sf)&&(`${r.title} ${r.subject||""} ${r.chapter||""} ${r.description||""}`.toLowerCase().includes(q)));
+  document.getElementById("resourceList").innerHTML=list.length?list.map(r=>`
+    <div class="item">
+      <h4>${esc(r.title)}</h4>
+      <div class="meta"><span class="badge">${esc(r.type)}</span>${esc(r.subject||"No subject")}${r.chapter?" · "+esc(r.chapter):""} · ${date(r.created_at)}</div>
+      ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
+      <div class="actions">
+        ${r.file_url?`<a class="btn small" href="${esc(r.file_url)}" target="_blank" rel="noopener">Open File</a>`:""}
+        <button class="muted small" onclick="editResource(${r.id})">✏️ Edit</button>
+        <button class="danger small" onclick="deleteResource(${r.id})">Delete</button>
+      </div>
+    </div>`).join(""):`<div class="empty">No resources found.</div>`;
+}
+
+function editResource(id){
+  const r=resources.find(x=>x.id===id); if(!r)return;
+  rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||""; loadChapterOptions(r.chapter||"");
+  file_url.value=r.file_url||""; description.value=r.description||"";
+  saveBtn.textContent="💾 Save Changes";cancelEditBtn(true);
+  scrollTo({top:document.querySelectorAll(".panel")[2].offsetTop-60,behavior:"smooth"});
+}
+function cancelEditBtn(show){document.getElementById("cancelEdit").classList.toggle("hidden",!show);}
+function cancelEdit(){
+  document.getElementById("resourceForm").reset();rid.value="";
+  saveBtn.textContent="＋ Add Resource";cancelEditBtn(false);resourceMsg.textContent="";
+}
+document.getElementById("resourceForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  resourceMsg.textContent="Saving…";
+  const body={title:title.value.trim(),type:type.value,subject:subject.value,chapter:chapter.value.trim(),description:description.value.trim(),file_url:file_url.value.trim()};
+  try{
+    const id=rid.value;
+    await api(id?`/api/resources/${id}`:"/api/resources",{method:id?"PUT":"POST",body:JSON.stringify(body)});
+    cancelEdit();await loadAll();resourceMsg.textContent="Saved successfully.";
+  }catch(err){resourceMsg.textContent=err.message;}
+});
+async function deleteResource(id){
+  if(!confirm("Delete this resource?"))return;
+  try{await api("/api/resources/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}
+}
+
+function renderUsers(){
+  const q=document.getElementById("userSearch").value.toLowerCase();
+  const list=users.filter(u=>(String(u.instagram_username).toLowerCase()+" "+String(u.email||"").toLowerCase()).includes(q));
+  document.getElementById("userList").innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
+}
+async function resetUserPassword(id){
+  const p=prompt("Enter a new password (minimum 6 characters):");
+  if(p===null)return;
+  if(p.length<6){alert("Password must be at least 6 characters");return;}
+  try{await api(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify({newPassword:p})});alert("Password reset successfully.");await loadAll();}
+  catch(e){alert(e.message);}
+}
+
+function statusBadge(s){return `<span class="badge ${s}">${esc(s)}</span>`;}
+function renderRequests(){
+  const p=requests.filter(x=>x.status==="pending").length;document.getElementById("requestBadge").textContent=p+" pending";
+  document.getElementById("requestList").innerHTML=requests.length?requests.map(r=>`
+    <div class="item">
+      <h4>${esc(r.type||"Resource Request")} ${statusBadge(r.status)}</h4>
+      <div class="meta">${esc(r.name||"")} ${r.instagram_username?"· @"+esc(r.instagram_username):""} · ${date(r.created_at)}</div>
+      ${r.subject?`<div><b>Subject:</b> ${esc(r.subject)}</div>`:""}
+      ${r.message?`<div style="margin:6px 0">${esc(r.message)}</div>`:""}
+      <div class="actions">
+        <button class="success small" onclick="setRequest(${r.id},'approved')">✓ Approve</button>
+        <button class="danger small" onclick="setRequest(${r.id},'rejected')">✕ Reject</button>
+        <button class="muted small" onclick="setRequest(${r.id},'pending')">↺ Pending</button>
+        <button class="danger small" onclick="deleteRequest(${r.id})">Delete</button>
+      </div>
+    </div>`).join(""):`<div class="empty">No resource requests yet.</div>`;
+}
+async function setRequest(id,status){try{await api("/api/requests/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});await loadAll();}catch(e){alert(e.message);}}
+async function deleteRequest(id){if(!confirm("Delete this request?"))return;try{await api("/api/requests/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}}
+
+function renderCollabs(){
+  const p=collaborations.filter(x=>x.status==="pending").length;document.getElementById("collabBadge").textContent=p+" pending";
+  document.getElementById("collabList").innerHTML=collaborations.length?collaborations.map(c=>`
+    <div class="item">
+      <h4>${esc(c.name||"Collaboration")} ${statusBadge(c.status)}</h4>
+      <div class="meta">${c.instagram_username?"@"+esc(c.instagram_username):""} ${c.email?"· "+esc(c.email):""} · ${date(c.created_at)}</div>
+      ${c.message?`<div style="margin:6px 0">${esc(c.message)}</div>`:""}
+      <div class="actions">
+        <button class="success small" onclick="setCollab(${c.id},'approved')">✓ Approve</button>
+        <button class="danger small" onclick="setCollab(${c.id},'rejected')">✕ Reject</button>
+        <button class="muted small" onclick="setCollab(${c.id},'pending')">↺ Pending</button>
+        <button class="danger small" onclick="deleteCollab(${c.id})">Delete</button>
+      </div>
+    </div>`).join(""):`<div class="empty">No collaboration requests yet.</div>`;
+}
+async function setCollab(id,status){try{await api("/api/collaborations/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});await loadAll();}catch(e){alert(e.message);}}
+async function deleteCollab(id){if(!confirm("Delete this collaboration?"))return;try{await api("/api/collaborations/"+id,{method:"DELETE"});await loadAll();}catch(e){alert(e.message);}}
+
+function renderResets(){
+  const active=resetRequests.filter(x=>!x.used_at && (!x.expires_at || new Date(x.expires_at)>new Date()));
+  resetBadge.textContent=active.length;
+  resetList.innerHTML=resetRequests.length?resetRequests.map(x=>`<div class="item"><h4>${esc(x.username)}</h4><div class="meta">${esc(x.email||"—")} · ${date(x.created_at)} · ${x.used_at?"completed":(x.expires_at&&new Date(x.expires_at)<new Date()?"expired":"pending")}</div></div>`).join(""):`<div class="empty">No password reset requests.</div>`;
+}
+function updateNotifications(n){
+  notifyBadge.textContent=`🔔 ${Number(n&&n.count||0)}`;
+}
+
+function renderChart(days){
+  const chartEl=document.getElementById("chart");
+  if(!chartEl)return;
+  const full=[]; const now=new Date();
+  for(let i=29;i>=0;i--){const d=new Date(now);d.setHours(0,0,0,0);d.setDate(d.getDate()-i);full.push(d.toISOString().slice(0,10));}
+  const map=Object.fromEntries((days||[]).map(x=>[String(x.date),Number(x.count)||0]));
+  const vals=full.map(d=>map[d]||0), max=Math.max(1,...vals);
+  chartEl.innerHTML=vals.map((v,i)=>`<div class="bar" title="${full[i]}: ${v}" style="height:${Math.max(4,(v/max)*145)}px"><span>${v||""}</span></div>`).join("");
+}
+
+document.getElementById("adminPasswordForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  adminPasswordMsg.textContent="Changing…";
+  try{
+    await api("/api/admin/change-password",{method:"POST",body:JSON.stringify({currentPassword:currentAdminPassword.value,newPassword:newAdminPassword.value})});
+    adminPasswordMsg.textContent="Admin password changed successfully.";
+    e.target.reset();
+  }catch(err){adminPasswordMsg.textContent=err.message;}
+});
+
+if(token){
+  showDashboard();
+  loadAll();
+  setInterval(()=>loadAll().catch(()=>{}),30000);
+}
+</script>
+</body>
+</html>
