@@ -9,27 +9,10 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || "truth-oflifes-secret";
 const MAX_BYTES = 15 * 1024 * 1024;
-const ALLOWED_EXT = new Set([".pdf",".ppt",".pptx",".doc",".docx",".xls",".xlsx"]);
 
 const originalJson = express.json;
-const RAW_UPLOAD_PATHS = new Set(["/api/resources"]);
 express.json = function (options = {}) {
-  const originalType = options.type;
-  return originalJson.call(express, {
-    ...options,
-    limit: "22mb",
-    type: function(req) {
-      const path = String(req.path || req.url || "").split("?")[0];
-      const contentType = String(req.headers["content-type"] || "").toLowerCase();
-      const rawUpload = RAW_UPLOAD_PATHS.has(path) &&
-        (req.method === "POST" || req.method === "PUT") &&
-        !contentType.startsWith("application/json");
-      if (rawUpload) return false;
-      if (typeof originalType === "function") return originalType(req);
-      if (typeof originalType === "string") return originalType;
-      return true;
-    }
-  });
+  return originalJson.call(express, { ...options, limit: "22mb" });
 };
 
 function getUser(req) {
@@ -58,76 +41,27 @@ async function ensureColumns() {
 }
 function normalizeMeta(v, fallback="") { return String(v ?? fallback).trim(); }
 
-function validateResourceBuffer(buffer, fileName) {
-  const name = normalizeMeta(fileName, "resource");
-  const extMatch = name.toLowerCase().match(/\.[a-z0-9]+$/);
-  const ext = extMatch ? extMatch[0] : "";
-  if (!ALLOWED_EXT.has(ext)) throw new Error("Only PDF, PPT/PPTX, DOC/DOCX or XLS/XLSX files are allowed");
-  if (!buffer || !buffer.length) throw new Error("Empty resource file");
-  if (buffer.length > MAX_BYTES) throw new Error("File must be 15 MB or smaller");
-
-  const head4 = buffer.subarray(0,4);
-  const isPdf = buffer.subarray(0,4).toString("ascii") === "%PDF";
-  const isOle = head4.length === 4 && head4[0]===0xD0 && head4[1]===0xCF && head4[2]===0x11 && head4[3]===0xE0;
-  const isZipOffice = head4.length === 4 && head4[0]===0x50 && head4[1]===0x4B && head4[2]===0x03 && head4[3]===0x04;
-  const valid = ext === ".pdf" ? isPdf : [".ppt",".xls"].includes(ext) ? isOle : [".pptx",".docx",".xlsx"].includes(ext) ? isZipOffice : false;
-  if (!valid) throw new Error("Invalid or corrupted resource file");
-
-  const mimeMap = {
-    ".pdf":"application/pdf",
-    ".ppt":"application/vnd.ms-powerpoint",
-    ".pptx":"application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    ".doc":"application/msword",
-    ".docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ".xls":"application/vnd.ms-excel",
-    ".xlsx":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  };
-  return {buffer, mime:mimeMap[ext], fileName:name, ext};
+function validatePdfBuffer(buffer, fileName) {
+  const name = String(fileName || "resource.pdf").trim();
+  if (!/\.pdf$/i.test(name)) throw new Error("Only PDF files are allowed");
+  if (!buffer || !buffer.length) throw new Error("Empty PDF file");
+  if (buffer.length > MAX_BYTES) throw new Error("PDF must be 15 MB or smaller");
+  if (buffer.subarray(0, 4).toString("ascii") !== "%PDF") throw new Error("Invalid PDF file");
+  return { buffer, mime: "application/pdf", fileName: name };
 }
 
-function parseResourceFile(body) {
-  const raw = String(body.file_data || "").trim();
+function parsePdfFile(body) {
+  const raw = String(body?.file_data || "").trim();
   if (!raw) return null;
   let base64 = raw;
   const comma = raw.indexOf(",");
   if (/^data:/i.test(raw) && comma >= 0) base64 = raw.slice(comma + 1);
-  try { base64 = decodeURIComponent(base64); } catch (_) {}
-  base64 = String(base64).replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
-  // Strict validation: do not silently turn arbitrary text into a file.
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64) || base64.length < 8) throw new Error("Invalid resource upload data");
+  base64 = base64.replace(/^\s+|\s+$/g, "").replace(/\s+/g, "");
+  base64 = base64.replace(/-/g, "+").replace(/_/g, "/");
   while (base64.length % 4) base64 += "=";
-  const buffer = Buffer.from(base64, "base64");
-  return validateResourceBuffer(buffer, body.file_name);
-}
-
-async function readRawBody(req) {
-  return await new Promise((resolve, reject) => {
-    const chunks=[]; let total=0;
-    req.on("data", c => {
-      total += c.length;
-      if (total > MAX_BYTES) { reject(new Error("File must be 15 MB or smaller")); req.destroy(); return; }
-      chunks.push(c);
-    });
-    req.on("end", () => resolve(Buffer.concat(chunks)));
-    req.on("error", reject);
-  });
-}
-
-function header(req, name) {
-  const v=req.headers[String(name).toLowerCase()];
-  return Array.isArray(v) ? v[0] : v;
-}
-
-function metaFromRequest(req) {
-  const q=req.query||{};
-  return {
-    title: normalizeMeta(q.title || header(req,"x-resource-title")),
-    type: normalizeMeta(q.type || header(req,"x-resource-type")),
-    subject: normalizeMeta(q.subject || header(req,"x-resource-subject")) || null,
-    chapter: normalizeMeta(q.chapter || header(req,"x-resource-chapter")) || null,
-    description: normalizeMeta(q.description || header(req,"x-resource-description")) || null,
-    file_name: normalizeMeta(q.file_name || header(req,"x-resource-file-name"), "resource")
-  };
+  let buffer;
+  try { buffer = Buffer.from(base64, "base64"); } catch (_) { throw new Error("Invalid PDF upload data"); }
+  return validatePdfBuffer(buffer, body.file_name);
 }
 
 const originalPost = express.application.post;
@@ -139,18 +73,9 @@ express.application.post = function(route, ...handlers) {
     return originalPost.call(this, route, adminAuth, async (req,res) => {
       try {
         await ensureColumns();
-        const contentType=String(req.headers["content-type"]||"").toLowerCase();
-        let body=req.body||{};
-        let resourceFile=null;
-        if (req.method === "POST" || req.method === "PUT") {
-          const buffer=await readRawBody(req);
-          const meta=metaFromRequest(req);
-          resourceFile=validateResourceBuffer(buffer, meta.file_name);
-          body=meta;
-        } else {
-          resourceFile=parseResourceFile(body);
-        }
-        if (!resourceFile) return res.status(400).json({error:"Resource file is required"});
+        const body = req.body || {};
+        const resourceFile = parsePdfFile(body);
+        if (!resourceFile) return res.status(400).json({error:"PDF file is required"});
         const title=normalizeMeta(body.title), type=normalizeMeta(body.type);
         if (!title || !type) return res.status(400).json({error:"Title and type are required"});
         const r=await pool.query(`INSERT INTO resources
@@ -160,7 +85,7 @@ express.application.post = function(route, ...handlers) {
           [title,type,normalizeMeta(body.subject)||null,normalizeMeta(body.chapter)||null,normalizeMeta(body.description)||null,
            resourceFile.buffer,resourceFile.fileName,resourceFile.mime,resourceFile.buffer.length]);
         res.json(r.rows[0]);
-      } catch(e) { console.error(e); res.status(400).json({error:e.message||"Could not upload resource file"}); }
+      } catch(e) { console.error(e); res.status(400).json({error:e.message||"Could not upload PDF"}); }
     });
   }
   return originalPost.apply(this, arguments);
@@ -171,35 +96,20 @@ express.application.put = function(route, ...handlers) {
     return originalPut.call(this, route, adminAuth, async (req,res) => {
       try {
         await ensureColumns();
-        const contentType=String(req.headers["content-type"]||"").toLowerCase();
-        const isBinary=contentType.startsWith("application/octet-stream") || contentType.startsWith("application/pdf") || contentType.includes("vnd.ms-powerpoint") || contentType.includes("officedocument");
-        const binaryMeta=isBinary?metaFromRequest(req):null;
-        const body=isBinary?binaryMeta:(req.body||{});
+        const body=req.body||{};
         const title=normalizeMeta(body.title), type=normalizeMeta(body.type);
         if (!title || !type) return res.status(400).json({error:"Title and type are required"});
         const values=[title,type,normalizeMeta(body.subject)||null,normalizeMeta(body.chapter)||null,normalizeMeta(body.description)||null];
         let resourceFile=null;
-        if(isBinary){
-          resourceFile=validateResourceBuffer(await readRawBody(req),body.file_name);
-        } else if(body.file_data){
-          resourceFile=parseResourceFile(body);
-        }
-        let q = `UPDATE resources SET title=$1,type=$2,subject=$3,chapter=$4,description=$5`;
-        if (resourceFile) {
-          q += `,file_url=NULL,file_data=$6,file_name=$7,mime_type=$8,file_size=$9`;
-          values.push(resourceFile.buffer,resourceFile.fileName||"resource",
-            resourceFile.mime,resourceFile.buffer.length);
-        }
-        q += ` WHERE id=$${values.length+1}
-               RETURNING id,title,type,subject,chapter,description,created_at`;
+        if(body.file_data) resourceFile=parsePdfFile(body);
+        let q=`UPDATE resources SET title=$1,type=$2,subject=$3,chapter=$4,description=$5`;
+        if(resourceFile){ q+=`,file_url=NULL,file_data=$6,file_name=$7,mime_type=$8,file_size=$9`; values.push(resourceFile.buffer,resourceFile.fileName,resourceFile.mime,resourceFile.buffer.length); }
+        q+=` WHERE id=$${values.length+1} RETURNING id,title,type,subject,chapter,description,created_at`;
         values.push(req.params.id);
-        const r = await pool.query(q, values);
-        if (!r.rows.length) return res.status(404).json({error:"Resource not found"});
+        const r=await pool.query(q,values);
+        if(!r.rows.length) return res.status(404).json({error:"Resource not found"});
         res.json(r.rows[0]);
-      } catch(e) {
-        console.error(e);
-        res.status(400).json({error:e.message||"Could not update resource"});
-      }
+      } catch(e){ console.error(e); res.status(400).json({error:e.message||"Could not update resource"}); }
     });
   }
   return originalPut.apply(this, arguments);

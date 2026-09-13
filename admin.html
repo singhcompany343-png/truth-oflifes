@@ -305,7 +305,7 @@ header{width:100%;padding:14px max(14px,calc((100% - 1180px)/2));box-sizing:bord
       <select id="chapter"><option value="">Select Chapter</option></select>
       <div class="pdfUploadBox">
       <label style="display:block;margin-bottom:6px;font-weight:700">📁 Resource File</label>
-      <input id="pdf_file" type="file" accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <input id="pdf_file" type="file" accept=".pdf,application/pdf">
       <div class="muted" style="font-size:12px;margin-top:5px">Direct storage · PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX · maximum 15 MB</div>
     </div>
       <textarea id="description" placeholder="Description (optional)"></textarea>
@@ -531,8 +531,8 @@ function updateResourceFilePicker(){
   const input=document.getElementById("pdf_file");
   const t=(document.getElementById("type")?.value||"").toLowerCase();
   if(!input)return;
-  input.accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  input.title=t==="ppt"?"Select a PPT/PPTX or PDF file":t==="notes"?"Select a PDF/DOC/DOCX or other study file":"Select a resource file";
+  input.accept=".pdf,application/pdf";
+  input.title="Select a PDF file";
 }
 document.getElementById("type")?.addEventListener("change",updateResourceFilePicker);
 updateResourceFilePicker();
@@ -544,11 +544,11 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
     const id=rid.value;
     const file=document.getElementById("pdf_file").files[0];
 
-    if(!id && !file) throw new Error("Please select a resource file.");
+    if(!id && !file) throw new Error("Please select a PDF file.");
     if(file){
-      const allowedExt=/\.(pdf|ppt|pptx|doc|docx|xls|xlsx)$/i;
+      const allowedExt=/\.pdf$/i;
       if(!allowedExt.test(file.name))
-        throw new Error("Only PDF, PPT/PPTX, DOC/DOCX or XLS/XLSX files are allowed.");
+        throw new Error("Only PDF files are allowed.");
       if(file.size>15*1024*1024)
         throw new Error("File must be 15 MB or smaller.");
     }
@@ -563,20 +563,22 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
 
     resourceMsg.textContent="Uploading file…";
     if(file){
-      // Send the actual binary file instead of Base64. This avoids Android Chrome,
-      // WebView and proxy Base64 corruption completely.
-      const qs=new URLSearchParams({
-        title:body.title,type:body.type,subject:body.subject,chapter:body.chapter,
-        description:body.description,file_name:file.name
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=()=>reject(new Error("Could not read PDF file"));
+        reader.readAsDataURL(file);
       });
-      const r=await fetch(id?`/api/resources/${id}?${qs}`:`/api/resources?${qs}`,{
+      body.file_data=dataUrl;
+      body.file_name=file.name;
+      const r=await fetch(id?`/api/resources/${id}`:`/api/resources`,{
         method:id?"PUT":"POST",
-        headers:{"Authorization":"Bearer "+token,"Content-Type":file.type||"application/octet-stream"},
-        body:file
+        headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+        body:JSON.stringify(body)
       });
       const d=await r.json().catch(()=>({}));
       if(r.status===401||r.status===403){logout();throw new Error("Login expired");}
-      if(!r.ok) throw new Error(d.error||"Resource upload failed");
+      if(!r.ok) throw new Error(d.error||"PDF upload failed");
     }else{
       await api(`/api/resources/${id}`,{method:"PUT",body:JSON.stringify(body)});
     }
