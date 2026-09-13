@@ -561,24 +561,25 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
       description:description.value.trim()
     };
 
-    if(file){
-      const dataUrl=await new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>resolve(reader.result);
-        reader.onerror=()=>reject(new Error("Could not read resource file."));
-        reader.readAsDataURL(file);
-      });
-      body.file_name=file.name;
-      // Send the complete data URL; backend accepts PDF/Office files even when Chrome
-      // reports application/octet-stream or another MIME type.
-      body.file_data=String(dataUrl||"");
-    }
-
     resourceMsg.textContent="Uploading file…";
-    await api(id?`/api/resources/${id}`:"/api/resources",{
-      method:id?"PUT":"POST",
-      body:JSON.stringify(body)
-    });
+    if(file){
+      // Send the actual binary file instead of Base64. This avoids Android Chrome,
+      // WebView and proxy Base64 corruption completely.
+      const qs=new URLSearchParams({
+        title:body.title,type:body.type,subject:body.subject,chapter:body.chapter,
+        description:body.description,file_name:file.name
+      });
+      const r=await fetch(id?`/api/resources/${id}?${qs}`:`/api/resources?${qs}`,{
+        method:id?"PUT":"POST",
+        headers:{"Authorization":"Bearer "+token,"Content-Type":file.type||"application/octet-stream"},
+        body:file
+      });
+      const d=await r.json().catch(()=>({}));
+      if(r.status===401||r.status===403){logout();throw new Error("Login expired");}
+      if(!r.ok) throw new Error(d.error||"Resource upload failed");
+    }else{
+      await api(`/api/resources/${id}`,{method:"PUT",body:JSON.stringify(body)});
+    }
     cancelEdit();
     await loadAll();
     resourceMsg.textContent="✅ Resource saved successfully.";
