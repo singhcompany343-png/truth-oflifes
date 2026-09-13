@@ -497,6 +497,30 @@ function renderSubjects(){
   select.value=subjects.includes(current)?current:"";
 }
 
+async function openResourcePdf(id){
+  const popup=window.open("about:blank","_blank");
+  if(!popup){ alert("Please allow pop-ups for this site to open the PDF."); return; }
+  try{
+    const t=localStorage.getItem("adminToken") || localStorage.getItem("truthToken") || localStorage.getItem("token") || token;
+    if(!t) throw new Error("Admin login required");
+    const r=await fetch(`/api/resources/${encodeURIComponent(id)}/download`,{
+      headers:{"Authorization":"Bearer "+t,"Cache-Control":"no-cache"}
+    });
+    if(!r.ok){
+      let d={};
+      try{d=await r.json();}catch(e){}
+      throw new Error(d.error||"Could not open PDF");
+    }
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    popup.location.href=url;
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(err){
+    try{popup.close();}catch(e){}
+    alert(err.message||"Could not open PDF");
+  }
+}
+
 function renderResources(){
   const q=document.getElementById("resourceSearch").value.toLowerCase();
   const f=document.getElementById("resourceFilter").value;
@@ -508,7 +532,7 @@ function renderResources(){
       <div class="meta"><span class="typeBadge ${String(r.type||"").toLowerCase()==="notes"?"notes":String(r.type||"").toLowerCase()==="ppt"?"ppt":"other"}">${String(r.type||"").toLowerCase()==="notes"?"💚":String(r.type||"").toLowerCase()==="ppt"?"🟣":"📘"} ${esc(r.type)}</span>${esc(r.subject||"No subject")}${r.chapter?" · "+esc(r.chapter):""} · ${date(r.created_at)}</div>
       ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
       <div class="actions">
-        <a class="btn small" href="/api/resources/${r.id}/download" target="_blank" rel="noopener">📄 Open PDF</a>
+        <button class="btn small" type="button" onclick="openResourcePdf(${r.id})">📄 Open PDF</button>
         <button class="muted small" onclick="editResource(${r.id})">✏️ Edit</button>
         <button class="danger small" onclick="deleteResource(${r.id})">Delete</button>
       </div>
