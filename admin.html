@@ -569,7 +569,9 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
         reader.readAsDataURL(file);
       });
       body.file_name=file.name;
-      body.file_data=dataUrl;
+      // Send the complete data URL; backend accepts PDF/Office files even when Chrome
+      // reports application/octet-stream or another MIME type.
+      body.file_data=String(dataUrl||"");
     }
 
     resourceMsg.textContent="Uploading file…";

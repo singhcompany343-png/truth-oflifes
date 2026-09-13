@@ -44,10 +44,29 @@ function parseResourceFile(body) {
   const raw = String(body.file_data || "").trim();
   if (!raw) return null;
 
-  const m = raw.match(/^data:([^;]+);base64,(.+)$/s);
-  if (!m) throw new Error("Invalid resource upload data");
+  // Android/Chrome can send different MIME values (or, in some cases, a raw base64 string).
+  // Do not reject a valid file just because its data-URL prefix is unusual.
+  let declaredMime = "application/octet-stream";
+  let base64 = raw;
+  const dataMatch = raw.match(/^data:([^,]*),([\s\S]*)$/);
+  if (dataMatch) {
+    const meta = String(dataMatch[1] || "");
+    declaredMime = (meta.split(";")[0] || declaredMime).toLowerCase();
+    base64 = dataMatch[2] || "";
+  } else if (/^data:/i.test(raw)) {
+    const comma = raw.indexOf(",");
+    if (comma < 0) throw new Error("Invalid resource upload data");
+    const meta = raw.slice(5, comma);
+    declaredMime = (meta.split(";")[0] || declaredMime).toLowerCase();
+    base64 = raw.slice(comma + 1);
+  }
 
-  const declaredMime = String(m[1] || "").toLowerCase();
+  base64 = String(base64).replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4) base64 += "=";
+  if (!base64 || !/^[A-Za-z0-9+/=]+$/.test(base64)) {
+    throw new Error("Invalid resource upload data");
+  }
+
   const fileName = String(body.file_name || "resource").trim();
   const extMatch = fileName.toLowerCase().match(/\.[a-z0-9]+$/);
   const ext = extMatch ? extMatch[0] : "";
@@ -55,7 +74,7 @@ function parseResourceFile(body) {
     throw new Error("Only PDF, PPT/PPTX, DOC/DOCX or XLS/XLSX files are allowed");
   }
 
-  const buffer = Buffer.from(m[2], "base64");
+  const buffer = Buffer.from(base64, "base64");
   if (!buffer.length) throw new Error("Empty resource file");
   if (buffer.length > MAX_BYTES) throw new Error("File must be 15 MB or smaller");
 

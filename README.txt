@@ -1,17 +1,17 @@
-truth.oflifes — Direct Resource File Upload
+truth.oflifes — Direct Resource Upload FINAL
 
-Supported direct uploads (maximum 15 MB):
-- PDF
-- PPT / PPTX
-- DOC / DOCX
-- XLS / XLSX
+Files included:
+- admin.html — current admin UI with subject/chapter dropdown and resource upload
+- direct-pdf.js — upload/storage/download layer for PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX
+- package.json
 
-The server validates file signatures, so Android/Chrome generic MIME types do not cause false rejections.
-Files are stored in PostgreSQL BYTEA. PDFs open inline; Office files download as attachments.
-Existing URL resources remain supported.
+IMPORTANT
+1. Replace the deployed admin HTML with admin.html.
+2. Add direct-pdf.js beside server.js.
+3. Keep the existing server.js; change only the Render Start Command to:
+   node -r ./direct-pdf.js server.js
+4. Redeploy and hard-refresh Chrome.
 
-Keep the existing server.js and other project files.
-Render start command:
-node -r ./direct-pdf.js server.js
-
-Do not replace the existing database or remove existing resource data.
+Upload handling is tolerant of Android/Chrome MIME differences and accepts both normal
+data URLs and raw base64 payloads, then validates the actual file signature.
+Maximum file size: 15 MB.
