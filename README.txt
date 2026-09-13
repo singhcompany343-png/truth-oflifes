@@ -1,9 +1,18 @@
-TRUTH.OFLIFES — DIRECT RESOURCE UPLOAD FINAL v6
+truth.oflifes — Direct PDF FINAL FIX
 
-ROOT FIX: server.js uses express.json() before /api/resources. The previous raw-binary upload was being consumed by express.json(), so the resource parser received no file bytes. This version skips JSON parsing for non-JSON POST/PUT resource uploads and lets direct-pdf.js read the binary stream.
+Replace ONLY:
+  direct-pdf.js
 
-Supports PDF, PPT, PPTX, DOC, DOCX, XLS, XLSX up to 15 MB. Existing URL resources remain supported.
+Do NOT replace server.js.
 
-Replace only admin.html and direct-pdf.js. Do NOT replace server.js.
-Render start command: node -r ./direct-pdf.js server.js
-After deploy, hard refresh Chrome.
+Render Start Command:
+  node -r ./direct-pdf.js server.js
+
+This version is intentionally JSON/Base64 only because the current admin.html
+sends:
+  { title, type, subject, chapter, description, file_name, file_data }
+
+It raises the JSON limit to 22 MB, decodes the PDF, checks the %PDF signature,
+stores it in PostgreSQL BYTEA, and serves it inline.
+
+Maximum PDF size: 15 MB.
