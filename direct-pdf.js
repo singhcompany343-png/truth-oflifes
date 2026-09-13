@@ -44,28 +44,30 @@ function parseResourceFile(body) {
   const raw = String(body.file_data || "").trim();
   if (!raw) return null;
 
-  // Android/Chrome can send different MIME values (or, in some cases, a raw base64 string).
-  // Do not reject a valid file just because its data-URL prefix is unusual.
-  let declaredMime = "application/octet-stream";
   let base64 = raw;
-  const dataMatch = raw.match(/^data:([^,]*),([\s\S]*)$/);
-  if (dataMatch) {
-    const meta = String(dataMatch[1] || "");
-    declaredMime = (meta.split(";")[0] || declaredMime).toLowerCase();
-    base64 = dataMatch[2] || "";
-  } else if (/^data:/i.test(raw)) {
-    const comma = raw.indexOf(",");
-    if (comma < 0) throw new Error("Invalid resource upload data");
+  let declaredMime = "application/octet-stream";
+
+  // Accept normal data URLs, URL-encoded data, and raw base64.
+  const comma = raw.indexOf(",");
+  if (/^data:/i.test(raw) && comma >= 0) {
     const meta = raw.slice(5, comma);
     declaredMime = (meta.split(";")[0] || declaredMime).toLowerCase();
     base64 = raw.slice(comma + 1);
   }
 
-  base64 = String(base64).replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+  // Some mobile browsers/proxies can percent-encode the payload. Decode only
+  // when needed; then normalize URL-safe base64 and strip harmless whitespace.
+  try {
+    if (/%[0-9a-f]{2}/i.test(base64)) base64 = decodeURIComponent(base64);
+  } catch (_) {}
+  base64 = String(base64)
+    .replace(/\s+/g, "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .replace(/[^A-Za-z0-9+/=]/g, "");
+
   while (base64.length % 4) base64 += "=";
-  if (!base64 || !/^[A-Za-z0-9+/=]+$/.test(base64)) {
-    throw new Error("Invalid resource upload data");
-  }
+  if (!base64) throw new Error("Invalid resource upload data");
 
   const fileName = String(body.file_name || "resource").trim();
   const extMatch = fileName.toLowerCase().match(/\.[a-z0-9]+$/);
