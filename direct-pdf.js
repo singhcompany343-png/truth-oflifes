@@ -81,7 +81,9 @@ function parsePdfData(value, fileName) {
     throw new Error("PDF file is required");
   }
 
-  let raw = String(value).trim();
+  // Some clients may send the data URL wrapped in a JSON/string representation.
+  // Normalize it before decoding.
+  let raw = typeof value === "string" ? value.trim() : String(value).trim();
 
   // Supports Data URLs:
   // data:application/pdf;base64,JVBER...
@@ -91,8 +93,19 @@ function parsePdfData(value, fileName) {
     raw = raw.slice(comma + 1);
   }
 
+  // If a data URL was double-encoded, decode one layer.
+  try {
+    if (/%[0-9a-f]{2}/i.test(raw)) raw = decodeURIComponent(raw);
+  } catch (_) {}
+
   // Remove whitespace/newlines inserted by mobile/browser handling.
   raw = raw.replace(/\s+/g, "");
+
+  // Strip an accidental second data-url prefix after decoding.
+  if (/^data:/i.test(raw)) {
+    const comma = raw.indexOf(",");
+    if (comma >= 0) raw = raw.slice(comma + 1);
+  }
 
   // Accept URL-safe Base64 too.
   raw = raw.replace(/-/g, "+").replace(/_/g, "/");
