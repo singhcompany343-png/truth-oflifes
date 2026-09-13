@@ -161,6 +161,9 @@ textarea{min-height:80px;resize:vertical}
   .stat{min-height:120px!important}
 }
 
+
+.pdfUploadBox{padding:12px;border:1px solid #174966;border-radius:10px;background:rgba(4,21,34,.72);margin:10px 0}
+.pdfUploadBox input[type=file]{width:100%;padding:9px;background:#041522;color:#eaf7ff;border:1px dashed #1597ff;border-radius:8px}
 </style>
 
 
@@ -300,13 +303,17 @@ header{width:100%;padding:14px max(14px,calc((100% - 1180px)/2));box-sizing:bord
         <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
       </select>
       <select id="chapter"><option value="">Select Chapter</option></select>
-      <input id="file_url" placeholder="File URL" required>
+      <div class="pdfUploadBox">
+      <label style="display:block;margin-bottom:6px;font-weight:700">📄 PDF File</label>
+      <input id="pdf_file" type="file" accept="application/pdf,.pdf">
+      <div class="muted" style="font-size:12px;margin-top:5px">Direct PDF storage · maximum 15 MB</div>
+    </div>
       <textarea id="description" placeholder="Description (optional)"></textarea>
       <div class="actions">
         <button class="btn" type="submit" id="saveBtn">＋ Add Resource</button>
         <button class="muted hidden" type="button" id="cancelEdit" onclick="cancelEdit()">Cancel Edit</button>
       </div>
-      <div id="resourceMsg" class="empty"></div>
+      <div id="resourceMsg" class="empty"></div><div class="muted" style="font-size:11px;margin-top:6px">Existing URL resources remain supported during migration.</div>
     </form>
   </section>
 
@@ -475,7 +482,7 @@ function renderResources(){
       <div class="meta"><span class="typeBadge ${String(r.type||"").toLowerCase()==="notes"?"notes":String(r.type||"").toLowerCase()==="ppt"?"ppt":"other"}">${String(r.type||"").toLowerCase()==="notes"?"💚":String(r.type||"").toLowerCase()==="ppt"?"🟣":"📘"} ${esc(r.type)}</span>${esc(r.subject||"No subject")}${r.chapter?" · "+esc(r.chapter):""} · ${date(r.created_at)}</div>
       ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
       <div class="actions">
-        ${r.file_url?`<a class="btn small" href="${esc(r.file_url)}" target="_blank" rel="noopener">Open File</a>`:""}
+        <a class="btn small" href="/api/resources/${r.id}/download" target="_blank" rel="noopener">📄 Open PDF</a>
         <button class="muted small" onclick="editResource(${r.id})">✏️ Edit</button>
         <button class="danger small" onclick="deleteResource(${r.id})">Delete</button>
       </div>
@@ -485,24 +492,60 @@ function renderResources(){
 function editResource(id){
   const r=resources.find(x=>x.id===id); if(!r)return;
   rid.value=r.id; title.value=r.title; type.value=r.type; subject.value=r.subject||""; loadChapterOptions(r.chapter||"");
-  file_url.value=r.file_url||""; description.value=r.description||"";
+  document.getElementById("pdf_file").value=""; description.value=r.description||"";
   saveBtn.textContent="💾 Save Changes";cancelEditBtn(true);
   scrollTo({top:document.querySelectorAll(".panel")[2].offsetTop-60,behavior:"smooth"});
 }
 function cancelEditBtn(show){document.getElementById("cancelEdit").classList.toggle("hidden",!show);}
 function cancelEdit(){
   document.getElementById("resourceForm").reset();rid.value="";
-  saveBtn.textContent="＋ Add Resource";cancelEditBtn(false);resourceMsg.textContent="";
+  saveBtn.textContent="＋ Add Resource";document.getElementById("pdf_file").value="";cancelEditBtn(false);resourceMsg.textContent="";
 }
 document.getElementById("resourceForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  resourceMsg.textContent="Saving…";
-  const body={title:title.value.trim(),type:type.value,subject:subject.value,chapter:chapter.value.trim(),description:description.value.trim(),file_url:file_url.value.trim()};
+  resourceMsg.textContent="Preparing PDF…";
   try{
     const id=rid.value;
-    await api(id?`/api/resources/${id}`:"/api/resources",{method:id?"PUT":"POST",body:JSON.stringify(body)});
-    cancelEdit();await loadAll();resourceMsg.textContent="Saved successfully.";
-  }catch(err){resourceMsg.textContent=err.message;}
+    const file=document.getElementById("pdf_file").files[0];
+
+    if(!id && !file) throw new Error("Please select a PDF file.");
+    if(file){
+      if(file.type!=="application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))
+        throw new Error("Only PDF files are allowed.");
+      if(file.size>15*1024*1024)
+        throw new Error("PDF must be 15 MB or smaller.");
+    }
+
+    const body={
+      title:title.value.trim(),
+      type:type.value,
+      subject:subject.value,
+      chapter:chapter.value.trim(),
+      description:description.value.trim()
+    };
+
+    if(file){
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=()=>reject(new Error("Could not read PDF."));
+        reader.readAsDataURL(file);
+      });
+      body.file_name=file.name;
+      body.file_data=dataUrl;
+    }
+
+    resourceMsg.textContent="Uploading PDF…";
+    await api(id?`/api/resources/${id}`:"/api/resources",{
+      method:id?"PUT":"POST",
+      body:JSON.stringify(body)
+    });
+    cancelEdit();
+    await loadAll();
+    resourceMsg.textContent="✅ PDF saved successfully.";
+  }catch(err){
+    resourceMsg.textContent="❌ "+err.message;
+  }
 });
 async function deleteResource(id){
   if(!confirm("Delete this resource?"))return;

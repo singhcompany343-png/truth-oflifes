@@ -1,33 +1,24 @@
-truth.oflifes — FINAL COMPLETE PACKAGE
+TRUTH.OFLIFES — DIRECT PDF PATCH
 
-Replace these files in the GitHub main branch:
-1. index.html
-2. server.js
-3. admin.html
-4. forgot-password.html
+Files:
+1. direct-pdf.js
+2. admin-pdf-upload.html
+3. package.json
 
-Features included:
-- User + Admin login
-- User registration with recovery email
-- User Forgot Password request
-- Admin password-reset request list and user password reset
-- User profile, email update and change password
-- Notes/PPT resources with download tracking
-- Admin resource add/edit/delete
-- User search
-- Subject/type filters
-- Resource and collaboration request approval/rejection
-- Notifications
-- Visitor counter and 30-day activity chart
-- Download analytics/popular resources
-- Legacy database migration compatibility
-- /api/visit and /api/visits compatibility
+What it does:
+- Stores new PDFs directly in PostgreSQL (BYTEA).
+- Keeps old URL-based resources working.
+- Protects /api/resources/:id/download with login.
+- Serves direct PDFs inline from your own website.
+- Keeps resource download analytics.
+- Admin upload page: /admin-pdf-upload.html
+- Maximum PDF size: 15 MB.
 
-Forgot-password flow:
-User submits Instagram username + registered email.
-The request appears in Admin > Password Reset Requests.
-Admin can reset the user's password from the Users list.
-No external email service is required for this flow.
+Deployment:
+Replace package.json, add direct-pdf.js and admin-pdf-upload.html, then redeploy.
+First login at /admin.html, then open /admin-pdf-upload.html on the same domain.
 
-Validation:
-server.js and all inline JavaScript blocks passed Node syntax checks.
+NOTE:
+This patch was prepared because the connected GitHub integration currently returns
+403 Resource not accessible by integration when attempting to write to the repository.
+No GitHub files were changed by this chat.
