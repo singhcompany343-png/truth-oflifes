@@ -165,6 +165,12 @@ async function setupDatabase() {
   // Older databases may have resources tables without the chapter column.
   await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS chapter TEXT;`);
 
+  // Direct PDF storage: allow legacy databases where file_url was NOT NULL.
+  await pool.query(`
+    ALTER TABLE resources
+      ALTER COLUMN file_url DROP NOT NULL;
+  `);
+
   // Older databases may have requests/collaborations tables without the
   // Instagram username columns. Add them safely for the admin dashboard.
   await pool.query(`
