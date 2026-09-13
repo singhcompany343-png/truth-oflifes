@@ -42,13 +42,27 @@ async function ensureColumns() {
 function parsePdf(body) {
   const raw = String(body.file_data || "");
   if (!raw) return null;
+
+  // Android/Chrome file pickers can report a PDF as application/octet-stream.
+  // Do not reject a real PDF only because the browser MIME type is unusual.
   const m = raw.match(/^data:([^;]+);base64,(.+)$/s);
-  if (!m || m[1].toLowerCase() !== "application/pdf") throw new Error("Only PDF files are allowed");
+  if (!m) throw new Error("Invalid PDF upload data");
+
+  const declaredMime = String(m[1] || "").toLowerCase();
+  const fileName = String(body.file_name || "").trim().toLowerCase();
   const buffer = Buffer.from(m[2], "base64");
+
   if (!buffer.length) throw new Error("Empty PDF file");
   if (buffer.length > MAX_BYTES) throw new Error("PDF must be 15 MB or smaller");
-  if (buffer.subarray(0,4).toString() !== "%PDF") throw new Error("Invalid PDF file");
-  return {buffer, mime:"application/pdf"};
+
+  // Validate the actual file bytes. This is reliable even when Android gives
+  // the browser an incorrect MIME type.
+  if (buffer.subarray(0,4).toString("ascii") !== "%PDF") {
+    throw new Error("Only valid PDF files are allowed");
+  }
+
+  // A valid %PDF header is authoritative; filename/MIME are metadata only.
+  return {buffer, mime:"application/pdf", declaredMime, fileName};
 }
 
 const originalPost = express.application.post;

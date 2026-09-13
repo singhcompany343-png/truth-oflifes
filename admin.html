@@ -445,17 +445,43 @@ function date(s){return s?new Date(s).toLocaleString():"—";}
 
 
 let chapterMap={};
+const fallbackChapterMap={
+  "Anatomy":["General Anatomy","Upper Limb","Lower Limb","Thorax","Abdomen","Pelvis & Perineum","Head & Neck","Neuroanatomy","Histology","Embryology","Surface Anatomy","Radiological Anatomy"],
+  "Physiology":["General Physiology","Blood","Nerve & Muscle Physiology","Cardiovascular System","Respiratory System","Gastrointestinal System","Renal Physiology","Endocrinology","Reproductive Physiology","Central Nervous System","Special Senses","Temperature Regulation","Exercise Physiology","Environmental Physiology","Acid-Base Balance"],
+  "Biochemistry":["Introduction & Cell Biochemistry","Biological Membranes","Carbohydrates","Lipids","Proteins & Amino Acids","Enzymes","Vitamins","Minerals","Nucleic Acids","Molecular Biology","Heme & Hemoglobin","Nutrition","Clinical Biochemistry","Hormones & Molecular Signalling","Detoxification & Free Radicals"],
+  "Pharmacology":["General Pharmacology","Autonomic Nervous System","Cardiovascular Drugs","CNS Drugs","Antimicrobial Drugs","Chemotherapy","Endocrine Pharmacology","Respiratory Drugs","GIT Drugs","Blood & Coagulation Drugs","NSAIDs & Analgesics","Emergency Drugs"],
+  "Pathology":["General Pathology","Cell Injury","Inflammation","Healing & Repair","Hemodynamic Disorders","Genetic Disorders","Immune Disorders","Neoplasia","Infectious Diseases","Hematology","Systemic Pathology","Clinical Pathology"],
+  "Microbiology":["General Microbiology","Immunology","Bacteriology","Virology","Mycology","Parasitology","Clinical Microbiology","Sterilization & Disinfection","Hospital Infection Control"],
+  "Forensic Medicine":["Introduction to Forensic Medicine","Medicolegal Autopsy","Mechanical Injuries","Thermal Injuries","Asphyxial Deaths","Forensic Toxicology","Sexual Offences","Identification","Forensic Psychiatry","Medical Jurisprudence"],
+  "Community Medicine":["Concept of Health & Disease","Epidemiology","Biostatistics","Communicable Diseases","Non-Communicable Diseases","Nutrition","Maternal & Child Health","Family Planning","Occupational Health","Environmental Health","Health Education","National Health Programmes"],
+  "Medicine":["General Medicine","Cardiology","Respiratory Medicine","Gastroenterology","Neurology","Nephrology","Endocrinology","Hematology","Rheumatology","Infectious Diseases","Dermatology","Geriatric Medicine"],
+  "Surgery":["General Principles of Surgery","Shock & Resuscitation","Wounds & Wound Healing","Trauma","Gastrointestinal Surgery","Hepatobiliary Surgery","Breast Surgery","Endocrine Surgery","Vascular Surgery","Urology","Pediatric Surgery"],
+  "Pediatrics":["Growth & Development","Neonatology","Nutrition","Pediatric Infections","Respiratory Disorders","Gastrointestinal Disorders","Pediatric Neurology","Pediatric Cardiology","Nephrology","Hematology","Endocrinology","Emergency Pediatrics"],
+  "OBG":["Anatomy of Female Reproductive System","Physiology of Pregnancy","Antenatal Care","Normal Labour","Abnormal Labour","Hypertensive Disorders","Obstetric Hemorrhage","Medical Disorders in Pregnancy","Puerperium","Gynecology","Infertility","Contraception","Gynecological Malignancies"],
+  "Orthopedics":["General Orthopedics","Fractures & Dislocations","Bone & Joint Infections","Arthritis","Spine","Upper Limb","Lower Limb","Pediatric Orthopedics","Tumors of Bone","Sports Injuries"],
+  "ENT":["Ear Anatomy & Physiology","Hearing Loss","Otitis","Vertigo","Nose & Paranasal Sinuses","Epistaxis","Throat & Larynx","Neck Swellings","Head & Neck Infections"],
+  "Ophthalmology":["Anatomy of Eye","Optics & Refraction","Conjunctiva & Cornea","Lens & Cataract","Glaucoma","Uvea","Retina","Neuro-Ophthalmology","Squint","Ocular Trauma"],
+  "Radiology":["Radiation Physics","X-Ray Imaging","Ultrasound","CT Scan","MRI","Nuclear Medicine","Interventional Radiology","Chest Imaging","Abdominal Imaging","Neuroradiology"],
+  "Anesthesia":["Introduction to Anesthesia","Preoperative Assessment","General Anesthesia","Regional Anesthesia","Airway Management","Pain Management","Critical Care","Fluids & Electrolytes","Anesthetic Complications","CPR & Resuscitation"],
+  "Psychiatry":["Introduction to Psychiatry","Psychiatric History & Examination","Schizophrenia","Mood Disorders","Anxiety Disorders","Substance Use Disorders","Child Psychiatry","Geriatric Psychiatry","Personality Disorders","Psychiatric Emergencies"],
+  "Dermatology":["Basic Dermatology","Bacterial Skin Infections","Viral Skin Infections","Fungal Infections","Parasitic Diseases","Eczema & Dermatitis","Psoriasis","Acne","Autoimmune Disorders","Skin Tumors"],
+  "Dentistry":["Oral Anatomy","Oral Physiology","Dental Caries","Periodontal Diseases","Oral Infections","Oral Pathology","Oral Surgery","Prosthodontics","Orthodontics","Preventive Dentistry"],
+  "Nursing":["Fundamentals of Nursing","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Midwifery","Pharmacology for Nurses","Nutrition","First Aid & Emergency Care"],
+  "Other":["General","Introduction","Basic Concepts","Clinical Topics","Practical Topics","Revision"]
+};
 async function loadChapterOptions(selected="") {
   const sel=document.getElementById("chapter");
   const subject=document.getElementById("subject").value;
   if(!sel)return;
   try {
     if(!Object.keys(chapterMap).length){
-      const r=await fetch("/api/chapters");
+      const r=await fetch("/api/chapters",{cache:"no-store"});
       if(r.ok) chapterMap=await r.json();
     }
-  } catch(e) { console.error("Chapter list error",e); }
-  const chapters=chapterMap[subject]||[];
+  } catch(e) { console.warn("Chapter API unavailable; using built-in chapter list"); }
+  const apiChapters=Array.isArray(chapterMap[subject])?chapterMap[subject]:[];
+  const fallback=Array.isArray(fallbackChapterMap[subject])?fallbackChapterMap[subject]:[];
+  const chapters=[...new Set([...apiChapters,...fallback])];
   sel.innerHTML='<option value="">Select Chapter</option>'+chapters.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
   if(selected) sel.value=selected;
 }
@@ -510,8 +536,12 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
 
     if(!id && !file) throw new Error("Please select a PDF file.");
     if(file){
-      if(file.type!=="application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))
-        throw new Error("Only PDF files are allowed.");
+      // Some Android/Chrome file pickers report PDFs as application/octet-stream.
+      // Accept the file here and let the server verify the actual %PDF header.
+      const nameLooksPdf=file.name.toLowerCase().endsWith(".pdf");
+      const mimeLooksPdf=file.type.toLowerCase()==="application/pdf";
+      if(!nameLooksPdf && !mimeLooksPdf)
+        throw new Error("Please select a PDF file (.pdf).");
       if(file.size>15*1024*1024)
         throw new Error("PDF must be 15 MB or smaller.");
     }
