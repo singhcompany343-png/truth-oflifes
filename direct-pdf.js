@@ -9,6 +9,7 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || "truth-oflifes-secret";
 const MAX_BYTES = 15 * 1024 * 1024;
+const ALLOWED_EXT = new Set([".pdf",".ppt",".pptx",".doc",".docx",".xls",".xlsx"]);
 
 const originalJson = express.json;
 express.json = function (options = {}) {
@@ -39,30 +40,47 @@ async function ensureColumns() {
     ADD COLUMN IF NOT EXISTS mime_type TEXT,
     ADD COLUMN IF NOT EXISTS file_size INTEGER;`);
 }
-function parsePdf(body) {
-  const raw = String(body.file_data || "");
+function parseResourceFile(body) {
+  const raw = String(body.file_data || "").trim();
   if (!raw) return null;
 
-  // Android/Chrome file pickers can report a PDF as application/octet-stream.
-  // Do not reject a real PDF only because the browser MIME type is unusual.
   const m = raw.match(/^data:([^;]+);base64,(.+)$/s);
-  if (!m) throw new Error("Invalid PDF upload data");
+  if (!m) throw new Error("Invalid resource upload data");
 
   const declaredMime = String(m[1] || "").toLowerCase();
-  const fileName = String(body.file_name || "").trim().toLowerCase();
-  const buffer = Buffer.from(m[2], "base64");
-
-  if (!buffer.length) throw new Error("Empty PDF file");
-  if (buffer.length > MAX_BYTES) throw new Error("PDF must be 15 MB or smaller");
-
-  // Validate the actual file bytes. This is reliable even when Android gives
-  // the browser an incorrect MIME type.
-  if (buffer.subarray(0,4).toString("ascii") !== "%PDF") {
-    throw new Error("Only valid PDF files are allowed");
+  const fileName = String(body.file_name || "resource").trim();
+  const extMatch = fileName.toLowerCase().match(/\.[a-z0-9]+$/);
+  const ext = extMatch ? extMatch[0] : "";
+  if (!ALLOWED_EXT.has(ext)) {
+    throw new Error("Only PDF, PPT/PPTX, DOC/DOCX or XLS/XLSX files are allowed");
   }
 
-  // A valid %PDF header is authoritative; filename/MIME are metadata only.
-  return {buffer, mime:"application/pdf", declaredMime, fileName};
+  const buffer = Buffer.from(m[2], "base64");
+  if (!buffer.length) throw new Error("Empty resource file");
+  if (buffer.length > MAX_BYTES) throw new Error("File must be 15 MB or smaller");
+
+  const head4 = buffer.subarray(0,4);
+  const isPdf = buffer.subarray(0,4).toString("ascii") === "%PDF";
+  const isOle = head4.length === 4 && head4[0]===0xD0 && head4[1]===0xCF && head4[2]===0x11 && head4[3]===0xE0;
+  const isZipOffice = head4.toString("ascii") === "PK\x03\x04";
+
+  const valid =
+    ext === ".pdf" ? isPdf :
+    [".ppt",".xls"].includes(ext) ? isOle :
+    [".pptx",".docx",".xlsx"].includes(ext) ? isZipOffice : false;
+
+  if (!valid) throw new Error("Invalid or corrupted resource file");
+
+  const mimeMap = {
+    ".pdf":"application/pdf",
+    ".ppt":"application/vnd.ms-powerpoint",
+    ".pptx":"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".doc":"application/msword",
+    ".docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xls":"application/vnd.ms-excel",
+    ".xlsx":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  };
+  return {buffer, mime:mimeMap[ext], declaredMime, fileName, ext};
 }
 
 const originalPost = express.application.post;
@@ -74,8 +92,8 @@ express.application.post = function(route, ...handlers) {
     return originalPost.call(this, route, adminAuth, async (req,res) => {
       try {
         await ensureColumns();
-        const pdf = parsePdf(req.body);
-        if (!pdf) return res.status(400).json({error:"PDF file is required"});
+        const resourceFile = parseResourceFile(req.body);
+        if (!resourceFile) return res.status(400).json({error:"Resource file is required"});
         const title = String(req.body.title||"").trim();
         const type = String(req.body.type||"").trim();
         if (!title || !type) return res.status(400).json({error:"Title and type are required"});
@@ -87,13 +105,13 @@ express.application.post = function(route, ...handlers) {
           [title,type,String(req.body.subject||"").trim()||null,
            String(req.body.chapter||"").trim()||null,
            String(req.body.description||"").trim()||null,
-           pdf.buffer,String(req.body.file_name||"resource.pdf").trim()||"resource.pdf",
-           pdf.mime,pdf.buffer.length]
+           resourceFile.buffer,resourceFile.fileName||"resource",
+           resourceFile.mime,resourceFile.buffer.length]
         );
         res.json(r.rows[0]);
       } catch(e) {
         console.error(e);
-        res.status(400).json({error:e.message||"Could not upload PDF"});
+        res.status(400).json({error:e.message||"Could not upload resource file"});
       }
     });
   }
@@ -110,12 +128,12 @@ express.application.put = function(route, ...handlers) {
         if (!title || !type) return res.status(400).json({error:"Title and type are required"});
         const values = [title,type,String(req.body.subject||"").trim()||null,
           String(req.body.chapter||"").trim()||null,String(req.body.description||"").trim()||null];
-        const pdf = req.body.file_data ? parsePdf(req.body) : null;
+        const resourceFile = req.body.file_data ? parseResourceFile(req.body) : null;
         let q = `UPDATE resources SET title=$1,type=$2,subject=$3,chapter=$4,description=$5`;
-        if (pdf) {
+        if (resourceFile) {
           q += `,file_url=NULL,file_data=$6,file_name=$7,mime_type=$8,file_size=$9`;
-          values.push(pdf.buffer,String(req.body.file_name||"resource.pdf").trim()||"resource.pdf",
-            pdf.mime,pdf.buffer.length);
+          values.push(resourceFile.buffer,resourceFile.fileName||"resource",
+            resourceFile.mime,resourceFile.buffer.length);
         }
         q += ` WHERE id=$${values.length+1}
                RETURNING id,title,type,subject,chapter,description,created_at`;
@@ -153,8 +171,9 @@ express.application.get = function(route, ...handlers) {
             .replace(/[^a-zA-Z0-9._ -]/g,"_");
           res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, private");
           res.setHeader("Pragma","no-cache");
-          res.setHeader("Content-Type",row.mime_type||"application/pdf");
-          res.setHeader("Content-Disposition",`inline; filename="${safe}"`);
+          res.setHeader("Content-Type",row.mime_type||"application/octet-stream");
+          const inline = String(row.mime_type||"").toLowerCase()==="application/pdf";
+          res.setHeader("Content-Disposition",`${inline?"inline":"attachment"}; filename="${safe}"`);
           if (row.file_size) res.setHeader("Content-Length",String(row.file_size));
           return res.end(row.file_data);
         }
@@ -170,16 +189,17 @@ express.application.get = function(route, ...handlers) {
           [req.user.role==="user" ? req.user.id : null, row.id]
         );
         res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, private");
-        res.setHeader("Content-Type",upstream.headers.get("content-type")||"application/pdf");
-        res.setHeader("Content-Disposition","inline");
+        const upstreamType = upstream.headers.get("content-type")||"application/octet-stream";
+        res.setHeader("Content-Type",upstreamType);
+        res.setHeader("Content-Disposition",upstreamType.toLowerCase().includes("pdf")?"inline":"attachment");
         res.end(buffer);
       } catch(e) {
         console.error(e);
-        res.status(500).json({error:"Could not serve PDF"});
+        res.status(500).json({error:"Could not serve resource file"});
       }
     });
   }
   return originalGet.apply(this, arguments);
 };
 
-console.log("Direct PDF storage layer enabled");
+console.log("Direct resource-file storage layer enabled");

@@ -304,16 +304,16 @@ header{width:100%;padding:14px max(14px,calc((100% - 1180px)/2));box-sizing:bord
       </select>
       <select id="chapter"><option value="">Select Chapter</option></select>
       <div class="pdfUploadBox">
-      <label style="display:block;margin-bottom:6px;font-weight:700">📄 PDF File</label>
-      <input id="pdf_file" type="file" accept="application/pdf,.pdf">
-      <div class="muted" style="font-size:12px;margin-top:5px">Direct PDF storage · maximum 15 MB</div>
+      <label style="display:block;margin-bottom:6px;font-weight:700">📁 Resource File</label>
+      <input id="pdf_file" type="file" accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <div class="muted" style="font-size:12px;margin-top:5px">Direct storage · PDF, PPT/PPTX, DOC/DOCX, XLS/XLSX · maximum 15 MB</div>
     </div>
       <textarea id="description" placeholder="Description (optional)"></textarea>
       <div class="actions">
         <button class="btn" type="submit" id="saveBtn">＋ Add Resource</button>
         <button class="muted hidden" type="button" id="cancelEdit" onclick="cancelEdit()">Cancel Edit</button>
       </div>
-      <div id="resourceMsg" class="empty"></div><div class="muted" style="font-size:11px;margin-top:6px">Existing URL resources remain supported during migration.</div>
+      <div id="resourceMsg" class="empty"></div><div class="muted" style="font-size:11px;margin-top:6px">Existing URL resources remain supported during migration. New uploads: PDF/PPT/PPTX/DOC/DOCX/XLS/XLSX.</div>
     </form>
   </section>
 
@@ -508,7 +508,7 @@ function renderResources(){
       <div class="meta"><span class="typeBadge ${String(r.type||"").toLowerCase()==="notes"?"notes":String(r.type||"").toLowerCase()==="ppt"?"ppt":"other"}">${String(r.type||"").toLowerCase()==="notes"?"💚":String(r.type||"").toLowerCase()==="ppt"?"🟣":"📘"} ${esc(r.type)}</span>${esc(r.subject||"No subject")}${r.chapter?" · "+esc(r.chapter):""} · ${date(r.created_at)}</div>
       ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
       <div class="actions">
-        <a class="btn small" href="/api/resources/${r.id}/download" target="_blank" rel="noopener">📄 Open PDF</a>
+        <a class="btn small" href="/api/resources/${r.id}/download" target="_blank" rel="noopener">📂 Open File</a>
         <button class="muted small" onclick="editResource(${r.id})">✏️ Edit</button>
         <button class="danger small" onclick="deleteResource(${r.id})">Delete</button>
       </div>
@@ -527,23 +527,30 @@ function cancelEdit(){
   document.getElementById("resourceForm").reset();rid.value="";
   saveBtn.textContent="＋ Add Resource";document.getElementById("pdf_file").value="";cancelEditBtn(false);resourceMsg.textContent="";
 }
+function updateResourceFilePicker(){
+  const input=document.getElementById("pdf_file");
+  const t=(document.getElementById("type")?.value||"").toLowerCase();
+  if(!input)return;
+  input.accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  input.title=t==="ppt"?"Select a PPT/PPTX or PDF file":t==="notes"?"Select a PDF/DOC/DOCX or other study file":"Select a resource file";
+}
+document.getElementById("type")?.addEventListener("change",updateResourceFilePicker);
+updateResourceFilePicker();
+
 document.getElementById("resourceForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  resourceMsg.textContent="Preparing PDF…";
+  resourceMsg.textContent="Preparing file…";
   try{
     const id=rid.value;
     const file=document.getElementById("pdf_file").files[0];
 
-    if(!id && !file) throw new Error("Please select a PDF file.");
+    if(!id && !file) throw new Error("Please select a resource file.");
     if(file){
-      // Some Android/Chrome file pickers report PDFs as application/octet-stream.
-      // Accept the file here and let the server verify the actual %PDF header.
-      const nameLooksPdf=file.name.toLowerCase().endsWith(".pdf");
-      const mimeLooksPdf=file.type.toLowerCase()==="application/pdf";
-      if(!nameLooksPdf && !mimeLooksPdf)
-        throw new Error("Please select a PDF file (.pdf).");
+      const allowedExt=/\.(pdf|ppt|pptx|doc|docx|xls|xlsx)$/i;
+      if(!allowedExt.test(file.name))
+        throw new Error("Only PDF, PPT/PPTX, DOC/DOCX or XLS/XLSX files are allowed.");
       if(file.size>15*1024*1024)
-        throw new Error("PDF must be 15 MB or smaller.");
+        throw new Error("File must be 15 MB or smaller.");
     }
 
     const body={
@@ -558,21 +565,21 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
       const dataUrl=await new Promise((resolve,reject)=>{
         const reader=new FileReader();
         reader.onload=()=>resolve(reader.result);
-        reader.onerror=()=>reject(new Error("Could not read PDF."));
+        reader.onerror=()=>reject(new Error("Could not read resource file."));
         reader.readAsDataURL(file);
       });
       body.file_name=file.name;
       body.file_data=dataUrl;
     }
 
-    resourceMsg.textContent="Uploading PDF…";
+    resourceMsg.textContent="Uploading file…";
     await api(id?`/api/resources/${id}`:"/api/resources",{
       method:id?"PUT":"POST",
       body:JSON.stringify(body)
     });
     cancelEdit();
     await loadAll();
-    resourceMsg.textContent="✅ PDF saved successfully.";
+    resourceMsg.textContent="✅ Resource saved successfully.";
   }catch(err){
     resourceMsg.textContent="❌ "+err.message;
   }

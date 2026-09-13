@@ -1,28 +1,17 @@
-TRUTH.OFLIFES — DIRECT PDF UPLOAD (FINAL)
+truth.oflifes — Direct Resource File Upload
 
-This package keeps PDF upload INSIDE the existing admin.html.
+Supported direct uploads (maximum 15 MB):
+- PDF
+- PPT / PPTX
+- DOC / DOCX
+- XLS / XLSX
 
-FILES
-1. admin.html — current admin dashboard with direct PDF picker + subject/chapter selection.
-2. direct-pdf.js — stores uploaded PDFs in PostgreSQL BYTEA and serves protected PDFs.
-3. package.json — start command preloads direct-pdf.js.
+The server validates file signatures, so Android/Chrome generic MIME types do not cause false rejections.
+Files are stored in PostgreSQL BYTEA. PDFs open inline; Office files download as attachments.
+Existing URL resources remain supported.
 
-IMPORTANT FIX
-Android/Chrome may report a selected PDF as application/octet-stream. The browser and server now validate the actual PDF header (%PDF) instead of rejecting a genuine PDF because of its MIME metadata.
+Keep the existing server.js and other project files.
+Render start command:
+node -r ./direct-pdf.js server.js
 
-DEPLOY
-1. Replace your GitHub admin.html with this package's admin.html.
-2. Add direct-pdf.js to the repository root.
-3. In your EXISTING package.json, change ONLY the start script to:
-   node -r ./direct-pdf.js server.js
-   Keep all your existing dependencies and other scripts.
-4. Commit/push and let Render redeploy.
-5. Login to the normal admin dashboard. Choose Subject -> Chapter -> PDF -> Add Resource.
-
-STORAGE
-- New PDFs are stored directly in PostgreSQL.
-- Maximum PDF size: 15 MB.
-- Existing URL resources can continue working during migration.
-- Download route remains login protected and records downloads.
-
-No separate PDF upload page is required.
+Do not replace the existing database or remove existing resource data.
