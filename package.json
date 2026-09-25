@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node -r ./direct-pdf.js server.js",
-    "seed-admin": "node seed-admin.js"
+    "seed-admin": "node seed-admin.js",
+    "seed-mcqs": "node seed-mcqs.js"
   }
 }
