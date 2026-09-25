@@ -1,18 +1,4 @@
-truth.oflifes — Direct PDF FINAL FIX
+Truth.ofLifes learning platform build.
 
-Replace ONLY these two files in the repo:
-1) admin.html
-2) direct-pdf.js
-
-Keep Render Start Command as: npm start
-The existing npm start script should run:
-node -r ./direct-pdf.js server.js
-
-This version is for DIRECT PDF upload/storage only.
-- PDF max 15 MB
-- PostgreSQL BYTEA storage
-- Login-protected opening/download
-- Download tracking preserved
-- Existing URL resources remain supported by the server fallback
-- Mobile Chrome file reading validation improved
-- Chapter fallback lists retained in admin.html
+See README.md for setup, database backup/migration, MCQ import and certificate verification.
+MCQ bank: 2,000 generated practice variants (100 per subject) based on 100 foundational facts. Educator review is required; not 2,000 independently authored questions.
