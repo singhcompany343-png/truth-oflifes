@@ -306,36 +306,15 @@ function adminAuth(req, res, next) {
 // PAGES
 // =========================
 
-app.get("/mascot-reference.png", (req, res) => {
-  res.setHeader("Cache-Control", "public, max-age=86400");
-  res.type("png").sendFile(path.join(__dirname, "mascot-reference.png"));
-});
-
 app.get("/", (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.setHeader("Pragma", "no-cache");
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/learning", (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.sendFile(path.join(__dirname, "learning.html"));
-});
-
-app.get("/reels.html", (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.sendFile(path.join(__dirname, "reels.html"));
-});
-
-app.get("/quiz.html", (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.sendFile(path.join(__dirname, "quiz.html"));
-});
-
-app.get("/student.html", (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.sendFile(path.join(__dirname, "student.html"));
-});
+app.get("/learning", (req, res) => res.redirect(302, "/"));
+app.get("/quiz.html", (req, res) => res.redirect(302, "/"));
+app.get("/student.html", (req, res) => res.redirect(302, "/"));
 
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
@@ -1456,6 +1435,14 @@ app.get("/api/users", adminAuth, async (req, res) => {
 });
 
 // =========================
+// Learning features are disabled at the HTTP layer; historical records/tables are intentionally preserved.
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/learning") || req.path.startsWith("/api/students") || req.path.startsWith("/api/certificates")) {
+    return res.status(404).json({ error: "This feature is no longer available." });
+  }
+  next();
+});
+
 // LEARNING PLATFORM API (additive; preserves existing tables/data)
 // Apply learning-migration.sql before using these endpoints.
 // =========================
