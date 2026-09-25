@@ -306,10 +306,35 @@ function adminAuth(req, res, next) {
 // PAGES
 // =========================
 
+app.get("/mascot-reference.png", (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.type("png").sendFile(path.join(__dirname, "mascot-reference.png"));
+});
+
 app.get("/", (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.setHeader("Pragma", "no-cache");
   res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/learning", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.sendFile(path.join(__dirname, "learning.html"));
+});
+
+app.get("/reels.html", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.sendFile(path.join(__dirname, "reels.html"));
+});
+
+app.get("/quiz.html", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.sendFile(path.join(__dirname, "quiz.html"));
+});
+
+app.get("/student.html", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.sendFile(path.join(__dirname, "student.html"));
 });
 
 app.get("/admin.html", (req, res) => {
@@ -1428,6 +1453,140 @@ app.get("/api/users", adminAuth, async (req, res) => {
       error: "Could not load users"
     });
   }
+});
+
+// =========================
+// LEARNING PLATFORM API (additive; preserves existing tables/data)
+// Apply learning-migration.sql before using these endpoints.
+// =========================
+async function requireActiveStudent(req, res, next) {
+  try {
+    const row = await pool.query('SELECT is_active FROM learning_user_status WHERE user_id=$1', [req.user.id]);
+    if (row.rows[0] && row.rows[0].is_active === false) return res.status(403).json({error:'Account is inactive. Contact the administrator.'});
+    next();
+  } catch (e) { res.status(503).json({error:'Learning database migration has not been applied.'}); }
+}
+
+app.get('/api/learning/subjects', auth, requireActiveStudent, async (req,res)=>{
+  try {
+    const subjects = await pool.query(`SELECT s.id,s.slug,s.name,s.sort_order,
+      (SELECT COUNT(*)::int FROM learning_questions q WHERE q.subject_id=s.id AND q.active=true) question_count,
+      (SELECT MAX(c.percentage) FROM learning_certificates c WHERE c.user_id=$1 AND c.subject_id=s.id AND c.certificate_type='subject') best_percentage
+      FROM learning_subjects s WHERE s.active=true ORDER BY s.sort_order`,[req.user.id]);
+    res.json({subjects:subjects.rows});
+  } catch(e){res.status(503).json({error:'Learning database migration has not been applied.'});}
+});
+
+app.get('/api/learning/notes', auth, requireActiveStudent, async (req,res)=>{
+  const subject = String(req.query.subject||'').trim();
+  try {
+    const args=subject?[subject]:[];
+    const sql=`SELECT id,title,subject,chapter,description,created_at FROM resources WHERE LOWER(type) IN ('notes','ppt','pdf') ${subject?'AND LOWER(subject)=LOWER($1)':''} ORDER BY subject,chapter,title`;
+    const result=await pool.query(sql,args);
+    res.json({notes:result.rows});
+  } catch(e){res.status(500).json({error:'Could not load notes.'});}
+});
+
+app.post('/api/learning/attempts', auth, requireActiveStudent, async (req,res)=>{
+  const subjectId=Number(req.body.subject_id);
+  if(!Number.isInteger(subjectId)||subjectId<1) return res.status(400).json({error:'Valid subject_id required.'});
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const sub=await client.query('SELECT id,name FROM learning_subjects WHERE id=$1 AND active=true',[subjectId]);
+    if(!sub.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Subject not found.'});}
+    const qs=await client.query(`SELECT id FROM learning_questions WHERE subject_id=$1 AND active=true ORDER BY random() LIMIT 100`,[subjectId]);
+    if(qs.rowCount<100){await client.query('ROLLBACK');return res.status(409).json({error:`This subject has ${qs.rowCount}/100 questions published. Quiz unlocks after all 100 approved questions are added.`});}
+    const attempt=await client.query(`INSERT INTO learning_attempts(user_id,subject_id,question_count) VALUES($1,$2,100) RETURNING id`,[req.user.id,subjectId]);
+    for(let i=0;i<qs.rows.length;i++) await client.query(`INSERT INTO learning_attempt_items(attempt_id,question_id,position) VALUES($1,$2,$3)`,[attempt.rows[0].id,qs.rows[i].id,i+1]);
+    await client.query('COMMIT');
+    res.status(201).json({attempt_id:attempt.rows[0].id,question_number:1,total:100,timer_seconds:50});
+  } catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Could not start quiz.'});} finally{client.release();}
+});
+
+app.get('/api/learning/attempts/:id/current', auth, requireActiveStudent, async (req,res)=>{
+  try {
+    const own=await pool.query(`SELECT id,status FROM learning_attempts WHERE id=$1 AND user_id=$2`,[req.params.id,req.user.id]);
+    if(!own.rowCount)return res.status(404).json({error:'Attempt not found.'});
+    if(own.rows[0].status!=='in_progress')return res.status(409).json({error:'Attempt is already completed.'});
+    const item=await pool.query(`SELECT ai.id item_id,ai.position,ai.presented_at,q.id question_id,q.question,q.options
+      FROM learning_attempt_items ai JOIN learning_questions q ON q.id=ai.question_id
+      WHERE ai.attempt_id=$1 AND ai.answered_at IS NULL ORDER BY ai.position LIMIT 1`,[req.params.id]);
+    if(!item.rowCount){return await finishAttempt(req,res,req.params.id);}
+    let r=item.rows[0];
+    if(!r.presented_at){const upd=await pool.query(`UPDATE learning_attempt_items SET presented_at=NOW() WHERE id=$1 AND presented_at IS NULL RETURNING presented_at`,[r.item_id]);r.presented_at=upd.rows[0]?.presented_at||new Date();}
+    const elapsed=Math.max(0,Math.floor((Date.now()-new Date(r.presented_at).getTime())/1000));
+    res.json({question_number:r.position,total:100,question_id:r.question_id,question:r.question,options:r.options,remaining_seconds:Math.max(0,50-elapsed)});
+  }catch(e){console.error(e);res.status(500).json({error:'Could not load question.'});}
+});
+
+async function finishAttempt(req,res,attemptId){
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const a=await client.query(`SELECT * FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[attemptId,req.user.id]);
+    if(!a.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Attempt not found.'});}
+    const correct=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND is_correct=true`,[attemptId]);
+    const score=correct.rows[0].n;
+    await client.query(`UPDATE learning_attempts SET status='completed',completed_at=NOW(),score=$2 WHERE id=$1`,[attemptId,score]);
+    const code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
+    await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,certificate_code,score,max_score,percentage,certificate_type)
+      VALUES($1,$2,$3,$4,$5,100,$6,'subject') ON CONFLICT(certificate_code) DO NOTHING`,[req.user.id,a.rows[0].subject_id,attemptId,code,score,score]);
+    const coverage=await client.query(`SELECT COUNT(DISTINCT subject_id)::int completed, COALESCE(SUM(best_score),0)::int total_score FROM (
+      SELECT subject_id,MAX(score) best_score FROM learning_attempts WHERE user_id=$1 AND status='completed' GROUP BY subject_id
+    ) t`,[req.user.id]);
+    if(coverage.rows[0].completed===20){
+      const total=coverage.rows[0].total_score;
+      const combinedCode='TOL-ALL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
+      const existing=await client.query(`SELECT id FROM learning_certificates WHERE user_id=$1 AND certificate_type='all_subjects'`,[req.user.id]);
+      if(!existing.rowCount) await client.query(`INSERT INTO learning_certificates(user_id,certificate_code,score,max_score,percentage,certificate_type)
+        VALUES($1,$2,$3,2000,$4,'all_subjects')`,[req.user.id,combinedCode,total,(total/20).toFixed(2)]);
+    }
+    await client.query('COMMIT');
+    return res.json({completed:true,score,max_score:100,percentage:score,certificate_code:code});
+  }catch(e){await client.query('ROLLBACK');console.error(e);return res.status(500).json({error:'Could not finish attempt.'});}finally{client.release();}
+}
+
+app.post('/api/learning/attempts/:id/answer', auth, requireActiveStudent, async (req,res)=>{
+  const selected=req.body.selected_index===null?null:Number(req.body.selected_index);
+  if(selected!==null&&(!Number.isInteger(selected)||selected<0||selected>3))return res.status(400).json({error:'selected_index must be 0-3 or null for timeout.'});
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const a=await client.query(`SELECT id,status FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[req.params.id,req.user.id]);
+    if(!a.rowCount||a.rows[0].status!=='in_progress'){await client.query('ROLLBACK');return res.status(404).json({error:'Active attempt not found.'});}
+    const it=await client.query(`SELECT ai.id,ai.presented_at,q.correct_index,q.explanation FROM learning_attempt_items ai JOIN learning_questions q ON q.id=ai.question_id WHERE ai.attempt_id=$1 AND ai.answered_at IS NULL ORDER BY ai.position LIMIT 1 FOR UPDATE OF ai`,[req.params.id]);
+    if(!it.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'No unanswered question.'});}
+    const item=it.rows[0];
+    if(!item.presented_at){await client.query('ROLLBACK');return res.status(409).json({error:'Question has not been presented yet.'});}
+    const elapsed=(Date.now()-new Date(item.presented_at).getTime())/1000;
+    if(elapsed>50.5)selected=null;
+    const correct=selected!==null&&selected===item.correct_index;
+    await client.query(`UPDATE learning_attempt_items SET selected_index=$2,answered_at=NOW(),is_correct=$3 WHERE id=$1`,[item.id,selected,correct]);
+    await client.query('COMMIT');
+    res.json({accepted:true,timed_out:elapsed>50.5,correct,explanation:item.explanation});
+  }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Could not submit answer.'});}finally{client.release();}
+});
+
+app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{
+ try{const result=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject FROM learning_certificates c LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.user_id=$1 ORDER BY c.issued_at DESC`,[req.user.id]);res.json({certificates:result.rows});}
+ catch(e){res.status(503).json({error:'Learning database migration has not been applied.'});}
+});
+app.get('/api/learning/certificates/verify/:code',async(req,res)=>{
+ try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject,u.instagram_username student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
+ catch(e){res.status(503).json({error:'Certificate verification unavailable.'});}
+});
+
+app.post('/api/admin/users',adminAuth,async(req,res)=>{
+ const username=String(req.body.username||'').trim();const password=String(req.body.password||'');const email=String(req.body.email||'').trim();
+ if(!username||password.length<8)return res.status(400).json({error:'Username and password (at least 8 characters) required.'});
+ try{const hash=await bcrypt.hash(password,12);const r=await pool.query(`INSERT INTO users(instagram_username,email,password) VALUES($1,$2,$3) RETURNING id,instagram_username,email,created_at`,[username,email||null,hash]);await pool.query(`INSERT INTO learning_user_status(user_id,is_active) VALUES($1,true) ON CONFLICT(user_id) DO UPDATE SET is_active=true,deactivated_at=NULL,updated_at=NOW()`,[r.rows[0].id]);res.status(201).json({user:r.rows[0]});}
+ catch(e){if(e.code==='23505')return res.status(409).json({error:'Username already exists.'});res.status(500).json({error:'Could not create student.'});}
+});
+app.patch('/api/admin/users/:id/status',adminAuth,async(req,res)=>{
+ const active=req.body.active===true;if(!/^\d+$/.test(req.params.id))return res.status(400).json({error:'Invalid user id.'});
+ try{await pool.query(`INSERT INTO learning_user_status(user_id,is_active,deactivated_at) VALUES($1,$2,CASE WHEN $2 THEN NULL ELSE NOW() END) ON CONFLICT(user_id) DO UPDATE SET is_active=EXCLUDED.is_active,deactivated_at=EXCLUDED.deactivated_at,updated_at=NOW()`,[Number(req.params.id),active]);res.json({ok:true,active});}
+ catch(e){res.status(500).json({error:'Could not update student status.'});}
 });
 
 // =========================
