@@ -688,31 +688,47 @@ app.post("/api/admin/users/:id/reset-password", adminAuth, async (req, res) => {
 app.delete("/api/admin/users/:id", adminAuth, async (req, res) => {
   const adminPassword = String(req.body.adminPassword || "");
   const userId = Number(req.params.id);
-  if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: "Invalid user id" });
-  if (!adminPassword) return res.status(400).json({ error: "Admin password is required" });
+  if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({error:"Invalid user id"});
+  if (!adminPassword) return res.status(400).json({error:"Admin password is required"});
   const client = await pool.connect();
   try {
     const admin = await client.query(`SELECT password_hash FROM admins WHERE id=$1 LIMIT 1`, [req.user.id]);
-    if (!admin.rowCount) return res.status(404).json({ error: "Admin account not found" });
+    if (!admin.rowCount) return res.status(404).json({error:"Admin account not found"});
     const valid = await bcrypt.compare(adminPassword, admin.rows[0].password_hash);
-    if (!valid) return res.status(401).json({ error: "Incorrect admin password" });
+    if (!valid) return res.status(401).json({error:"Incorrect admin password"});
+
+    const exists = async (name) => {
+      const r = await client.query(`SELECT to_regclass($1) IS NOT NULL AS exists`, [name]);
+      return !!r.rows[0]?.exists;
+    };
+
     await client.query('BEGIN');
-    // Remove dependent learning records first because learning tables intentionally use RESTRICT.
-    await client.query(`DELETE FROM learning_attempt_items WHERE attempt_id IN (SELECT id FROM learning_attempts WHERE user_id=$1)`, [userId]);
-    await client.query(`DELETE FROM learning_certificates WHERE user_id=$1`, [userId]);
-    await client.query(`DELETE FROM learning_attempts WHERE user_id=$1`, [userId]);
-    await client.query(`DELETE FROM learning_user_status WHERE user_id=$1`, [userId]);
-    await client.query(`DELETE FROM resource_downloads WHERE user_id=$1`, [userId]);
-    await client.query(`DELETE FROM password_reset_requests WHERE LOWER(username) = LOWER((SELECT instagram_username FROM users WHERE id=$1))`, [userId]);
+    // Some older Render databases do not have the learning migration yet.
+    // Skip missing tables so user deletion still works instead of rolling back.
+    if (await exists('learning_attempt_items')) {
+      await client.query(`DELETE FROM learning_attempt_items WHERE attempt_id IN (SELECT id FROM learning_attempts WHERE user_id=$1)`, [userId]);
+    }
+    if (await exists('learning_certificates')) await client.query(`DELETE FROM learning_certificates WHERE user_id=$1`, [userId]);
+    if (await exists('learning_attempts')) await client.query(`DELETE FROM learning_attempts WHERE user_id=$1`, [userId]);
+    if (await exists('learning_user_status')) await client.query(`DELETE FROM learning_user_status WHERE user_id=$1`, [userId]);
+    if (await exists('resource_downloads')) await client.query(`DELETE FROM resource_downloads WHERE user_id=$1`, [userId]);
+    if (await exists('password_reset_requests')) {
+      await client.query(`DELETE FROM password_reset_requests WHERE LOWER(username) = LOWER((SELECT instagram_username FROM users WHERE id=$1))`, [userId]);
+    }
     const result = await client.query(`DELETE FROM users WHERE id=$1 RETURNING id, instagram_username`, [userId]);
-    if (!result.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: "User not found" }); }
+    if (!result.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:"User not found"});
+    }
     await client.query('COMMIT');
-    res.json({ success:true, deleted:result.rows[0] });
+    res.json({success:true, deleted:result.rows[0]});
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch (_) {}
     console.error("Admin user deletion failed", error);
-    res.status(500).json({ error: "Could not delete user" });
-  } finally { client.release(); }
+    res.status(500).json({error:"Could not delete user", details:String(error.message || "database error")});
+  } finally {
+    client.release();
+  }
 });
 
 // Lightweight notification count for the admin header.
@@ -878,6 +894,19 @@ app.get("/api/admin/resources", adminAuth, async (req, res) => {
 // CHAPTER MAP
 // =========================
 
+const VIDEO_STARTER_TOPICS = [
+  {title:'Hand hygiene: five moments',subject:'Nursing',chapter:'Infection Control'},
+  {title:'Understanding vital signs',subject:'Nursing',chapter:'Health Assessment'},
+  {title:'How the heart pumps blood',subject:'Physiology',chapter:'Cardiovascular System'},
+  {title:'Respiratory system basics',subject:'Physiology',chapter:'Respiratory System'},
+  {title:'IV cannula: sizes and purpose',subject:'Nursing',chapter:'Nursing Procedures'},
+  {title:'Recognizing dehydration',subject:'Pediatrics',chapter:'Nutrition'},
+  {title:'Safe medicine habits',subject:'Pharmacology',chapter:'General Pharmacology'},
+  {title:'First-aid basics: when to seek help',subject:'Other',chapter:'First Aid'},
+  {title:'Kidney function explained',subject:'Anatomy',chapter:'Urinary System'},
+  {title:'Common medical instruments',subject:'Nursing',chapter:'Medical Instruments'}
+];
+
 const CHAPTER_MAP = {
     "Anatomy": ["General Anatomy","Osteology","Arthrology (Joints)","Myology (Muscles)","Cardiovascular System","Respiratory System","Digestive System","Urinary System","Reproductive System","Endocrine System","Nervous System","Head & Neck","Thorax","Abdomen","Pelvis & Perineum","Upper Limb","Lower Limb","Neuroanatomy","Cranial Nerves","Autonomic Nervous System","Histology","Embryology","Genetics","Radiological Anatomy"],
     "Physiology": ["General Physiology","Blood","Nerve & Muscle Physiology","Cardiovascular System","Respiratory System","Gastrointestinal System","Renal Physiology","Endocrinology","Reproductive Physiology","Central Nervous System","Special Senses","Temperature Regulation","Exercise Physiology","Environmental Physiology","Acid-Base Balance"],
@@ -900,11 +929,15 @@ const CHAPTER_MAP = {
     "Dermatology": ["Basic Dermatology","Skin Anatomy","Skin Examination","Bacterial Infections","Viral Infections","Fungal Infections","Scabies","Eczema","Psoriasis","Acne","Urticaria","Drug Reactions","Autoimmune Skin Diseases","Pigmentary Disorders","Hair Disorders","Nail Disorders","Sexually Transmitted Infections","Leprosy","Skin Tumors"],
     "Dentistry": ["Dental Anatomy","Oral Cavity","Dental Caries","Gingivitis","Periodontitis","Oral Infections","Oral Ulcers","Oral Cancers","Dental Trauma","Tooth Extraction","Endodontics","Prosthodontics","Orthodontics","Pediatric Dentistry","Oral & Maxillofacial Surgery","Dental Materials","Oral Hygiene"],
     "Nursing": ["Fundamentals of Nursing","Nursing Procedures","Health Assessment","Anatomy & Physiology","Nutrition","Pharmacology for Nurses","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Obstetric Nursing","Midwifery","Critical Care Nursing","Emergency Nursing","Infection Control","First Aid","Medical Instruments","Nursing Ethics","Nursing Research"],
-    "Other": ["First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Differential Diagnosis","Medical Calculations","Important Drug Charts","Investigation & Lab Values","Medical Mnemonics","Case Studies","Viva Questions","Practical Notes","OSCE/OSPE","Previous Year Questions","NEET-PG/INI-CET Revision","Image-Based Questions"]
+    "Other": ["Extra Topics","First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Differential Diagnosis","Medical Calculations","Important Drug Charts","Investigation & Lab Values","Medical Mnemonics","Case Studies","Viva Questions","Practical Notes","OSCE/OSPE","Previous Year Questions","NEET-PG/INI-CET Revision","Image-Based Questions"]
   };
 
 app.get("/api/chapters", (req, res) => {
   res.json(CHAPTER_MAP);
+});
+
+app.get("/api/video-topics", (req, res) => {
+  res.json({topics: VIDEO_STARTER_TOPICS});
 });
 
 // Public chapter-wise starter MCQs. The full subject test uses 50 questions per subject.
@@ -977,6 +1010,45 @@ app.get('/api/learning/chapter-mcqs', (req,res)=>{
   const questions=makeChapterMcqs(subject,chapter);
   if(!questions.length) return res.status(404).json({error:'Chapter not found.'});
   res.json({subject,chapter,total:questions.length,questions});
+});
+
+// =========================
+// PUBLIC RESOURCE OPEN (VIEW ONLY)
+// =========================
+// Notes/PPT can be opened in the browser without login. The separate
+// /download endpoint below remains authenticated, so opening never grants
+// a free download action from the site.
+app.get("/api/resources/:id/open", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT type, file_url, file_data, file_name, mime_type, title
+       FROM resources WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!result.rowCount) return res.status(404).json({error:"Resource not found"});
+    const row = result.rows[0];
+    const type = String(row.type || "").toLowerCase();
+    if (type === "video") return res.redirect(`/api/resources/${encodeURIComponent(req.params.id)}/video`);
+
+    const fileUrl = String(row.file_url || "").trim();
+    if (fileUrl && /^https?:\/\//i.test(fileUrl)) return res.redirect(fileUrl);
+
+    const data = String(row.file_data || "").trim();
+    if (!data) return res.status(404).json({error:"File is not available to open"});
+    const comma = data.indexOf(",");
+    const payload = comma >= 0 ? data.slice(comma + 1) : data;
+    const detected = comma >= 0 ? data.slice(0, comma).match(/^data:([^;]+)/i)?.[1] : "";
+    const mime = row.mime_type || detected || "application/octet-stream";
+    const buffer = Buffer.from(payload, "base64");
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Content-Disposition", `inline; filename="${String(row.file_name || row.title || "resource").replace(/[^a-zA-Z0-9._-]+/g,"_")}"`);
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    return res.end(buffer);
+  } catch (error) {
+    console.error("Public resource open error", error);
+    return res.status(500).json({error:"Could not open resource"});
+  }
 });
 
 // =========================
@@ -1178,28 +1250,28 @@ app.put("/api/resources/:id", adminAuth, async (req, res) => {
 // =========================
 
 app.delete("/api/resources/:id", adminAuth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      `DELETE FROM resources
-       WHERE id = $1
-       RETURNING id`,
-      [req.params.id]
-    );
-
-    if (!result.rows.length) {
-      return res.status(404).json({
-        error: "Resource not found"
-      });
+    await client.query('BEGIN');
+    // Older databases may have the resource_downloads foreign key without
+    // ON DELETE CASCADE. Remove those rows first so Delete works everywhere.
+    const hasDownloads = await client.query(`SELECT to_regclass('resource_downloads') IS NOT NULL AS exists`);
+    if (hasDownloads.rows[0]?.exists) {
+      await client.query(`DELETE FROM resource_downloads WHERE resource_id=$1`, [req.params.id]);
     }
-
-    res.json({
-      success: true
-    });
+    const result = await client.query(`DELETE FROM resources WHERE id=$1 RETURNING id`, [req.params.id]);
+    if (!result.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:"Resource not found"});
+    }
+    await client.query('COMMIT');
+    res.json({success:true});
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "Could not delete resource"
-    });
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error("Admin resource deletion failed", error);
+    res.status(500).json({error:"Could not delete resource", details:String(error.message || "database error")});
+  } finally {
+    client.release();
   }
 });
 
