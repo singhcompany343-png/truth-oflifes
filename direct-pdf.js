@@ -14,7 +14,16 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
 
-const MAX_BYTES = 15 * 1024 * 1024;
+const MAX_BYTES = 25 * 1024 * 1024;
+const ALLOWED_MIME = new Set([
+  "application/pdf",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/png", "image/jpeg", "image/webp",
+  "video/mp4", "video/webm"
+]);
 const JWT_SECRET = process.env.JWT_SECRET || "truth-oflifes-secret";
 
 const pool = new Pool({
@@ -72,70 +81,38 @@ async function ensureColumns() {
 }
 
 function cleanName(name) {
-  const n = String(name || "resource.pdf").trim();
+  const n = String(name || "resource").trim();
   return n.replace(/[^\w.\- ()]/g, "_").slice(0, 180) || "resource.pdf";
 }
 
-function parsePdfData(value, fileName) {
+function parsePdfData(value, fileName, mimeType) {
   if (value === undefined || value === null || value === "") {
-    throw new Error("PDF file is required");
+    throw new Error("File is required");
   }
-
-  // Some clients may send the data URL wrapped in a JSON/string representation.
-  // Normalize it before decoding.
   let raw = typeof value === "string" ? value.trim() : String(value).trim();
-
-  // Supports Data URLs:
-  // data:application/pdf;base64,JVBER...
+  let detectedMime = String(mimeType || "").trim().toLowerCase();
   if (/^data:/i.test(raw)) {
     const comma = raw.indexOf(",");
-    if (comma < 0) throw new Error("Invalid PDF upload data");
+    if (comma < 0) throw new Error("Invalid upload data");
+    const header = raw.slice(5, comma);
+    const semi = header.indexOf(";");
+    detectedMime = (semi >= 0 ? header.slice(0, semi) : header).toLowerCase() || detectedMime;
     raw = raw.slice(comma + 1);
   }
-
-  // If a data URL was double-encoded, decode one layer.
-  try {
-    if (/%[0-9a-f]{2}/i.test(raw)) raw = decodeURIComponent(raw);
-  } catch (_) {}
-
-  // Remove whitespace/newlines inserted by mobile/browser handling.
-  raw = raw.replace(/\s+/g, "");
-
-  // Strip an accidental second data-url prefix after decoding.
-  if (/^data:/i.test(raw)) {
-    const comma = raw.indexOf(",");
-    if (comma >= 0) raw = raw.slice(comma + 1);
-  }
-
-  // Accept URL-safe Base64 too.
-  raw = raw.replace(/-/g, "+").replace(/_/g, "/");
+  try { if (/%[0-9a-f]{2}/i.test(raw)) raw = decodeURIComponent(raw); } catch (_) {}
+  raw = raw.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
   while (raw.length % 4) raw += "=";
-
-  let buffer;
-  try {
-    buffer = Buffer.from(raw, "base64");
-  } catch (_) {
-    throw new Error("Invalid PDF upload data");
+  const buffer = Buffer.from(raw, "base64");
+  if (!buffer.length) throw new Error("Empty file");
+  if (buffer.length > MAX_BYTES) throw new Error("File must be 25 MB or smaller");
+  if (!detectedMime || !ALLOWED_MIME.has(detectedMime)) {
+    const ext = String(fileName || "").toLowerCase().split(".").pop();
+    const map = {pdf:"application/pdf",ppt:"application/vnd.ms-powerpoint",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation",doc:"application/msword",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",mp4:"video/mp4",webm:"video/webm"};
+    detectedMime = map[ext] || detectedMime;
   }
-
-  if (!buffer || buffer.length === 0) {
-    throw new Error("Empty PDF file");
-  }
-
-  if (buffer.length > MAX_BYTES) {
-    throw new Error("PDF must be 15 MB or smaller");
-  }
-
-  // PDF signature must be %PDF somewhere at the beginning.
-  if (buffer.subarray(0, 4).toString("ascii") !== "%PDF") {
-    throw new Error("Invalid PDF file");
-  }
-
-  return {
-    buffer,
-    fileName: cleanName(fileName),
-    mime: "application/pdf"
-  };
+  if (!ALLOWED_MIME.has(detectedMime)) throw new Error("Unsupported file type");
+  if (detectedMime === "application/pdf" && buffer.subarray(0,4).toString("ascii") !== "%PDF") throw new Error("Invalid PDF file");
+  return { buffer, fileName: cleanName(fileName || "resource"), mime: detectedMime };
 }
 
 function meta(v) {
@@ -167,7 +144,7 @@ express.application.post = function (route, ...handlers) {
           return res.status(400).json({ error: "Title and type are required" });
         }
 
-        const file = parsePdfData(body.file_data, body.file_name);
+        const file = parsePdfData(body.file_data, body.file_name, body.mime_type);
 
         const result = await pool.query(
           `INSERT INTO resources
@@ -225,7 +202,7 @@ express.application.put = function (route, ...handlers) {
 
         let file = null;
         if (body.file_data) {
-          file = parsePdfData(body.file_data, body.file_name);
+          file = parsePdfData(body.file_data, body.file_name, body.mime_type);
         }
 
         if (file) {
@@ -306,11 +283,11 @@ express.application.get = function (route, ...handlers) {
             console.error("Download tracking failed:", trackErr);
           }
 
-          const fileName = cleanName(row.file_name || row.title || "resource.pdf");
+          const fileName = cleanName(row.file_name || row.title || "resource");
 
           res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
           res.setHeader("Pragma", "no-cache");
-          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Type", row.mime_type || "application/octet-stream");
           res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
           res.setHeader("Content-Length", String(row.file_size || row.file_data.length));
 

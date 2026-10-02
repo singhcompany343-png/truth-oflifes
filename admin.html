@@ -241,7 +241,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 @media(max-width:900px){.hero .wrap{grid-template-columns:1fr!important}.art{min-height:350px!important;max-width:520px!important;width:100%!important;margin:0 auto 20px!important}.trust .wrap{grid-template-columns:repeat(2,1fr)!important}}
 @media(max-width:650px){.hero .wrap{padding:0 16px!important}.copy{padding:34px 0 18px!important}.hero h1{font-size:36px!important}.hero p{font-size:14px!important}.art{min-height:280px!important;background-size:contain!important}.trust .wrap{grid-template-columns:repeat(2,1fr)!important}.layout{display:block!important}.layout aside{display:flex!important;overflow-x:auto!important;position:sticky!important;top:60px!important;z-index:5!important;padding:8px!important}.layout aside .brand{display:none!important}.layout aside button{white-space:nowrap!important;width:auto!important;padding:10px!important;font-size:12px!important}.layout main{padding:14px!important}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.grid{grid-template-columns:1fr!important}.brandbar{padding:0 12px!important}.formgrid,.three{grid-template-columns:1fr!important}}
 </style>
-</head>
+<style id="final-dark-pages">html,body{background:#020914!important;color:#eaf7ff!important}body{color:#eaf7ff!important}.layout,main,section,.page,.content,.container,.card,.panel,.tile,.quizbox,.stat,.cert,.tableWrap,.tableScroll,.welcome,.modalbox,.form,.box,.empty{background:#071a2c!important;color:#eaf7ff!important;border-color:#173a55!important}.layout aside,aside{background:#031326!important;color:#eaf7ff!important}.layout main,main{background:#020914!important}.muted,.meta,.sub,.hint,.small{color:#9bb3c8!important}input,textarea,select{background:#071a2c!important;color:#eaf7ff!important;border-color:#1b425c!important}button,.btn{background:#087fc5!important;color:#fff!important;border-color:#1b6e99!important}.option{background:#081f34!important;color:#eaf7ff!important;border-color:#1b4968!important}.option.selected{background:#0b3552!important;border-color:#39c7ff!important}.track{background:#153149!important}.track span{background:#168ee2!important}a{color:#73d7ff!important}table{color:#eaf7ff!important}th{background:#0b2b45!important;color:#dff5ff!important}td{background:#071a2c!important;border-color:#173a55!important}.topbar,nav,header,footer{background:#010a15!important;color:#eaf7ff!important;border-color:#173a55!important}.mobileMenu{background:#071a2c!important}</style></head>
 <body>
 <section id="loginScreen" class="panel" style="max-width:420px;margin:80px auto;padding:20px">
   <h2 style="margin-top:0">🔐 Admin Login</h2>
@@ -318,7 +318,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
         <input id="title" placeholder="Resource Title" required>
         <select id="type" required>
           <option value="">Select Type</option>
-          <option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+          <option>Notes</option><option>PPT</option><option>DOC</option><option>Image</option><option>Video</option><option>Question Paper</option><option>Study Material</option><option>Other</option>
         </select>
       </div>
       <select id="subject">
@@ -326,9 +326,9 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
       </select>
       <select id="chapter"><option value="">Select Chapter</option></select>
       <div class="pdfUploadBox">
-      <label style="display:block;margin-bottom:6px;font-weight:700">📄 PDF File</label>
-      <input id="pdf_file" type="file" accept="application/pdf,.pdf">
-      <div class="muted" style="font-size:12px;margin-top:5px">Direct PDF storage · maximum 15 MB</div>
+      <label style="display:block;margin-bottom:6px;font-weight:700">📎 Resource File</label>
+      <input id="pdf_file" type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg,.jpeg,.webp,.mp4,.webm">
+      <div class="muted" style="font-size:12px;margin-top:5px">PDF, PPT, DOC, images and MP4/WebM · maximum 25 MB</div>
     </div>
       <textarea id="description" placeholder="Description (optional)"></textarea>
       <div class="actions">
@@ -344,7 +344,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     <div class="filters">
       <input id="resourceSearch" oninput="renderResources()" placeholder="🔎 Search title, subject...">
       <select id="resourceFilter" onchange="renderResources()">
-        <option value="">All Types</option><option>Notes</option><option>PPT</option><option>Question Paper</option><option>Other</option>
+        <option value="">All Types</option><option>Notes</option><option>PPT</option><option>DOC</option><option>Image</option><option>Video</option><option>Question Paper</option><option>Study Material</option><option>Other</option>
       </select>
       <select id="subjectFilter" onchange="renderResources()">
         <option value="">All Subjects</option>
@@ -575,18 +575,19 @@ function cancelEdit(){
 }
 document.getElementById("resourceForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  resourceMsg.textContent="Preparing PDF…";
+  resourceMsg.textContent="Preparing resource…";
   try{
     const id=rid.value;
     const file=document.getElementById("pdf_file").files[0];
 
-    if(!id && !file) throw new Error("Please select a PDF file.");
+    if(!id && !file) throw new Error("Please select a resource file.");
     if(file){
-      const name=file.name||"";
-      const looksPdf=file.type==="application/pdf" || name.toLowerCase().endsWith(".pdf");
-      if(!looksPdf) throw new Error("Only PDF files are allowed.");
-      if(!file.size) throw new Error("Selected PDF file is empty or could not be read by Chrome. Please choose the PDF again from Files.");
-      if(file.size>15*1024*1024) throw new Error("PDF must be 15 MB or smaller.");
+      if(!file.size) throw new Error("Selected file is empty or could not be read.");
+      if(file.size>25*1024*1024) throw new Error("File must be 25 MB or smaller.");
+      const allowed=["application/pdf","application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","image/png","image/jpeg","image/webp","video/mp4","video/webm"];
+      const ext=(file.name||"").toLowerCase().split(".").pop();
+      const allowedExt=["pdf","ppt","pptx","doc","docx","png","jpg","jpeg","webp","mp4","webm"];
+      if(!allowed.includes(file.type) && !allowedExt.includes(ext)) throw new Error("Unsupported file type.");
     }
 
     const body={
@@ -610,17 +611,18 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
         reader.readAsDataURL(file);
       });
       body.file_name=file.name;
+      body.mime_type=file.type || "application/octet-stream";
       body.file_data=dataUrl;
     }
 
-    resourceMsg.textContent="Uploading PDF…";
+    resourceMsg.textContent="Uploading resource…";
     await api(id?`/api/resources/${id}`:"/api/resources",{
       method:id?"PUT":"POST",
       body:JSON.stringify(body)
     });
     cancelEdit();
     await loadAll();
-    resourceMsg.textContent="✅ PDF saved successfully.";
+    resourceMsg.textContent="✅ Resource saved successfully.";
   }catch(err){
     resourceMsg.textContent="❌ "+err.message;
   }
