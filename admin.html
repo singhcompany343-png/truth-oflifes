@@ -370,6 +370,13 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     </form>
   </section>
 
+  <section class="panel" id="mcqAuditPanel">
+    <h3>🧠 MCQ Bank Audit</h3>
+    <div class="analyticsKpis" style="margin-bottom:12px"><div class="analyticsKpi"><span class="meta">Total MCQs</span><strong id="mcqTotal">—</strong></div><div class="analyticsKpi"><span class="meta">Subjects / Chapters</span><strong id="mcqCoverage">—</strong></div></div>
+    <div id="mcqSubjectCounts" class="scrollBox"></div>
+    <div style="margin-top:14px"><h3 style="font-size:14px">🔁 Duplicate Question Checker</h3><div id="mcqDuplicates" class="scrollBox"><div class="empty">Checking…</div></div></div>
+  </section>
+
   <section class="panel" id="certificatePreviewPanel">
     <h3>🏆 Certificate Preview</h3>
     <p class="muted">Students quiz complete karne par isi template ke according educational completion certificate receive karenge.</p>
@@ -455,7 +462,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 
 <script>
 let token = localStorage.getItem("adminToken") || localStorage.getItem("token");
-let resources=[], users=[], requests=[], collaborations=[], resetRequests=[];
+let resources=[], users=[], requests=[], collaborations=[], resetRequests=[], mcqAudit=null;
 
 function headers(){ return {"Content-Type":"application/json","Authorization":"Bearer "+token}; }
 
@@ -567,10 +574,10 @@ function bindAdminPreviews(){
 
 async function loadAll(){
   try{
-    const [v,u,r,an,req,co,n,pr,ov]=await Promise.all([
+    const [v,u,r,an,req,co,n,pr,ov,ms,md]=await Promise.all([
       api("/api/visits"),api("/api/users"),api("/api/resources"),
       api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations"),
-      api("/api/admin/notifications"),api("/api/admin/password-reset-requests"),api("/api/admin/analytics/overview")
+      api("/api/admin/notifications"),api("/api/admin/password-reset-requests"),api("/api/admin/analytics/overview"),api("/api/admin/mcq-stats"),api("/api/admin/mcq-duplicates")
     ]);
     document.getElementById("visitors").textContent=v.count??0;
     users=u.users||[]; resources=r||[]; requests=req.requests||[]; collaborations=co.collaborations||[]; resetRequests=pr.requests||[];
@@ -582,8 +589,18 @@ async function loadAll(){
     renderResourceAnalytics(ov);
     const pop=ov.popular||[];
     document.getElementById("popularResources").innerHTML=pop.length?pop.map((x,i)=>`<div class="item"><b>${i+1}. ${esc(x.title)}</b><div class="meta">${esc(x.type)}${x.subject?" · "+esc(x.subject):""} · ${Number(x.downloads||0)} downloads</div></div>`).join(""):"No downloads yet.";
-    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); updateNotifications(n);
+    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); renderMcqAudit(ms,md); updateNotifications(n);
   }catch(e){console.error(e);}
+}
+
+function renderMcqAudit(ms,md){
+  mcqAudit=ms||{};
+  const total=Number(ms?.total_questions||0), subjects=Number(ms?.subjects||0), chapters=Number(ms?.chapters||0);
+  const a=document.getElementById("mcqTotal"),b=document.getElementById("mcqCoverage");if(a)a.textContent=total.toLocaleString();if(b)b.textContent=subjects+" / "+chapters;
+  const list=document.getElementById("mcqSubjectCounts");const rows=Array.isArray(ms?.by_subject)?ms.by_subject:[];
+  list.innerHTML=rows.length?rows.map(x=>`<div class="item"><div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(x.subject)}</b><span class="badge">${Number(x.questions||0)} MCQs · ${Number(x.chapters||0)} chapters</span></div><div class="meta">${Number(x.complete_chapters||0)} chapters have 50/50 questions</div></div>`).join(""):"<div class=\"empty\">No MCQ data.</div>";
+  const dup=document.getElementById("mcqDuplicates"),groups=Array.isArray(md?.duplicates)?md.duplicates:[];
+  dup.innerHTML=groups.length?groups.map(x=>`<div class="item"><b>${Number(x.count)}×</b> ${esc(x.question)}<div class="meta">${esc(x.locations)}</div></div>`).join(""):"<div class=\"empty\">✅ No exact duplicate question text found.</div>";
 }
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}

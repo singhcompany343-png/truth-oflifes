@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
 const path = require("path");
 const crypto = require("crypto");
+const MCQ_BANK = require("./mcq-bank.json");
 
 const app = express();
 
@@ -266,12 +267,102 @@ async function setupDatabase() {
 
   await pool.query(`UPDATE collaborations SET status='pending' WHERE status IS NULL;`);
 
+
+  // Learning platform tables are created automatically so Render deployments do not
+  // require a separate manual SQL migration.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS learning_subjects (
+      id SERIAL PRIMARY KEY, slug TEXT UNIQUE NOT NULL, name TEXT UNIQUE NOT NULL,
+      sort_order INT NOT NULL DEFAULT 0, active BOOLEAN NOT NULL DEFAULT TRUE
+    );
+    CREATE TABLE IF NOT EXISTS learning_questions (
+      id BIGSERIAL PRIMARY KEY, subject_id INT NOT NULL REFERENCES learning_subjects(id) ON DELETE CASCADE,
+      chapter TEXT NOT NULL DEFAULT 'General', question TEXT NOT NULL,
+      options JSONB NOT NULL CHECK (jsonb_typeof(options)='array' AND jsonb_array_length(options)=4),
+      correct_index SMALLINT NOT NULL CHECK(correct_index BETWEEN 0 AND 3),
+      explanation TEXT NOT NULL DEFAULT '', difficulty TEXT NOT NULL DEFAULT 'basic',
+      active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(subject_id, chapter, question)
+    );
+    CREATE INDEX IF NOT EXISTS learning_questions_chapter_idx ON learning_questions(subject_id, chapter, active);
+    CREATE TABLE IF NOT EXISTS learning_attempts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_id INT NOT NULL REFERENCES learning_subjects(id) ON DELETE CASCADE,
+      chapter TEXT, question_count INT NOT NULL DEFAULT 50, duration_seconds INT NOT NULL DEFAULT 1800,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), completed_at TIMESTAMPTZ, score INT,
+      status TEXT NOT NULL DEFAULT 'in_progress' CHECK(status IN ('in_progress','completed','abandoned'))
+    );
+    CREATE TABLE IF NOT EXISTS learning_attempt_items (
+      id BIGSERIAL PRIMARY KEY, attempt_id UUID NOT NULL REFERENCES learning_attempts(id) ON DELETE CASCADE,
+      question_id BIGINT NOT NULL REFERENCES learning_questions(id) ON DELETE CASCADE, position INT NOT NULL,
+      presented_at TIMESTAMPTZ, answered_at TIMESTAMPTZ, selected_index SMALLINT CHECK(selected_index BETWEEN 0 AND 3),
+      is_correct BOOLEAN, UNIQUE(attempt_id, position), UNIQUE(attempt_id, question_id)
+    );
+    CREATE TABLE IF NOT EXISTS learning_certificates (
+      id BIGSERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_id INT REFERENCES learning_subjects(id) ON DELETE SET NULL, attempt_id UUID REFERENCES learning_attempts(id) ON DELETE SET NULL,
+      chapter TEXT, certificate_code TEXT UNIQUE NOT NULL, score INT NOT NULL, max_score INT NOT NULL,
+      percentage NUMERIC(5,2) NOT NULL, issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      certificate_type TEXT NOT NULL DEFAULT 'subject' CHECK(certificate_type IN ('subject','chapter','all_subjects'))
+    );
+    CREATE TABLE IF NOT EXISTS learning_user_status (
+      user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      deactivated_at TIMESTAMPTZ, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT;`);
+  await pool.query(`ALTER TABLE learning_attempts ADD COLUMN IF NOT EXISTS chapter TEXT;`);
+  await pool.query(`ALTER TABLE learning_attempts ADD COLUMN IF NOT EXISTS duration_seconds INT NOT NULL DEFAULT 1800;`);
+  await pool.query(`ALTER TABLE learning_certificates ADD COLUMN IF NOT EXISTS chapter TEXT;`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS learning_subjects_name_unique ON learning_subjects(name);`);
+  let questionUniqueIndexReady=true;
+  try{await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS learning_questions_subject_chapter_question_unique ON learning_questions(subject_id,chapter,question);`);}catch(e){questionUniqueIndexReady=false;console.warn('MCQ unique index could not be created; using duplicate-safe seed filtering.',e.message);}
+  await pool.query(`DO $$ DECLARE r record; BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='learning_certificates' AND column_name='certificate_type') THEN FOR r IN SELECT conname FROM pg_constraint WHERE conrelid='learning_certificates'::regclass AND pg_get_constraintdef(oid) ILIKE '%certificate_type%' LOOP EXECUTE format('ALTER TABLE learning_certificates DROP CONSTRAINT %I',r.conname); END LOOP; END IF; END $$;`);
+  await pool.query(`ALTER TABLE learning_certificates ADD CONSTRAINT learning_certificates_certificate_type_check CHECK(certificate_type IN ('subject','chapter','all_subjects'));`).catch(()=>{});
+  await pool.query(`INSERT INTO learning_subjects(slug,name,sort_order) VALUES ${Object.keys(CHAPTER_MAP).map((_,i)=>`($${i*2+1},$${i*2+2},${i+1})`).join(',')} ON CONFLICT(name) DO UPDATE SET slug=EXCLUDED.slug,sort_order=EXCLUDED.sort_order`, Object.keys(CHAPTER_MAP).flatMap(n=>[n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),n]));
+  await pool.query(`UPDATE learning_subjects SET active=false WHERE name <> ALL($1::text[])`, [Object.keys(CHAPTER_MAP)]);
+  await pool.query(`UPDATE learning_subjects SET active=true WHERE name = ANY($1::text[])`, [Object.keys(CHAPTER_MAP)]);
+  await pool.query(`INSERT INTO learning_user_status(user_id,is_active) SELECT id,true FROM users ON CONFLICT(user_id) DO NOTHING;`);
+  const qCount = await pool.query(`SELECT COUNT(*)::int AS n FROM learning_questions`);
+  const bank = Array.isArray(MCQ_BANK.questions) ? MCQ_BANK.questions : [];
+  const bankChapters = new Set(bank.map(q=>q.subject+'|'+q.chapter)).size;
+  const qCoverage = await pool.query(`SELECT COUNT(*)::int n FROM (SELECT subject_id,chapter FROM learning_questions WHERE active=true GROUP BY subject_id,chapter HAVING COUNT(*)>=50) x`);
+  if (qCount.rows[0].n < bank.length || qCoverage.rows[0].n < bankChapters) {
+    const subjects = await pool.query(`SELECT id,name FROM learning_subjects`);
+    const ids = Object.fromEntries(subjects.rows.map(r=>[r.name,r.id]));
+    for(let start=0; start<bank.length; start+=500){
+      const batch=bank.slice(start,start+500), vals=[], args=[];
+      batch.forEach(q=>{
+        const sid=ids[q.subject]; if(!sid) return;
+        const base=args.length; args.push(sid,q.chapter,q.question,JSON.stringify(q.options),q.correct_index,q.explanation||'Review the chapter concepts and the correct option.');
+        vals.push(`($${base+1},$${base+2},$${base+3},$${base+4}::jsonb,$${base+5},$${base+6},'basic',true)`);
+      });
+      if(vals.length){
+        if(questionUniqueIndexReady) await pool.query(`INSERT INTO learning_questions(subject_id,chapter,question,options,correct_index,explanation,difficulty,active) VALUES ${vals.join(',')} ON CONFLICT(subject_id,chapter,question) DO NOTHING`,args);
+        else {
+          const existing=await pool.query(`SELECT subject_id,chapter,question FROM learning_questions WHERE active=true`);
+          const seen=new Set(existing.rows.map(x=>x.subject_id+'|'+x.chapter+'|'+x.question));
+          const keep=[]; for(let i=0;i<batch.length;i++){const q=batch[i],sid=ids[q.subject],key=sid+'|'+q.chapter+'|'+q.question;if(sid&&!seen.has(key)){keep.push(q);seen.add(key);}}
+          if(keep.length){const av=[],aa=[];keep.forEach(q=>{const sid=ids[q.subject],base=aa.length;aa.push(sid,q.chapter,q.question,JSON.stringify(q.options),q.correct_index,q.explanation||'Review the chapter concepts and the correct option.');av.push(`($${base+1},$${base+2},$${base+3},$${base+4}::jsonb,$${base+5},$${base+6},'basic',true)`);});await pool.query(`INSERT INTO learning_questions(subject_id,chapter,question,options,correct_index,explanation,difficulty,active) VALUES ${av.join(',')}`,aa);}
+        }
+      }
+    }
+    console.log(`Seeded learning MCQs: ${bank.length}`);
+  }
+
   console.log("Database ready");
 }
 
 // =========================
 // AUTH MIDDLEWARE
 // =========================
+
+function maybeAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  if (!header.startsWith("Bearer ")) { req.user = null; return next(); }
+  try { req.user = jwt.verify(header.substring(7), JWT_SECRET); } catch (error) { req.user = null; }
+  next();
+}
 
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
@@ -372,6 +463,7 @@ app.post("/api/auth/register", async (req, res) => {
 
     const password = String(req.body.password || "");
     const email = String(req.body.email || "").trim().toLowerCase();
+    const display_name = String(req.body.display_name || "").trim();
 
     if (!instagram_username || !password) {
       return res.status(400).json({
@@ -399,10 +491,10 @@ app.post("/api/auth/register", async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (instagram_username, email, password)
-       VALUES ($1, $2, $3)
-       RETURNING id, instagram_username, email, created_at`,
-      [instagram_username, email || null, hash]
+      `INSERT INTO users (instagram_username, email, password, display_name)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, instagram_username, email, display_name, created_at`,
+      [instagram_username, email || null, hash, display_name || null]
     );
 
     const user = result.rows[0];
@@ -554,7 +646,7 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.get("/api/me", auth, async (req, res) => {
   try {
-    const result = await pool.query(`SELECT id, instagram_username, email, created_at FROM users WHERE id=$1 LIMIT 1`, [req.user.id]);
+    const result = await pool.query(`SELECT id, instagram_username, email, display_name, created_at FROM users WHERE id=$1 LIMIT 1`, [req.user.id]);
     if (!result.rows.length) return res.status(404).json({ error: "User not found" });
     res.json({ user: result.rows[0] });
   } catch (error) { console.error(error); res.status(500).json({ error: "Could not load profile" }); }
@@ -563,8 +655,9 @@ app.get("/api/me", auth, async (req, res) => {
 app.patch("/api/me", auth, async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
+    const display_name = String(req.body.display_name || "").trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Enter a valid email address" });
-    const result = await pool.query(`UPDATE users SET email=$1 WHERE id=$2 RETURNING id, instagram_username, email, created_at`, [email || null, req.user.id]);
+    const result = await pool.query(`UPDATE users SET email=$1, display_name=$2 WHERE id=$3 RETURNING id, instagram_username, email, display_name, created_at`, [email || null, display_name || null, req.user.id]);
     if (!result.rows.length) return res.status(404).json({ error: "User not found" });
     res.json({ success: true, user: result.rows[0] });
   } catch (error) { console.error(error); res.status(500).json({ error: "Could not update profile" }); }
@@ -874,6 +967,15 @@ app.get("/api/resources", async (req, res) => {
   }
 });
 
+app.get('/api/search',async(req,res)=>{
+  const q=String(req.query.q||'').trim().toLowerCase(); if(!q) return res.json({resources:[],chapters:[]});
+  try{
+    const r=await pool.query(`SELECT id,title,type,subject,chapter,description FROM resources WHERE LOWER(title||' '||COALESCE(subject,'')||' '||COALESCE(chapter,'')||' '||COALESCE(description,'')) LIKE $1 ORDER BY created_at DESC LIMIT 40`,['%'+q+'%']);
+    const chapters=[]; for(const [subject,arr] of Object.entries(CHAPTER_MAP)){ for(const chapter of arr){ if((subject+' '+chapter).toLowerCase().includes(q)) chapters.push({subject,chapter}); if(chapters.length>=40) break; } if(chapters.length>=40) break; }
+    res.json({resources:r.rows,chapters});
+  }catch(e){res.status(500).json({error:'Search unavailable.'});}
+});
+
 // Admin-only resource list includes the private file_url needed for editing.
 app.get("/api/admin/resources", adminAuth, async (req, res) => {
   try {
@@ -946,61 +1048,10 @@ app.get("/api/video-topics", (req, res) => {
 // The questions are intentionally introductory; educators should review them before
 // using them for formal assessment or clinical decision-making.
 function makeChapterMcqs(subject, chapter) {
-  const chapters = Array.isArray(CHAPTER_MAP[subject]) ? CHAPTER_MAP[subject] : [];
-  if (!chapters.includes(chapter)) return [];
-
-  const curated = {
-    'Anatomy|General Anatomy': [
-      ['In the anatomical position, the palms face:', ['Backward','Forward','Medially','Downward'], 1, 'In anatomical position, the palms face forward.'],
-      ['Which plane divides the body into right and left parts?', ['Coronal','Transverse','Sagittal','Oblique'], 2, 'The sagittal plane divides the body into right and left portions.'],
-      ['The coronal (frontal) plane divides the body into:', ['Upper and lower parts','Anterior and posterior parts','Right and left parts','Superficial and deep parts'], 1, 'The coronal plane separates anterior and posterior portions.'],
-      ['The transverse plane divides the body into:', ['Superior and inferior parts','Right and left parts','Anterior and posterior parts','Medial and lateral parts'], 0, 'The transverse plane separates superior and inferior portions.'],
-      ['A structure nearer the trunk or point of attachment is:', ['Distal','Lateral','Proximal','Superficial'], 2, 'Proximal means nearer the point of attachment or trunk.']
-    ],
-    'Physiology|General Physiology': [
-      ['The basic structural and functional unit of the body is the:', ['Cell','Tissue','Organ','System'], 0, 'The cell is the basic structural and functional unit.'],
-      ['Homeostasis means maintaining:', ['Constant body weight','A relatively stable internal environment','Only blood pressure','Only temperature'], 1, 'Homeostasis maintains a relatively stable internal environment.'],
-      ['Which system coordinates rapid responses through electrical signals?', ['Digestive','Nervous','Skeletal','Urinary'], 1, 'The nervous system coordinates rapid responses.'],
-      ['Which organ pumps blood through the circulation?', ['Liver','Kidney','Heart','Lung'], 2, 'The heart is the muscular pump of the circulation.'],
-      ['The main brain region involved in thermoregulation is the:', ['Hypothalamus','Pancreas','Spleen','Appendix'], 0, 'The hypothalamus has a major role in thermoregulation.']
-    ]
-  };
-
-  // The existing reviewed bank contains 100 real questions for each learning subject.
-  // For chapter practice we expose exactly 50 questions per chapter, keeping curated
-  // chapter-specific questions first and filling the remainder from that subject bank.
-  const fs = require('fs');
-  const path = require('path');
-  let bank = [];
-  try { bank = JSON.parse(fs.readFileSync(path.join(__dirname,'mcq-bank.json'),'utf8')).questions || []; } catch (_) {}
-  const slugMap = {
-    'Anatomy':'general-anatomy','Physiology':'physiology','Biochemistry':'biochemistry','Microbiology':'microbiology',
-    'Pathology':'pathology','Pharmacology':'pharmacology','Nursing':'medical-surgical-nursing','Pediatrics':'child-health-nursing',
-    'OBG':'obstetrics-gynecology','Psychiatry':'mental-health-nursing','Community Medicine':'community-health-nursing',
-    'Other':'first-aid-emergency-care'
-  };
-  const learningSlug = slugMap[subject] || String(subject).toLowerCase().replace(/[^a-z0-9]+/g,'-');
-  const source = bank.filter(q=>q.subject_slug===learningSlug && (!q.chapter || q.chapter===chapter));
-  const rows = (curated[`${subject}|${chapter}`] || []).slice();
-  const seen = new Set(rows.map(q=>q[0]));
-  for (const q of source) {
-    if (rows.length >= 50) break;
-    if (seen.has(q.question)) continue;
-    seen.add(q.question);
-    rows.push([q.question,q.options,q.correct_index,q.explanation || 'Review the chapter material and the key concept tested in this question.']);
-  }
-  // If a subject has fewer than 50 source questions, create clearly labelled revision
-  // variants from the same reviewed bank so the chapter never opens with an empty/short quiz.
-  if (rows.length < 50 && source.length) {
-    let n=0;
-    while(rows.length<50){
-      const q=source[n % source.length]; n++;
-      const variant=`${q.question} — Chapter revision ${n}`;
-      if(seen.has(variant)) continue;
-      rows.push([variant,q.options,q.correct_index,q.explanation || 'Chapter revision question.']);
-    }
-  }
-  return rows.slice(0,50).map((q,i)=>({question:q[0],options:q[1],correct_index:q[2],explanation:q[3],difficulty:'basic',id:`${subject}-${chapter}-${i+1}`}));
+  const valid = Array.isArray(CHAPTER_MAP[subject]) && CHAPTER_MAP[subject].includes(chapter);
+  if (!valid) return [];
+  const rows = (Array.isArray(MCQ_BANK.questions)?MCQ_BANK.questions:[]).filter(q=>q.subject===subject && q.chapter===chapter).slice(0,50);
+  return rows.map((q,i)=>({question:q.question,options:q.options,correct_index:q.correct_index,explanation:q.explanation||'Review the chapter material and the concept tested in this question.',difficulty:'basic',id:`${subject}-${chapter}-${i+1}`}));
 }
 
 app.get('/api/learning/chapter-mcqs', (req,res)=>{
@@ -1015,10 +1066,9 @@ app.get('/api/learning/chapter-mcqs', (req,res)=>{
 // =========================
 // PUBLIC RESOURCE OPEN (VIEW ONLY)
 // =========================
-// Notes/PPT can be opened in the browser without login. The separate
-// /download endpoint below remains authenticated, so opening never grants
-// a free download action from the site.
-app.get("/api/resources/:id/open", async (req, res) => {
+// Notes require login to open. PPT remains viewable through this route;
+// the separate /download endpoint remains authenticated for downloads.
+app.get("/api/resources/:id/open", maybeAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT type, file_url, file_data, file_name, mime_type, title
@@ -1028,6 +1078,9 @@ app.get("/api/resources/:id/open", async (req, res) => {
     if (!result.rowCount) return res.status(404).json({error:"Resource not found"});
     const row = result.rows[0];
     const type = String(row.type || "").toLowerCase();
+    if (type === "notes" && !req.user) {
+      return res.status(401).json({error:"Login required to open Notes"});
+    }
     if (type === "video") return res.redirect(`/api/resources/${encodeURIComponent(req.params.id)}/video`);
 
     const fileUrl = String(row.file_url || "").trim();
@@ -1664,129 +1717,94 @@ app.get("/api/users", adminAuth, async (req, res) => {
   }
 });
 
-// LEARNING PLATFORM API (additive; preserves existing tables/data)
-// Apply learning-migration.sql before using these endpoints.
 // =========================
-async function requireActiveStudent(req, res, next) {
-  try {
-    const row = await pool.query('SELECT is_active FROM learning_user_status WHERE user_id=$1', [req.user.id]);
-    if (row.rows[0] && row.rows[0].is_active === false) return res.status(403).json({error:'Account is inactive. Contact the administrator.'});
+// LEARNING PLATFORM API
+// =========================
+async function requireActiveStudent(req,res,next){
+  try{
+    const row=await pool.query('SELECT is_active FROM learning_user_status WHERE user_id=$1',[req.user.id]);
+    if(row.rows[0] && row.rows[0].is_active===false) return res.status(403).json({error:'Account is inactive. Contact the administrator.'});
     next();
-  } catch (e) { res.status(503).json({error:'Learning database migration has not been applied.'}); }
+  }catch(e){res.status(503).json({error:'Learning database is not ready.'});}
 }
 
-app.get('/api/learning/subjects', auth, requireActiveStudent, async (req,res)=>{
-  try {
-    const subjects = await pool.query(`SELECT s.id,s.slug,s.name,s.sort_order,
+app.get('/api/learning/subjects',auth,requireActiveStudent,async(req,res)=>{
+  try{
+    const r=await pool.query(`SELECT s.id,s.slug,s.name,s.sort_order,
       (SELECT COUNT(*)::int FROM learning_questions q WHERE q.subject_id=s.id AND q.active=true) question_count,
-      (SELECT MAX(c.percentage) FROM learning_certificates c WHERE c.user_id=$1 AND c.subject_id=s.id AND c.certificate_type='subject') best_percentage
+      COALESCE((SELECT MAX(a.score) FROM learning_attempts a WHERE a.user_id=$1 AND a.subject_id=s.id AND a.status='completed'),0)::int best_score,
+      COALESCE((SELECT MAX(a.score*100.0/NULLIF(a.question_count,0)) FROM learning_attempts a WHERE a.user_id=$1 AND a.subject_id=s.id AND a.status='completed'),0)::numeric best_percentage
       FROM learning_subjects s WHERE s.active=true ORDER BY s.sort_order`,[req.user.id]);
-    res.json({subjects:subjects.rows});
-  } catch(e){res.status(503).json({error:'Learning database migration has not been applied.'});}
+    res.json({subjects:r.rows});
+  }catch(e){console.error(e);res.status(503).json({error:'Could not load subjects.'});}
 });
 
-app.get('/api/learning/notes', auth, requireActiveStudent, async (req,res)=>{
-  const subject = String(req.query.subject||'').trim();
-  try {
-    const args=subject?[subject]:[];
-    const sql=`SELECT id,title,subject,chapter,description,created_at FROM resources WHERE LOWER(type) IN ('notes','ppt','pdf') ${subject?'AND LOWER(subject)=LOWER($1)':''} ORDER BY subject,chapter,title`;
-    const result=await pool.query(sql,args);
-    res.json({notes:result.rows});
-  } catch(e){res.status(500).json({error:'Could not load notes.'});}
-});
-
-app.post('/api/learning/attempts', auth, requireActiveStudent, async (req,res)=>{
-  const subjectId=Number(req.body.subject_id);
-  if(!Number.isInteger(subjectId)||subjectId<1) return res.status(400).json({error:'Valid subject_id required.'});
-  const client=await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const sub=await client.query('SELECT id,name FROM learning_subjects WHERE id=$1 AND active=true',[subjectId]);
-    if(!sub.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Subject not found.'});}
-    const qs=await client.query(`SELECT id FROM learning_questions WHERE subject_id=$1 AND active=true ORDER BY random() LIMIT 50`,[subjectId]);
-    if(qs.rowCount<50){await client.query('ROLLBACK');return res.status(409).json({error:`This subject has ${qs.rowCount}/50 questions published. Quiz unlocks after 50 approved questions are added.`});}
-    const attempt=await client.query(`INSERT INTO learning_attempts(user_id,subject_id,question_count) VALUES($1,$2,50) RETURNING id`,[req.user.id,subjectId]);
-    for(let i=0;i<qs.rows.length;i++) await client.query(`INSERT INTO learning_attempt_items(attempt_id,question_id,position) VALUES($1,$2,$3)`,[attempt.rows[0].id,qs.rows[i].id,i+1]);
-    await client.query('COMMIT');
-    res.status(201).json({attempt_id:attempt.rows[0].id,question_number:1,total:50,timer_seconds:50});
-  } catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Could not start quiz.'});} finally{client.release();}
-});
-
-app.get('/api/learning/attempts/:id/current', auth, requireActiveStudent, async (req,res)=>{
-  try {
-    const own=await pool.query(`SELECT id,status FROM learning_attempts WHERE id=$1 AND user_id=$2`,[req.params.id,req.user.id]);
-    if(!own.rowCount)return res.status(404).json({error:'Attempt not found.'});
-    if(own.rows[0].status!=='in_progress')return res.status(409).json({error:'Attempt is already completed.'});
-    const item=await pool.query(`SELECT ai.id item_id,ai.position,ai.presented_at,q.id question_id,q.question,q.options
-      FROM learning_attempt_items ai JOIN learning_questions q ON q.id=ai.question_id
-      WHERE ai.attempt_id=$1 AND ai.answered_at IS NULL ORDER BY ai.position LIMIT 1`,[req.params.id]);
-    if(!item.rowCount){return await finishAttempt(req,res,req.params.id);}
-    let r=item.rows[0];
-    if(!r.presented_at){const upd=await pool.query(`UPDATE learning_attempt_items SET presented_at=NOW() WHERE id=$1 AND presented_at IS NULL RETURNING presented_at`,[r.item_id]);r.presented_at=upd.rows[0]?.presented_at||new Date();}
-    const elapsed=Math.max(0,Math.floor((Date.now()-new Date(r.presented_at).getTime())/1000));
-    res.json({question_number:r.position,total:50,question_id:r.question_id,question:r.question,options:r.options,remaining_seconds:Math.max(0,50-elapsed)});
-  }catch(e){console.error(e);res.status(500).json({error:'Could not load question.'});}
-});
-
-async function finishAttempt(req,res,attemptId){
-  const client=await pool.connect();
+app.get('/api/learning/progress',auth,requireActiveStudent,async(req,res)=>{
   try{
-    await client.query('BEGIN');
-    const a=await client.query(`SELECT * FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[attemptId,req.user.id]);
-    if(!a.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Attempt not found.'});}
-    const correct=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND is_correct=true`,[attemptId]);
-    const score=correct.rows[0].n;
-    const passed=score>=40; // 40/50 = 80% certificate threshold
-    await client.query(`UPDATE learning_attempts SET status='completed',completed_at=NOW(),score=$2 WHERE id=$1`,[attemptId,score]);
-    let code=null;
-    if(passed){
-      code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
-      await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,certificate_code,score,max_score,percentage,certificate_type)
-        VALUES($1,$2,$3,$4,$5,50,$6,'subject') ON CONFLICT(certificate_code) DO NOTHING`,[req.user.id,a.rows[0].subject_id,attemptId,code,score,(score/50)*100]);
-    }
-    const coverage=await client.query(`SELECT COUNT(DISTINCT subject_id)::int completed, COALESCE(SUM(best_score),0)::int total_score FROM (
-      SELECT subject_id,MAX(score) best_score FROM learning_attempts WHERE user_id=$1 AND status='completed' AND score>=40 GROUP BY subject_id
-    ) t`,[req.user.id]);
-    if(coverage.rows[0].completed===20){
-      const total=coverage.rows[0].total_score;
-      const combinedCode='TOL-ALL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
-      const existing=await client.query(`SELECT id FROM learning_certificates WHERE user_id=$1 AND certificate_type='all_subjects'`,[req.user.id]);
-      if(!existing.rowCount) await client.query(`INSERT INTO learning_certificates(user_id,certificate_code,score,max_score,percentage,certificate_type)
-        VALUES($1,$2,$3,1000,$4,'all_subjects')`,[req.user.id,combinedCode,total,(total/10).toFixed(2)]);
-    }
-    await client.query('COMMIT');
-    return res.json({completed:true,passed,score,max_score:50,percentage:(score/50)*100,certificate_code:code,certificate_threshold:40});
-  }catch(e){await client.query('ROLLBACK');console.error(e);return res.status(500).json({error:'Could not finish attempt.'});}finally{client.release();}
+    const [subjects,chapters,latest,weak,totalAttempts]=await Promise.all([
+      pool.query(`SELECT s.id,s.name,COUNT(q.id)::int question_count,COALESCE(MAX(a.score),0)::int best_score,COALESCE(MAX(a.score*100.0/NULLIF(a.question_count,0)),0)::numeric best_percentage FROM learning_subjects s LEFT JOIN learning_questions q ON q.subject_id=s.id AND q.active=true LEFT JOIN learning_attempts a ON a.subject_id=s.id AND a.user_id=$1 AND a.status='completed' GROUP BY s.id,s.name,s.sort_order ORDER BY s.sort_order`,[req.user.id]),
+      pool.query(`SELECT s.name subject,q.chapter,COUNT(q.id)::int question_count,COALESCE(MAX(a.score),0)::int best_score,COALESCE(MAX(a.score)*100.0/NULLIF(MAX(a.question_count),0),0)::numeric best_percentage FROM learning_questions q JOIN learning_subjects s ON s.id=q.subject_id LEFT JOIN learning_attempts a ON a.subject_id=q.subject_id AND a.chapter=q.chapter AND a.user_id=$1 AND a.status='completed' GROUP BY s.name,q.chapter ORDER BY s.name,q.chapter`,[req.user.id]),
+      pool.query(`SELECT a.id,a.subject_id,s.name subject,a.chapter,a.question_count,a.score,a.status,a.started_at,a.completed_at FROM learning_attempts a JOIN learning_subjects s ON s.id=a.subject_id WHERE a.user_id=$1 ORDER BY a.started_at DESC LIMIT 10`,[req.user.id]),
+      pool.query(`SELECT s.name subject,a.chapter,MAX(a.score*100.0/NULLIF(a.question_count,0))::numeric best_percentage FROM learning_attempts a JOIN learning_subjects s ON s.id=a.subject_id WHERE a.user_id=$1 AND a.status='completed' AND a.chapter IS NOT NULL GROUP BY s.name,a.chapter HAVING MAX(a.score*100.0/NULLIF(a.question_count,0)) < 60 ORDER BY best_percentage ASC LIMIT 12`,[req.user.id]),
+      pool.query(`SELECT COUNT(*)::int n FROM learning_attempts WHERE user_id=$1`,[req.user.id])
+    ]);
+    const completed=chapters.rows.filter(x=>Number(x.best_percentage)>=80).length;
+    res.json({subjects:subjects.rows,chapters:chapters.rows,latest:latest.rows,weak:weak.rows,total_attempts:totalAttempts.rows[0]?.n||0,chapter_completed:completed,total_chapters:chapters.rowCount});
+  }catch(e){console.error(e);res.status(503).json({error:'Could not load progress.'});}
+});
+
+app.get('/api/learning/history',auth,requireActiveStudent,async(req,res)=>{
+  try{const r=await pool.query(`SELECT a.id,s.name subject,a.chapter,a.question_count,a.score,ROUND(a.score*100.0/NULLIF(a.question_count,0),2) percentage,a.status,a.started_at,a.completed_at FROM learning_attempts a JOIN learning_subjects s ON s.id=a.subject_id WHERE a.user_id=$1 ORDER BY a.started_at DESC LIMIT 100`,[req.user.id]);res.json({attempts:r.rows});}
+  catch(e){res.status(500).json({error:'Could not load attempt history.'});}
+});
+
+app.get('/api/learning/wrong',auth,requireActiveStudent,async(req,res)=>{
+  try{const r=await pool.query(`SELECT DISTINCT ON (q.id) q.id,s.name subject,q.chapter,q.question,q.options,q.correct_index,q.explanation,ai.selected_index,a.completed_at FROM learning_attempt_items ai JOIN learning_attempts a ON a.id=ai.attempt_id JOIN learning_questions q ON q.id=ai.question_id JOIN learning_subjects s ON s.id=q.subject_id WHERE a.user_id=$1 AND ai.is_correct=false AND a.status='completed' ORDER BY q.id,a.completed_at DESC LIMIT 100`,[req.user.id]);res.json({questions:r.rows});}
+  catch(e){res.status(500).json({error:'Could not load wrong-question revision.'});}
+});
+
+app.get('/api/learning/notes',async(req,res)=>{
+  const subject=String(req.query.subject||'').trim(), chapter=String(req.query.chapter||'').trim();
+  try{const args=[],where=[`LOWER(type) IN ('notes','ppt','pdf')`];if(subject){args.push(subject);where.push(`LOWER(subject)=LOWER($${args.length})`)}if(chapter){args.push(chapter);where.push(`LOWER(chapter)=LOWER($${args.length})`)}const r=await pool.query(`SELECT id,title,type,subject,chapter,description,created_at FROM resources WHERE ${where.join(' AND ')} ORDER BY type,title`,args);res.json({notes:r.rows});}
+  catch(e){res.status(500).json({error:'Could not load notes.'});}
+});
+
+app.post('/api/learning/attempts',auth,requireActiveStudent,async(req,res)=>{
+  const subjectId=Number(req.body.subject_id),chapter=String(req.body.chapter||'').trim()||null;
+  const requested=Number(req.body.question_count||50); const questionCount=[20,50].includes(requested)?requested:50;
+  if(!Number.isInteger(subjectId)||subjectId<1)return res.status(400).json({error:'Valid subject_id required.'});
+  try{
+    const sub=await pool.query(`SELECT id,name FROM learning_subjects WHERE id=$1 AND active=true`,[subjectId]);if(!sub.rowCount)return res.status(404).json({error:'Subject not found.'});
+    const args=[subjectId];let where='subject_id=$1 AND active=true';if(chapter){args.push(chapter);where+=' AND chapter=$2';}
+    const qs=await pool.query(`SELECT id FROM learning_questions WHERE ${where} ORDER BY random() LIMIT ${questionCount}`,args);
+    if(qs.rowCount<questionCount)return res.status(409).json({error:`Only ${qs.rowCount}/${questionCount} questions are available for this selection.`});
+    const duration=questionCount===50?1800:720;
+    const client=await pool.connect();try{await client.query('BEGIN');const a=await client.query(`INSERT INTO learning_attempts(user_id,subject_id,chapter,question_count,duration_seconds) VALUES($1,$2,$3,$4,$5) RETURNING id`,[req.user.id,subjectId,chapter,questionCount,duration]);for(let i=0;i<qs.rows.length;i++)await client.query(`INSERT INTO learning_attempt_items(attempt_id,question_id,position) VALUES($1,$2,$3)`,[a.rows[0].id,qs.rows[i].id,i+1]);await client.query('COMMIT');res.status(201).json({attempt_id:a.rows[0].id,question_number:1,total:questionCount,duration_seconds:duration});}finally{client.release();}
+  }catch(e){console.error(e);res.status(500).json({error:'Could not start quiz.'});}
+});
+
+app.get('/api/learning/attempts/:id/current',auth,requireActiveStudent,async(req,res)=>{
+  try{const a=await pool.query(`SELECT a.*,s.name subject FROM learning_attempts a JOIN learning_subjects s ON s.id=a.subject_id WHERE a.id=$1 AND a.user_id=$2`,[req.params.id,req.user.id]);if(!a.rowCount)return res.status(404).json({error:'Attempt not found.'});const at=a.rows[0];if(at.status!=='in_progress')return res.status(409).json({error:'Attempt is already completed.'});const elapsed=Math.floor((Date.now()-new Date(at.started_at).getTime())/1000);if(elapsed>=at.duration_seconds)return finishAttempt(req,res,req.params.id,true);const it=await pool.query(`SELECT ai.id item_id,ai.position,q.id question_id,q.question,q.options FROM learning_attempt_items ai JOIN learning_questions q ON q.id=ai.question_id WHERE ai.attempt_id=$1 AND ai.answered_at IS NULL ORDER BY ai.position LIMIT 1`,[req.params.id]);if(!it.rowCount)return finishAttempt(req,res,req.params.id,false);res.json({attempt_id:at.id,subject:at.subject,chapter:at.chapter,question_number:it.rows[0].position,total:at.question_count,question_id:it.rows[0].question_id,question:it.rows[0].question,options:it.rows[0].options,remaining_seconds:Math.max(0,at.duration_seconds-elapsed),duration_seconds:at.duration_seconds});}
+  catch(e){console.error(e);res.status(500).json({error:'Could not load question.'});}
+});
+
+async function finishAttempt(req,res,attemptId,timeout=false){
+  const client=await pool.connect();try{await client.query('BEGIN');const a=await client.query(`SELECT * FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[attemptId,req.user.id]);if(!a.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Attempt not found.'});}const correct=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND is_correct=true`,[attemptId]);const score=correct.rows[0].n, max=a.rows[0].question_count, passed=max===50&&score>=40;await client.query(`UPDATE learning_attempts SET status='completed',completed_at=NOW(),score=$2 WHERE id=$1`,[attemptId,score]);let code=null;if(passed){code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase();const type=a.rows[0].chapter?'chapter':'subject';await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,chapter,certificate_code,score,max_score,percentage,certificate_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[req.user.id,a.rows[0].subject_id,attemptId,a.rows[0].chapter,code,score,max,(score/max)*100,type]);}await client.query('COMMIT');return res.json({completed:true,timeout,passed,score,max_score:max,percentage:Number(((score/max)*100).toFixed(2)),certificate_code:code,certificate_threshold:max===50?40:null});}
+  catch(e){await client.query('ROLLBACK');console.error(e);return res.status(500).json({error:'Could not finish attempt.'});}finally{client.release();}
 }
 
-app.post('/api/learning/attempts/:id/answer', auth, requireActiveStudent, async (req,res)=>{
-  const selected=req.body.selected_index===null?null:Number(req.body.selected_index);
-  if(selected!==null&&(!Number.isInteger(selected)||selected<0||selected>3))return res.status(400).json({error:'selected_index must be 0-3 or null for timeout.'});
-  const client=await pool.connect();
-  try{
-    await client.query('BEGIN');
-    const a=await client.query(`SELECT id,status FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[req.params.id,req.user.id]);
-    if(!a.rowCount||a.rows[0].status!=='in_progress'){await client.query('ROLLBACK');return res.status(404).json({error:'Active attempt not found.'});}
-    const it=await client.query(`SELECT ai.id,ai.presented_at,q.correct_index,q.explanation FROM learning_attempt_items ai JOIN learning_questions q ON q.id=ai.question_id WHERE ai.attempt_id=$1 AND ai.answered_at IS NULL ORDER BY ai.position LIMIT 1 FOR UPDATE OF ai`,[req.params.id]);
-    if(!it.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'No unanswered question.'});}
-    const item=it.rows[0];
-    if(!item.presented_at){await client.query('ROLLBACK');return res.status(409).json({error:'Question has not been presented yet.'});}
-    const elapsed=(Date.now()-new Date(item.presented_at).getTime())/1000;
-    if(elapsed>50.5)selected=null;
-    const correct=selected!==null&&selected===item.correct_index;
-    await client.query(`UPDATE learning_attempt_items SET selected_index=$2,answered_at=NOW(),is_correct=$3 WHERE id=$1`,[item.id,selected,correct]);
-    await client.query('COMMIT');
-    res.json({accepted:true,timed_out:elapsed>50.5,correct,explanation:item.explanation});
-  }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Could not submit answer.'});}finally{client.release();}
+app.post('/api/learning/attempts/:id/answer',auth,requireActiveStudent,async(req,res)=>{
+  const selected=req.body.selected_index===null?null:Number(req.body.selected_index);if(selected!==null&&(!Number.isInteger(selected)||selected<0||selected>3))return res.status(400).json({error:'selected_index must be 0-3 or null.'});
+  const client=await pool.connect();try{await client.query('BEGIN');const a=await client.query(`SELECT * FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[req.params.id,req.user.id]);if(!a.rowCount||a.rows[0].status!=='in_progress'){await client.query('ROLLBACK');return res.status(404).json({error:'Active attempt not found.'});}const elapsed=(Date.now()-new Date(a.rows[0].started_at).getTime())/1000;if(elapsed>a.rows[0].duration_seconds){await client.query('ROLLBACK');return finishAttempt(req,res,req.params.id,true);}const it=await client.query(`SELECT ai.id,q.correct_index,q.explanation,q.options FROM learning_attempt_items ai JOIN learning_questions q ON q.id=ai.question_id WHERE ai.attempt_id=$1 AND ai.answered_at IS NULL ORDER BY ai.position LIMIT 1 FOR UPDATE OF ai`,[req.params.id]);if(!it.rowCount){await client.query('ROLLBACK');return finishAttempt(req,res,req.params.id,false);}const x=it.rows[0],correct=selected!==null&&selected===x.correct_index;await client.query(`UPDATE learning_attempt_items SET selected_index=$2,answered_at=NOW(),is_correct=$3 WHERE id=$1`,[x.id,selected,correct]);const remaining=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND answered_at IS NULL`,[req.params.id]);await client.query('COMMIT');if(remaining.rows[0].n===0)return finishAttempt(req,res,req.params.id,false);res.json({correct,correct_index:x.correct_index,correct_answer:x.options[x.correct_index],explanation:x.explanation||'',remaining:remaining.rows[0].n});}catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Could not save answer.'});}finally{client.release();}
 });
 
-app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{
- try{const result=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject FROM learning_certificates c LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.user_id=$1 ORDER BY c.issued_at DESC`,[req.user.id]);res.json({certificates:result.rows});}
- catch(e){res.status(503).json({error:'Learning database migration has not been applied.'});}
-});
+app.post('/api/learning/attempts/:id/finish',auth,requireActiveStudent,async(req,res)=>finishAttempt(req,res,req.params.id,false));
+
+app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.user_id=$1 ORDER BY c.issued_at DESC`,[req.user.id]);res.json({certificates:r.rows});}catch(e){res.status(503).json({error:'Could not load certificates.'});}});
+
 function pdfEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[^\x20-\x7E]/g,'');}
 function buildCertificatePdf(cert, student){
-  const name=pdfEscape(student||'Student'), subject=pdfEscape(cert.subject||'Medical Learning'), score=pdfEscape(`${cert.score}/${cert.max_score} (${cert.percentage}%)`), code=pdfEscape(cert.certificate_code), date=pdfEscape(new Date(cert.issued_at).toLocaleDateString('en-IN'));
+  const name=pdfEscape(student||'Student'), subject=pdfEscape(cert.subject||'Medical Learning'), chapter=pdfEscape(cert.chapter||''), score=pdfEscape(`${cert.score}/${cert.max_score} (${cert.percentage}%)`), code=pdfEscape(cert.certificate_code), date=pdfEscape(new Date(cert.issued_at).toLocaleDateString('en-IN'));
   const objects=[];
   objects.push('<< /Type /Catalog /Pages 2 0 R >>');
   objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
@@ -1800,7 +1818,8 @@ function buildCertificatePdf(cert, student){
     `BT /F1 30 Tf 1 1 1 rg  ${Math.max(120, 421-(name.length*5))} 340 Td (${name}) Tj ET`,
     'BT /F1 15 Tf 0.75 0.84 0.92 rg 325 300 Td (for completing the educational learning assessment) Tj ET',
     `BT /F1 20 Tf 0.40 0.85 1 rg ${Math.max(150, 421-(subject.length*5))} 255 Td (${subject}) Tj ET`,
-    `BT /F1 15 Tf 1 1 1 rg 300 210 Td (Score: ${score}) Tj ET`,
+    chapter ? `BT /F1 12 Tf 0.75 0.84 0.92 rg ${Math.max(180, 421-(chapter.length*4))} 230 Td (Chapter: ${chapter}) Tj ET` : '',
+    `BT /F1 15 Tf 1 1 1 rg 300 195 Td (Score: ${score}) Tj ET`,
     `BT /F1 12 Tf 0.70 0.80 0.90 rg 80 90 Td (Certificate Code: ${code}) Tj ET`,
     `BT /F1 12 Tf 0.70 0.80 0.90 rg 650 90 Td (Issued: ${date}) Tj ET`,
     'BT /F1 9 Tf 0.55 0.65 0.75 rg 250 55 Td (Educational certificate - not a professional license or accredited qualification.) Tj ET'
@@ -1817,7 +1836,7 @@ function buildCertificatePdf(cert, student){
 
 app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,async(req,res)=>{
   try{
-    const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject,u.instagram_username student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);
+    const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);
     if(!r.rowCount) return res.status(404).json({error:'Certificate not found.'});
     const pdf=buildCertificatePdf(r.rows[0],r.rows[0].student);
     res.setHeader('Content-Type','application/pdf');
@@ -1827,14 +1846,29 @@ app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,as
 });
 
 app.get('/api/learning/certificates/verify/:code',async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject,u.instagram_username student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
+ try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
  catch(e){res.status(503).json({error:'Certificate verification unavailable.'});}
 });
 
+app.get('/api/admin/mcq-stats',adminAuth,async(req,res)=>{
+ try{
+  const [total,bySubject]=await Promise.all([
+   pool.query(`SELECT COUNT(*)::int n FROM learning_questions WHERE active=true`),
+   pool.query(`SELECT s.name subject,COUNT(q.id)::int questions,COUNT(DISTINCT q.chapter)::int chapters,(SELECT COUNT(*)::int FROM (SELECT chapter FROM learning_questions q2 WHERE q2.subject_id=s.id AND q2.active=true GROUP BY chapter HAVING COUNT(*)>=50) z) complete_chapters FROM learning_subjects s LEFT JOIN learning_questions q ON q.subject_id=s.id AND q.active=true WHERE s.active=true GROUP BY s.id,s.name,s.sort_order ORDER BY s.sort_order`)
+  ]);
+  const ch=await pool.query(`SELECT COUNT(*)::int n FROM (SELECT subject_id,chapter FROM learning_questions WHERE active=true GROUP BY subject_id,chapter HAVING COUNT(*)>=50) x`);
+  res.json({total_questions:total.rows[0].n,subjects:bySubject.rowCount,chapters:ch.rows[0].n,by_subject:bySubject.rows});
+ }catch(e){console.error(e);res.status(500).json({error:'Could not load MCQ statistics.'});}
+});
+app.get('/api/admin/mcq-duplicates',adminAuth,async(req,res)=>{
+ try{const r=await pool.query(`SELECT LOWER(TRIM(question)) question,COUNT(*)::int count,STRING_AGG(DISTINCT s.name||' → '||q.chapter,', ' ORDER BY s.name||' → '||q.chapter) locations FROM learning_questions q JOIN learning_subjects s ON s.id=q.subject_id WHERE q.active=true GROUP BY LOWER(TRIM(question)) HAVING COUNT(*)>1 ORDER BY COUNT(*) DESC,question LIMIT 200`);res.json({duplicates:r.rows});}
+ catch(e){res.status(500).json({error:'Could not check duplicate questions.'});}
+});
+
 app.post('/api/admin/users',adminAuth,async(req,res)=>{
- const username=String(req.body.username||'').trim();const password=String(req.body.password||'');const email=String(req.body.email||'').trim();
+ const username=String(req.body.username||'').trim();const password=String(req.body.password||'');const email=String(req.body.email||'').trim();const displayName=String(req.body.display_name||'').trim();
  if(!username||password.length<8)return res.status(400).json({error:'Username and password (at least 8 characters) required.'});
- try{const hash=await bcrypt.hash(password,12);const r=await pool.query(`INSERT INTO users(instagram_username,email,password) VALUES($1,$2,$3) RETURNING id,instagram_username,email,created_at`,[username,email||null,hash]);await pool.query(`INSERT INTO learning_user_status(user_id,is_active) VALUES($1,true) ON CONFLICT(user_id) DO UPDATE SET is_active=true,deactivated_at=NULL,updated_at=NOW()`,[r.rows[0].id]);res.status(201).json({user:r.rows[0]});}
+ try{const hash=await bcrypt.hash(password,12);const r=await pool.query(`INSERT INTO users(instagram_username,email,password,display_name) VALUES($1,$2,$3,$4) RETURNING id,instagram_username,email,display_name,created_at`,[username,email||null,hash,displayName||null]);await pool.query(`INSERT INTO learning_user_status(user_id,is_active) VALUES($1,true) ON CONFLICT(user_id) DO UPDATE SET is_active=true,deactivated_at=NULL,updated_at=NOW()`,[r.rows[0].id]);res.status(201).json({user:r.rows[0]});}
  catch(e){if(e.code==='23505')return res.status(409).json({error:'Username already exists.'});res.status(500).json({error:'Could not create student.'});}
 });
 app.patch('/api/admin/users/:id/status',adminAuth,async(req,res)=>{

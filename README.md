@@ -1,67 +1,28 @@
-# truth.oflifes — Secure Backend
+# truth.oflifes — Final Medical Learning Build
 
-This version replaces browser-only demo storage with PostgreSQL + JWT admin authentication.
+## Included
+- Professional dark medical homepage matching the approved preview direction.
+- 22 subjects / 472 chapters.
+- 50 unique MCQs per chapter from `mcq-bank.json` (23,600 questions total).
+- Random 20-question and full 50-question tests.
+- 12-minute timer for 20-question tests and 30-minute timer for 50-question tests.
+- Instant correct/incorrect answer feedback and explanations.
+- Attempt history and wrong-question revision.
+- Student progress dashboard: subject progress, chapter completion, scores, continue learning and weak chapters.
+- 50-question certificate eligibility at 40/50 (80%); certificate includes student name, subject, chapter and score when applicable.
+- Certificate history and PDF download.
+- Notes/PPT open without login; download requires login.
+- Chapter layout: Notes & PPT → Videos → Extra Topics → MCQ.
+- Homepage has no standalone Study Videos section; videos are linked to chapters and the Video Library.
+- Other → Extra Topics displays the 10 starter video topics.
+- Global search for resources and chapter/MCQ learning areas.
+- Admin MCQ audit: subject/chapter counts and exact duplicate checker.
+- Admin resource, user, video/topic and request management.
+- Automatic learning database migration and MCQ seeding on server startup.
 
-## Setup
-1. Create a PostgreSQL/Supabase database.
-2. Run `schema.sql` in the SQL editor.
-3. Copy `.env.example` to `.env` and fill in the database URL and secrets.
-4. Run `npm install`.
-5. Run `npm run seed-admin`.
-6. Run `npm start`.
+## Deploy
+Use the normal Render Node service. The package start command is:
 
-## API
-- `POST /api/admin/login`
-- `GET /api/resources`
-- `POST /api/resources` (admin)
-- `DELETE /api/resources/:id` (admin)
-- `POST /api/requests`
-- `POST /api/collaborations`
-- `GET /api/requests` (admin)
-- `GET /api/collaborations` (admin)
+`node server.js`
 
-Telegram: https://t.me/+q3-9PiVKzbYyYWVl
-
-Never commit `.env`. Use a strong admin password and JWT secret.
-
-
-## Student learning module (additive update)
-
-- New student portal: `/learning` (uses the existing student login token).
-- New migration: `learning-migration.sql`. Back up the database first, then run this SQL against the existing PostgreSQL database. It creates new learning tables and seeds the 20-subject catalog; it does not drop or overwrite the existing users, resources, requests, or collaborations tables.
-- The quiz API only unlocks a subject when 100 active question records have been curated and inserted for that subject. It does not fabricate medical MCQs or claim placeholder content is medically reviewed. Each presented question is timed server-side for 50 seconds; answer keys are not sent to the browser.
-- The portal includes authenticated subject/notes/certificate views. Existing resource downloads continue to use the existing authenticated download endpoint.
-- Admin endpoints added: `POST /api/admin/users` (create student) and `PATCH /api/admin/users/:id/status` (soft deactivate/reactivate; no hard deletion). Existing users and their learning records are retained.
-- Certificate verification: `/api/learning/certificates/verify/:code`. Certificates are educational quiz-completion records, not professional licenses or accredited qualifications.
-
-### Before production
-
-1. Back up PostgreSQL and uploaded files.
-2. Apply `learning-migration.sql` to the existing database.
-3. Set a strong `JWT_SECRET` and `DATABASE_URL` in the hosting environment; do not use the fallback development secret in production.
-4. Add and medically review 100 original questions per subject before unlocking each quiz.
-5. Run smoke tests with a test account before announcing launch. No production database or live deployment is modified by generating this project archive.
-
-
-## Import foundational MCQs
-1. Back up PostgreSQL and apply `learning-migration.sql` first.
-2. Set `DATABASE_URL` to your intended database.
-3. Run `npm run seed-mcqs`. The import is idempotent and skips matching questions already present.
-4. Included `mcq-bank.json` contains 2,000 practice questions are included in the bank; deployment seeding now imports a maximum of 50 questions per learning subject (1,000 seeded questions total across 20 learning subjects). Have qualified educators review content before formal use.
-
-
-VISUAL DESIGN UPDATE (Sep 2026)
-- Applied a consistent pastel-blue/navy responsive visual layer across landing, learning, student, quiz, admin, password-reset, and reels pages.
-- Added mascot-reference.png, a crop from the user-provided design reference, as the landing hero visual.
-- Existing server routes and database files were not intentionally removed by this visual-only pass.
-
-
-## Import the 2,000-question practice bank and certificates
-
-1. Back up your PostgreSQL database before making schema changes.
-2. Run `psql "$DATABASE_URL" -f learning-migration.sql` (or run the SQL through your database console). This migration is additive; inspect it before applying to production.
-3. Set `DATABASE_URL` and `NODE_ENV=production` in your deployment environment, the deployment start command automatically runs the idempotent MCQ seeder before starting the server. The seed is idempotent and skips matching questions already present.
-4. Deploy the updated project and sign in. Each subject quiz requires 100 available questions; each question is timed for 50 seconds by server timestamp.
-5. Certificates are issued by the authenticated quiz-completion endpoint. Verify a certificate using `/api/learning/certificates/verify/:code`. Student certificate listing is scoped to the signed-in student.
-
-**Content quality note:** This bank contains 2,000 practice items (100 per subject) generated by alternate framing and option-order variants of 100 foundational source questions. These are not 2,000 independently authored or educator-reviewed questions. Have qualified educators review and replace repetitive variants before using the bank for formal assessment. The certificates indicate educational quiz completion only and are not professional licenses or accredited qualifications.
+No separate manual MCQ seed command is required; the server verifies the chapter bank and seeds missing questions on startup.
