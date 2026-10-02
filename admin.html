@@ -353,8 +353,8 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
   </section>
 
   <section class="panel" id="videoPreviewPanel">
-    <h3>🎬 Video Upload Preview — Homepage</h3>
-    <p class="muted">Video upload karte waqt yahan exactly wahi Subject + Topic/Chapter + Title preview hoga jo students ko main screen par dikhega.</p>
+    <h3>🎬 Video Upload Preview — Video Library</h3>
+    <p class="muted">Video upload karte waqt yahan Subject → Chapter → Video Name preview hoga. Video homepage par nahi aayega; ye Video Library mein subject/chapter ke andar dikhega.</p>
     <div class="previewGrid">
       <div class="previewCard">
         <div class="previewLabel">Homepage video card</div>
@@ -363,19 +363,19 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
           <div class="videoPreviewBody">
             <div class="videoPreviewTitle" id="adminVideoPreviewTitle">Your video title</div>
             <div class="videoPreviewMeta" id="adminVideoPreviewMeta">Subject → Video Name • Topic / Chapter</div>
-            <p class="previewHint">Upload ke baad ye title, subject aur chapter homepage ke “Video Learning — Subject Wise” section mein automatically use honge.</p>
+            <p class="previewHint">Upload ke baad video automatically Video Library mein selected Subject → Chapter ke andar dikhega.</p>
           </div>
         </div>
       </div>
       <div class="previewCard">
         <div class="previewLabel">Selected upload details</div>
         <div style="margin-top:12px;display:grid;gap:10px">
-          <div><b>Title:</b> <span id="videoPreviewTitleText">—</span></div>
+          <div><b>Video Name:</b> <span id="videoPreviewTitleText">—</span></div>
           <div><b>Subject:</b> <span id="videoPreviewSubjectText">—</span></div>
           <div><b>Video Name / Topic:</b> <span id="videoPreviewTopicText">—</span></div><div><b>Chapter:</b> <span id="videoPreviewChapterText">—</span></div>
           <div><b>File:</b> <span id="videoPreviewFileText">No video selected</span></div>
         </div>
-        <div class="previewHint">Tip: Subject select karo, phir usi subject ka chapter/topic select karo. Isse video automatically correct subject group mein jayega.</div>
+        <div class="previewHint">Tip: pehle Subject select karo, phir usi subject ka Chapter select karo. Example: Anatomy → General Anatomy → Video Name.</div>
       </div>
     </div>
   </section>
@@ -511,6 +511,27 @@ function logout(){
 }
 
 
+const VIDEO_TOPIC_MAP={
+  'Hand hygiene: five moments':['Nursing','Infection Control'],
+  'Understanding vital signs':['Nursing','Health Assessment'],
+  'How the heart pumps blood':['Physiology','Cardiovascular System'],
+  'Respiratory system basics':['Physiology','Respiratory System'],
+  'IV cannula: sizes and purpose':['Nursing','Nursing Procedures'],
+  'Recognizing dehydration':['Pediatrics','Nutrition'],
+  'Safe medicine habits':['Pharmacology','General Pharmacology'],
+  'First-aid basics: when to seek help':['Other','First Aid'],
+  'Kidney function explained':['Anatomy','Urinary System'],
+  'Common medical instruments':['Nursing','Medical Instruments']
+};
+let topicAutoFillTimer=null;
+async function autoFillVideoTopic(){
+  const typeEl=document.getElementById('type'), titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject');
+  if((typeEl?.value||'').toLowerCase()!=='video') return;
+  const key=(titleEl?.value||'').trim(); const pair=VIDEO_TOPIC_MAP[key]; if(!pair) return;
+  if(subjectEl) subjectEl.value=pair[0];
+  if(typeof loadChapterOptions==='function') await loadChapterOptions(pair[1]);
+  updateVideoUploadPreview();
+}
 function updateVideoUploadPreview(){
   const titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject'), chapterEl=document.getElementById('chapter'), fileEl=document.getElementById('pdf_file');
   const title=(titleEl?.value||'Your video title').trim()||'Your video title';
@@ -538,6 +559,8 @@ function updateCertificatePreview(){
 }
 function bindAdminPreviews(){
   ['title','subject','chapter','pdf_file'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateVideoUploadPreview);});
+  document.getElementById('title')?.addEventListener('change',()=>{clearTimeout(topicAutoFillTimer);topicAutoFillTimer=setTimeout(autoFillVideoTopic,0);});
+  document.getElementById('type')?.addEventListener('change',()=>{clearTimeout(topicAutoFillTimer);topicAutoFillTimer=setTimeout(autoFillVideoTopic,0);});
   document.getElementById('updateCertPreview')?.addEventListener('click',updateCertificatePreview);
   ['certPreviewNameInput','certPreviewSubjectInput','certPreviewScoreInput'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateCertificatePreview));
   updateVideoUploadPreview(); updateCertificatePreview();
@@ -702,11 +725,16 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
       if(!allowed.includes(file.type) && !allowedExt.includes(ext)) throw new Error("Unsupported file type.");
     }
 
+    const selectedType=type.value.trim();
+    const selectedSubject=subject.value.trim();
+    const selectedChapter=chapter.value.trim();
+    if(!selectedType) throw new Error('Please select a resource type.');
+    if(selectedType==='Video' && (!selectedSubject || !selectedChapter)) throw new Error('For Video upload, select Subject and Chapter. Example: Anatomy → General Anatomy.');
     const body={
       title:title.value.trim(),
-      type:type.value,
-      subject:subject.value,
-      chapter:chapter.value.trim(),
+      type:selectedType,
+      subject:selectedSubject,
+      chapter:selectedChapter,
       description:description.value.trim()
     };
 
