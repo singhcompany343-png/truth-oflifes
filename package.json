@@ -1,0 +1,10 @@
+{
+  "name": "truth-oflifes-secure",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node -r ./direct-pdf.js server.js",
+    "seed-admin": "node seed-admin.js",
+    "seed-mcqs": "node seed-mcqs.js"
+  }
+}
