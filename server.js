@@ -685,6 +685,36 @@ app.post("/api/admin/users/:id/reset-password", adminAuth, async (req, res) => {
   }
 });
 
+app.delete("/api/admin/users/:id", adminAuth, async (req, res) => {
+  const adminPassword = String(req.body.adminPassword || "");
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: "Invalid user id" });
+  if (!adminPassword) return res.status(400).json({ error: "Admin password is required" });
+  const client = await pool.connect();
+  try {
+    const admin = await client.query(`SELECT password_hash FROM admins WHERE id=$1 LIMIT 1`, [req.user.id]);
+    if (!admin.rowCount) return res.status(404).json({ error: "Admin account not found" });
+    const valid = await bcrypt.compare(adminPassword, admin.rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: "Incorrect admin password" });
+    await client.query('BEGIN');
+    // Remove dependent learning records first because learning tables intentionally use RESTRICT.
+    await client.query(`DELETE FROM learning_attempt_items WHERE attempt_id IN (SELECT id FROM learning_attempts WHERE user_id=$1)`, [userId]);
+    await client.query(`DELETE FROM learning_certificates WHERE user_id=$1`, [userId]);
+    await client.query(`DELETE FROM learning_attempts WHERE user_id=$1`, [userId]);
+    await client.query(`DELETE FROM learning_user_status WHERE user_id=$1`, [userId]);
+    await client.query(`DELETE FROM resource_downloads WHERE user_id=$1`, [userId]);
+    await client.query(`DELETE FROM password_reset_requests WHERE LOWER(username) = LOWER((SELECT instagram_username FROM users WHERE id=$1))`, [userId]);
+    const result = await client.query(`DELETE FROM users WHERE id=$1 RETURNING id, instagram_username`, [userId]);
+    if (!result.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: "User not found" }); }
+    await client.query('COMMIT');
+    res.json({ success:true, deleted:result.rows[0] });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error("Admin user deletion failed", error);
+    res.status(500).json({ error: "Could not delete user" });
+  } finally { client.release(); }
+});
+
 // Lightweight notification count for the admin header.
 app.get("/api/admin/notifications", adminAuth, async (req, res) => {
   try {
@@ -869,7 +899,7 @@ const CHAPTER_MAP = {
     "Psychiatry": ["Introduction to Psychiatry","Mental Status Examination","Anxiety Disorders","Depression","Bipolar Disorder","Schizophrenia","Psychosis","OCD","PTSD","Personality Disorders","Substance Abuse","Alcohol Dependence","Drug Dependence","Child Psychiatry","Eating Disorders","Sleep Disorders","Suicide & Self-Harm","Psychopharmacology"],
     "Dermatology": ["Basic Dermatology","Skin Anatomy","Skin Examination","Bacterial Infections","Viral Infections","Fungal Infections","Scabies","Eczema","Psoriasis","Acne","Urticaria","Drug Reactions","Autoimmune Skin Diseases","Pigmentary Disorders","Hair Disorders","Nail Disorders","Sexually Transmitted Infections","Leprosy","Skin Tumors"],
     "Dentistry": ["Dental Anatomy","Oral Cavity","Dental Caries","Gingivitis","Periodontitis","Oral Infections","Oral Ulcers","Oral Cancers","Dental Trauma","Tooth Extraction","Endodontics","Prosthodontics","Orthodontics","Pediatric Dentistry","Oral & Maxillofacial Surgery","Dental Materials","Oral Hygiene"],
-    "Nursing": ["Fundamentals of Nursing","Nursing Procedures","Health Assessment","Anatomy & Physiology","Nutrition","Pharmacology for Nurses","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Obstetric Nursing","Midwifery","Critical Care Nursing","Emergency Nursing","Infection Control","First Aid","Nursing Ethics","Nursing Research"],
+    "Nursing": ["Fundamentals of Nursing","Nursing Procedures","Health Assessment","Anatomy & Physiology","Nutrition","Pharmacology for Nurses","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Obstetric Nursing","Midwifery","Critical Care Nursing","Emergency Nursing","Infection Control","First Aid","Medical Instruments","Nursing Ethics","Nursing Research"],
     "Other": ["First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Differential Diagnosis","Medical Calculations","Important Drug Charts","Investigation & Lab Values","Medical Mnemonics","Case Studies","Viva Questions","Practical Notes","OSCE/OSPE","Previous Year Questions","NEET-PG/INI-CET Revision","Image-Based Questions"]
   };
 

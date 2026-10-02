@@ -162,16 +162,16 @@ textarea{min-height:80px;resize:vertical}
 }
 
 
+
+.videoTopicBox{padding:12px;border:1px solid #1597ff;border-radius:10px;background:rgba(4,21,34,.72);margin:10px 0}.videoTopicBox select{width:100%;padding:10px}
+
 .pdfUploadBox{padding:12px;border:1px solid #174966;border-radius:10px;background:rgba(4,21,34,.72);margin:10px 0}
 .pdfUploadBox input[type=file]{width:100%;padding:9px;background:#041522;color:#eaf7ff;border:1px dashed #1597ff;border-radius:8px}
 
-/* Final admin previews */
+/* Certificate preview */
 .previewGrid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:14px}
 .previewCard{background:#071d31;border:1px solid #245574;border-radius:18px;padding:18px;color:#eef8ff}
 .previewLabel{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#73d7ff;font-weight:800}
-.videoPreview{border:1px solid #245574;border-radius:15px;overflow:hidden;background:#041321}
-.videoPreview video{display:block;width:100%;max-height:300px;background:#000}
-.videoPreviewBody{padding:14px}.videoPreviewTitle{font-size:18px;font-weight:900;margin:5px 0}.videoPreviewMeta{color:#9bb5c9;font-size:12px}
 .certPreview{min-height:390px;background:linear-gradient(135deg,#071b2d,#0a2944);border:2px solid #58caff;border-radius:18px;padding:26px;text-align:center;position:relative;overflow:hidden}
 .certPreview:before{content:'';position:absolute;inset:12px;border:1px solid rgba(88,202,255,.45);border-radius:12px;pointer-events:none}
 .certSeal{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin:2px auto 10px;background:#0799ea;color:#fff;font-size:30px;box-shadow:0 0 24px rgba(24,168,255,.35)}
@@ -338,6 +338,24 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
         <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
       </select>
       <select id="chapter"><option value="">Select Chapter</option></select>
+      <div id="videoTopicBox" class="videoTopicBox" style="display:none">
+        <label style="display:block;margin-bottom:6px;font-weight:800">🎬 Video Topic (10 starter topics)</label>
+        <select id="videoTopicSelect">
+          <option value="">Select Video Topic</option>
+          <option value="Hand hygiene: five moments">Nursing → Infection Control → Hand hygiene: five moments</option>
+          <option value="Understanding vital signs">Nursing → Health Assessment → Understanding vital signs</option>
+          <option value="How the heart pumps blood">Physiology → Cardiovascular System → How the heart pumps blood</option>
+          <option value="Respiratory system basics">Physiology → Respiratory System → Respiratory system basics</option>
+          <option value="IV cannula: sizes and purpose">Nursing → Nursing Procedures → IV cannula: sizes and purpose</option>
+          <option value="Recognizing dehydration">Pediatrics → Nutrition → Recognizing dehydration</option>
+          <option value="Safe medicine habits">Pharmacology → General Pharmacology → Safe medicine habits</option>
+          <option value="First-aid basics: when to seek help">Other → First Aid → First-aid basics: when to seek help</option>
+          <option value="Kidney function explained">Anatomy → Urinary System → Kidney function explained</option>
+          <option value="Common medical instruments">Nursing → Medical Instruments → Common medical instruments</option>
+          <option value="__custom__">Custom video topic</option>
+        </select>
+        <div class="muted" style="font-size:11px;margin-top:5px">Topic select karne par Subject + Chapter automatically fill honge. Chapter dropdown mein us subject ke saare chapters visible rahenge.</div>
+      </div>
       <div class="pdfUploadBox">
       <label style="display:block;margin-bottom:6px;font-weight:700">📎 Resource File</label>
       <input id="pdf_file" type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg,.jpeg,.webp,.mp4,.webm">
@@ -350,34 +368,6 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
       </div>
       <div id="resourceMsg" class="empty"></div><div class="muted" style="font-size:11px;margin-top:6px">Existing URL resources remain supported during migration.</div>
     </form>
-  </section>
-
-  <section class="panel" id="videoPreviewPanel">
-    <h3>🎬 Video Upload Preview — Video Library</h3>
-    <p class="muted">Video upload karte waqt yahan Subject → Chapter → Video Name preview hoga. Video homepage par nahi aayega; ye Video Library mein subject/chapter ke andar dikhega.</p>
-    <div class="previewGrid">
-      <div class="previewCard">
-        <div class="previewLabel">Homepage video card</div>
-        <div class="videoPreview" style="margin-top:10px">
-          <video id="adminVideoPreview" controls playsinline preload="metadata"></video>
-          <div class="videoPreviewBody">
-            <div class="videoPreviewTitle" id="adminVideoPreviewTitle">Your video title</div>
-            <div class="videoPreviewMeta" id="adminVideoPreviewMeta">Subject → Video Name • Topic / Chapter</div>
-            <p class="previewHint">Upload ke baad video automatically Video Library mein selected Subject → Chapter ke andar dikhega.</p>
-          </div>
-        </div>
-      </div>
-      <div class="previewCard">
-        <div class="previewLabel">Selected upload details</div>
-        <div style="margin-top:12px;display:grid;gap:10px">
-          <div><b>Video Name:</b> <span id="videoPreviewTitleText">—</span></div>
-          <div><b>Subject:</b> <span id="videoPreviewSubjectText">—</span></div>
-          <div><b>Video Name / Topic:</b> <span id="videoPreviewTopicText">—</span></div><div><b>Chapter:</b> <span id="videoPreviewChapterText">—</span></div>
-          <div><b>File:</b> <span id="videoPreviewFileText">No video selected</span></div>
-        </div>
-        <div class="previewHint">Tip: pehle Subject select karo, phir usi subject ka Chapter select karo. Example: Anatomy → General Anatomy → Video Name.</div>
-      </div>
-    </div>
   </section>
 
   <section class="panel" id="certificatePreviewPanel">
@@ -524,30 +514,33 @@ const VIDEO_TOPIC_MAP={
   'Common medical instruments':['Nursing','Medical Instruments']
 };
 let topicAutoFillTimer=null;
-async function autoFillVideoTopic(){
-  const typeEl=document.getElementById('type'), titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject');
-  if((typeEl?.value||'').toLowerCase()!=='video') return;
-  const key=(titleEl?.value||'').trim(); const pair=VIDEO_TOPIC_MAP[key]; if(!pair) return;
+async function applyVideoTopic(topic){
+  const pair=VIDEO_TOPIC_MAP[topic];
+  const typeEl=document.getElementById('type');
+  if(typeEl && typeEl.value!=='Video') return;
+  if(!pair){ return; }
+  const titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject');
   if(subjectEl) subjectEl.value=pair[0];
   if(typeof loadChapterOptions==='function') await loadChapterOptions(pair[1]);
-  updateVideoUploadPreview();
+  if(titleEl) titleEl.value=topic;
 }
-function updateVideoUploadPreview(){
-  const titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject'), chapterEl=document.getElementById('chapter'), fileEl=document.getElementById('pdf_file');
-  const title=(titleEl?.value||'Your video title').trim()||'Your video title';
-  const subject=(subjectEl?.value||'').trim()||'Select Subject';
-  const chapter=(chapterEl?.value||'').trim()||'Select Topic / Chapter';
-  const file=fileEl?.files?.[0];
-  document.getElementById('adminVideoPreviewTitle').textContent=title;
-  document.getElementById('adminVideoPreviewMeta').textContent=subject+' → '+title+(chapter?' • '+chapter:'');
-  document.getElementById('videoPreviewTitleText').textContent=title;
-  document.getElementById('videoPreviewSubjectText').textContent=subject;
-  const topicText=document.getElementById('videoPreviewTopicText');if(topicText)topicText.textContent=title;
-  document.getElementById('videoPreviewChapterText').textContent=chapter;
-  document.getElementById('videoPreviewFileText').textContent=file?file.name:'No video selected';
-  const v=document.getElementById('adminVideoPreview');
-  if(file && /^video\//.test(file.type||'')){if(v.dataset.url)URL.revokeObjectURL(v.dataset.url);v.dataset.url=URL.createObjectURL(file);v.src=v.dataset.url;v.style.display='block';}
-  else {v.removeAttribute('src');v.load();v.style.display='none';}
+function syncVideoTopicUI(){
+  const isVideo=(document.getElementById('type')?.value||'').toLowerCase()==='video';
+  const box=document.getElementById('videoTopicBox');
+  if(box) box.style.display=isVideo?'block':'none';
+  if(!isVideo){ const sel=document.getElementById('videoTopicSelect'); if(sel) sel.value=''; }
+  const title=document.getElementById('title');
+  if(title) title.placeholder=isVideo?'Video Name / Topic':'Resource Title';
+  const label=document.getElementById('titleLabel');
+  if(label) label.textContent=isVideo?'Video Name / Topic':'Resource Title';
+}
+async function autoFillVideoTopic(){
+  if((document.getElementById('type')?.value||'').toLowerCase()!=='video') return;
+  const key=(document.getElementById('title')?.value||'').trim();
+  if(VIDEO_TOPIC_MAP[key]){
+    const sel=document.getElementById('videoTopicSelect'); if(sel) sel.value=key;
+    await applyVideoTopic(key);
+  }
 }
 function updateCertificatePreview(){
   const name=(document.getElementById('certPreviewNameInput')?.value||'Student Name').trim()||'Student Name';
@@ -558,12 +551,18 @@ function updateCertificatePreview(){
   document.getElementById('certPreviewScore').textContent='Score: '+score+'% • Educational Completion';
 }
 function bindAdminPreviews(){
-  ['title','subject','chapter','pdf_file'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateVideoUploadPreview);});
+  const topicSel=document.getElementById('videoTopicSelect');
+  topicSel?.addEventListener('change',async()=>{
+    const value=topicSel.value;
+    if(value && value!=='__custom__') await applyVideoTopic(value);
+  });
+  document.getElementById('type')?.addEventListener('change',syncVideoTopicUI);
   document.getElementById('title')?.addEventListener('change',()=>{clearTimeout(topicAutoFillTimer);topicAutoFillTimer=setTimeout(autoFillVideoTopic,0);});
-  document.getElementById('type')?.addEventListener('change',()=>{clearTimeout(topicAutoFillTimer);topicAutoFillTimer=setTimeout(autoFillVideoTopic,0);});
+  document.getElementById('subject')?.addEventListener('change',()=>loadChapterOptions());
   document.getElementById('updateCertPreview')?.addEventListener('click',updateCertificatePreview);
   ['certPreviewNameInput','certPreviewSubjectInput','certPreviewScoreInput'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateCertificatePreview));
-  updateVideoUploadPreview(); updateCertificatePreview();
+  syncVideoTopicUI();
+  updateCertificatePreview();
 }
 
 async function loadAll(){
@@ -775,7 +774,7 @@ async function deleteResource(id){
 function renderUsers(){
   const q=document.getElementById("userSearch").value.toLowerCase();
   const list=users.filter(u=>(String(u.instagram_username).toLowerCase()+" "+String(u.email||"").toLowerCase()).includes(q));
-  document.getElementById("userList").innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
+  document.getElementById("userList").innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="muted small" type="button" onclick="resetUserPassword(${u.id})">Reset</button> <button class="danger small" type="button" onclick="deleteUser(${u.id})">Delete</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
 }
 async function resetUserPassword(id){
   const p=prompt("Enter a new password (minimum 6 characters):");
@@ -783,6 +782,19 @@ async function resetUserPassword(id){
   if(p.length<6){alert("Password must be at least 6 characters");return;}
   try{await api(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify({newPassword:p})});alert("Password reset successfully.");await loadAll();}
   catch(e){alert(e.message);}
+}
+async function deleteUser(id){
+  const user=users.find(u=>Number(u.id)===Number(id));
+  if(!user)return;
+  if(!confirm(`Delete registered user @${user.instagram_username}? This permanently removes the account and its learning history.`))return;
+  const adminPassword=prompt("Enter your ADMIN password to permanently delete this user:");
+  if(adminPassword===null)return;
+  if(!adminPassword){alert("Admin password is required.");return;}
+  try{
+    await api(`/api/admin/users/${id}`,{method:"DELETE",body:JSON.stringify({adminPassword})});
+    alert("Registered user deleted successfully.");
+    await loadAll();
+  }catch(e){alert(e.message||"Could not delete user.");}
 }
 
 function statusBadge(s){return `<span class="badge ${s}">${esc(s)}</span>`;}

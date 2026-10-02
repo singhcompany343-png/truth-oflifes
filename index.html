@@ -55,6 +55,7 @@ footer{background:#071b34;color:#dce7f2;padding:28px 0}.foot{display:flex;justif
 /* Truth.ofLifes visual refresh — pastel blue reference-inspired UI */
 :root{--b:#1479c9;--d:#07335f;--i:#153657;--s:#f3f9ff;--p:#7656c9;--text:#153657}
 html,body{background:#f3f8fd!important;color:#173653!important;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif!important}
+.brandText{display:flex;flex-direction:column;line-height:1.05}.brandText small{font-size:8px;letter-spacing:1.2px;font-weight:800;color:#087fc5;margin-top:4px}.brand{gap:9px}
 nav{background:rgba(255,255,255,.96)!important;color:#173653!important;border-bottom:1px solid #d7e8f7!important;box-shadow:0 4px 20px rgba(29,83,125,.07)!important}
 .nav{min-height:68px!important}.brand{color:#123a61!important;font-size:23px!important}.logo{background:linear-gradient(145deg,#e4f4ff,#b9e2ff)!important;color:#0d5790!important;border:1px solid #b9dff8!important}
 .links a{color:#294b6b!important}.links a:hover{color:#087fc5!important}.tg,.login,.btn{background:#0b477d!important;color:#fff!important;border:1px solid #0b477d!important;border-radius:10px!important;box-shadow:0 5px 13px rgba(13,72,121,.12)!important}.login{background:#fff!important;color:#17466f!important}
@@ -196,9 +197,9 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 
 <nav>
 <div class="wrap nav">
-<a class="brand" href="#home"><span class="logo" aria-label="truth.oflifes logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8c-8 0-14 6-14 14v6H13a5 5 0 0 0-5 5v13a5 5 0 0 0 5 5h10v5h18v-5h8a5 5 0 0 0 5-5V33a5 5 0 0 0-5-5h-5v-6c0-8-6-14-12-14Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M23 31c3-7 7-7 9-2 2-5 6-5 9 2" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M22 39h7l3-7 4 12 3-5h5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>truth.oflifes</a>
+<a class="brand" href="#home"><span class="logo" aria-label="truth.oflifes logo"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="7" y="7" width="50" height="50" rx="14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M32 16v15M24.5 23.5h15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M14 40h10l4-7 6 15 5-9h11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="brandText"><span>truth.oflifes</span><small>Learn • Grow • Heal</small></span></a>
 <div class="links">
-<a href="#home">Home</a><a href="#notes">Notes</a><a href="#ppts">PPTs</a><a href="/reels.html">Videos</a><a href="/quiz.html">MCQ/Quiz</a><a href="#subjects">Subjects</a><a href="#" onclick="event.preventDefault();window.requestUnavailable('','','Notes');">Request</a><a href="#collab">Collaboration</a>
+<a href="#home">Home</a><a href="#" onclick="event.preventDefault();window.openAllResources('Notes');">Notes</a><a href="#" onclick="event.preventDefault();window.openAllResources('PPT');">PPTs</a><a href="#study-videos">Videos</a><a href="/quiz.html">MCQ/Quiz</a><a href="#subjects">Subjects</a><a href="#" onclick="event.preventDefault();window.requestUnavailable('','','Notes');">Request</a><a href="#collab">Collaboration</a>
 </div>
 <a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a><button id="mobileMenuBtn" class="mobileMenuBtn" type="button" aria-label="Open menu" onclick="document.body.classList.toggle('menuOpen')">☰</button>
 <button id="profileBtn" class="login" type="button" onclick="openProfile()" style="display:none">Profile</button><button id="loginBtn" class="login" type="button" onclick="openLogin()">Login</button>
@@ -206,12 +207,13 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 </nav>
 <div id="mobileMenu" class="mobileMenu">
   <a href="#home" onclick="document.body.classList.remove('menuOpen')">Home</a>
-  <a href="#notes" onclick="document.body.classList.remove('menuOpen')">Notes</a>
-  <a href="#ppts" onclick="document.body.classList.remove('menuOpen')">PPTs</a>
-  <a href="/reels.html">Videos</a><a href="/quiz.html">MCQ / Quiz</a><a href="/learning.html">Learning</a>
+  <a href="#" onclick="event.preventDefault();document.body.classList.remove('menuOpen');window.openAllResources('Notes')">Notes</a>
+  <a href="#" onclick="event.preventDefault();document.body.classList.remove('menuOpen');window.openAllResources('PPT')">PPTs</a>
+  <a href="#study-videos" onclick="document.body.classList.remove('menuOpen')">Videos</a><a href="/quiz.html" onclick="document.body.classList.remove('menuOpen')">MCQ / Quiz</a><a href="/learning.html" onclick="document.body.classList.remove('menuOpen')">Learning</a>
   <a href="#subjects" onclick="document.body.classList.remove('menuOpen')">Subjects</a>
+  <a href="#" onclick="event.preventDefault();document.body.classList.remove('menuOpen');window.requestUnavailable('','','Notes')">Request</a>
   <a href="#collab" onclick="document.body.classList.remove('menuOpen')">Collaboration</a>
-  <a href="mailto:oflifestruth@gmail.com">Email</a>
+  <a href="mailto:oflifestruth@gmail.com" onclick="document.body.classList.remove('menuOpen')">Email</a>
 </div>
 
 
@@ -263,6 +265,14 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 
 
 
+<section id="study-videos" class="videoSection">
+<div class="wrap">
+<div class="sectionMiniHead"><div><h2>🎬 Study Videos</h2><p class="muted">Subject → Chapter → Extra Topic. Admin uploads appear here automatically.</p></div><a class="videoAllBtn" href="/reels.html">Open Video Library →</a></div>
+<div id="videoSubjectTabs" class="videoSubjectTabs" aria-label="Video subjects"></div>
+<div id="videoGroups" class="videoGroups"><div class="videoEmpty">Loading study videos…</div></div>
+</div>
+</section>
+
 <section class="dark"><div class="wrap three">
 <a class="darkbox socialCard" href="https://www.instagram.com/truth.oflifes" target="_blank" rel="noopener" aria-label="Open truth.oflifes on Instagram"><h2>◎ Latest from Instagram ↗</h2><p class="muted">Follow us for daily notes, tips, motivation & more.</p><div class="posts"><div class="post">Medical<br>is not a course</div><div class="post">Small Steps<br>Big Dreams</div><div class="post">Future<br>Doctor ♡</div><div class="post">Hard Work<br>Always Pays Off</div></div><p><b>@truth.oflifes</b></p></a>
 <div class="darkbox"><h2>✈ Join Our Telegram Channel</h2><p class="muted">Get instant updates, free notes, important PDFs & more.</p><div class="tgbox"><a class="btn" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Join Telegram →</a></div></div>
@@ -291,7 +301,6 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 
 <footer><div class="wrap"><div class="foot"><strong style="font-size:20px">♡ truth.oflifes</strong><div class="footlinks"><a href="#home">Home</a><a href="#" onclick="event.preventDefault();window.openAllResources();">Notes</a><a href="#" onclick="event.preventDefault();window.openAllResources();">PPTs</a><a href="#collab">Collaboration</a><a href="/about.html">About</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/disclaimer.html">Disclaimer</a><a href="https://www.instagram.com/truth.oflifes" target="_blank" rel="noopener">Instagram</a><a href="mailto:oflifestruth@gmail.com">Email</a></div><a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">✈ Join us on Telegram →</a></div><div class="small">Founder — <b>Its Abhi</b><br><br>© 2026 truth.oflifes. All rights reserved. | Built for Medical Students ♡</div></div></footer>
 
-<div id="allResourcesPanel" class="allResourcesPanel" style="display:none"><div class="allResourcesPopup"><div class="allResourcesPopupTop"><div><div class="allResourcesBadge">📚 ALL RESOURCES</div></div><button class="allResourcesPopupClose" type="button" onclick="window.closeAllResourcesPopup();">✕ Close</button></div><div id="allResourceContent"><div class="allResourcesHero"><h3>All You Need Is Here</h3><p>Choose Notes or PPTs, then select your subject and chapter.</p></div><div class="allResourcesColumns"><div class="allResourcesColumn"><div class="allResourcesColHead"><span class="resourceIcon smallIcon">▤</span><div><h3>Notes</h3><span>Handwritten & Typed</span></div></div><div class="allSubjectGrid"></div></div><div class="allResourcesColumn purpleResourceColumn"><div class="allResourcesColHead"><span class="resourceIcon smallIcon">▣</span><div><h3>PPTs</h3><span>Well-Structured & Easy</span></div></div><div class="allSubjectGrid"></div></div></div></div></div></div>
 
 <div id="profileModal" class="modal" onclick="closeProfileOutside(event)">
 <div class="modalbox">
@@ -562,12 +571,13 @@ window.loadSubjectVideos=async function(){
     var map={};
     videos.forEach(function(v){var sub=String(v.subject||"Other").trim()||"Other";(map[sub]||(map[sub]=[])).push(v);});
     var subjects=Object.keys(map).sort(function(a,b){return a.localeCompare(b);});
+    if(!subjects.length){tabs.innerHTML='';groups.innerHTML='<div class="videoEmpty">No study videos uploaded yet. Admin → Videos → upload a video with Subject, Chapter and Topic.</div>';return;}
     tabs.innerHTML='<button class="videoSubjectTab active" data-video-filter="all">All Videos</button>'+subjects.map(function(x){return '<button class="videoSubjectTab" data-video-filter="'+esc(x)+'">'+esc(x)+'</button>';}).join("");
     groups.innerHTML=subjects.map(function(sub){
       var cards=map[sub].map(function(v){
         if(v.isReelConcept){return '<article class="videoCard reelConcept"><div class="videoConceptArt">🎬<span>'+esc(v.title)+'</span></div><div class="videoCardBody"><h4>'+esc(v.title)+'</h4><div class="videoMeta">'+esc(sub)+' → '+esc(v.title)+(v.chapter?' • '+esc(v.chapter):'')+'</div><a class="videoWatch" href="/reels.html">Open Reel Library →</a></div></article>';}
         var src='/api/resources/'+encodeURIComponent(v.id)+'/video';
-        return '<article class="videoCard"><video controls preload="metadata" playsinline src="'+src+'"></video><div class="videoCardBody"><h4>'+esc(v.title||"Medical Video")+'</h4><div class="videoMeta">'+esc(sub)+' → '+esc(v.title||"Medical Video")+(v.chapter?' • '+esc(v.chapter):'')+'</div></div></article>';
+        return '<article class="videoCard"><video controls preload="metadata" playsinline src="'+src+'"></video><div class="videoCardBody"><h4>'+esc(v.title||"Medical Video")+'</h4><div class="videoMeta">'+esc(sub)+' → '+esc(v.chapter||"Extra Topic")+' → '+esc(v.title||"Medical Video")+'</div></div></article>';
       }).join("");
       return '<section class="videoGroup" data-video-group="'+esc(sub)+'"><div class="videoGroupHead"><h3>📚 '+esc(sub)+'</h3><span>'+map[sub].length+' video'+(map[sub].length===1?'':'s')+'</span></div><div class="videoGrid">'+cards+'</div></section>';
     }).join("");
@@ -577,12 +587,9 @@ window.loadSubjectVideos=async function(){
     var r=await fetch("/api/resources",{cache:"no-store"});
     var all=r.ok?await r.json():[];
     var videos=(Array.isArray(all)?all:[]).filter(function(x){return String(x.type||"").toLowerCase()==="video";});
-    var seen={}; videos.forEach(function(v){seen[String(v.title||"").trim().toLowerCase()]=true;});
-    fallback.forEach(function(v){if(!seen[v.title.toLowerCase()])videos.push(Object.assign({isReelConcept:true},v));});
     renderMergedVideos(videos);
   }catch(e){
-    // API failure must not make the homepage video section blank.
-    renderMergedVideos(fallback.map(function(v){return Object.assign({isReelConcept:true},v);}));
+    renderMergedVideos([]);
   }
 };
 
