@@ -980,7 +980,7 @@ function makeChapterMcqs(subject, chapter) {
     'Other':'first-aid-emergency-care'
   };
   const learningSlug = slugMap[subject] || String(subject).toLowerCase().replace(/[^a-z0-9]+/g,'-');
-  const source = bank.filter(q=>q.subject_slug===learningSlug);
+  const source = bank.filter(q=>q.subject_slug===learningSlug && (!q.chapter || q.chapter===chapter));
   const rows = (curated[`${subject}|${chapter}`] || []).slice();
   const seen = new Set(rows.map(q=>q[0]));
   for (const q of source) {
