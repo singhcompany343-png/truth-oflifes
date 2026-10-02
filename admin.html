@@ -164,6 +164,19 @@ textarea{min-height:80px;resize:vertical}
 
 .pdfUploadBox{padding:12px;border:1px solid #174966;border-radius:10px;background:rgba(4,21,34,.72);margin:10px 0}
 .pdfUploadBox input[type=file]{width:100%;padding:9px;background:#041522;color:#eaf7ff;border:1px dashed #1597ff;border-radius:8px}
+
+/* Final admin previews */
+.previewGrid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:14px}
+.previewCard{background:#071d31;border:1px solid #245574;border-radius:18px;padding:18px;color:#eef8ff}
+.previewLabel{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#73d7ff;font-weight:800}
+.videoPreview{border:1px solid #245574;border-radius:15px;overflow:hidden;background:#041321}
+.videoPreview video{display:block;width:100%;max-height:300px;background:#000}
+.videoPreviewBody{padding:14px}.videoPreviewTitle{font-size:18px;font-weight:900;margin:5px 0}.videoPreviewMeta{color:#9bb5c9;font-size:12px}
+.certPreview{min-height:390px;background:linear-gradient(135deg,#071b2d,#0a2944);border:2px solid #58caff;border-radius:18px;padding:26px;text-align:center;position:relative;overflow:hidden}
+.certPreview:before{content:'';position:absolute;inset:12px;border:1px solid rgba(88,202,255,.45);border-radius:12px;pointer-events:none}
+.certSeal{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin:2px auto 10px;background:#0799ea;color:#fff;font-size:30px;box-shadow:0 0 24px rgba(24,168,255,.35)}
+.certBrand{font-size:12px;letter-spacing:3px;color:#73d7ff;font-weight:900}.certTitle{font-size:28px;font-weight:900;margin:10px 0;color:#fff}.certSub{color:#a9c5d8;font-size:13px}.certName{font-size:24px;font-weight:900;color:#63dcff;margin:16px 0 8px}.certSubject{font-size:17px;font-weight:800;color:#fff}.certScore{margin:16px auto;padding:8px 14px;border:1px solid #2e7193;border-radius:999px;display:inline-block;color:#dff7ff}.certFooter{display:flex;justify-content:space-between;gap:10px;margin-top:28px;color:#8eaec2;font-size:10px;text-align:left}.certCode{font-family:monospace}.previewHint{color:#8faabc;font-size:12px;line-height:1.5;margin-top:8px}
+@media(max-width:800px){.previewGrid{grid-template-columns:1fr}.certPreview{min-height:350px}.certTitle{font-size:24px}}
 </style>
 
 
@@ -339,6 +352,62 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     </form>
   </section>
 
+  <section class="panel" id="videoPreviewPanel">
+    <h3>🎬 Video Upload Preview — Homepage</h3>
+    <p class="muted">Video upload karte waqt yahan exactly wahi Subject + Topic/Chapter + Title preview hoga jo students ko main screen par dikhega.</p>
+    <div class="previewGrid">
+      <div class="previewCard">
+        <div class="previewLabel">Homepage video card</div>
+        <div class="videoPreview" style="margin-top:10px">
+          <video id="adminVideoPreview" controls playsinline preload="metadata"></video>
+          <div class="videoPreviewBody">
+            <div class="videoPreviewTitle" id="adminVideoPreviewTitle">Your video title</div>
+            <div class="videoPreviewMeta" id="adminVideoPreviewMeta">Subject • Topic / Chapter</div>
+            <p class="previewHint">Upload ke baad ye title, subject aur chapter homepage ke “Video Learning — Subject Wise” section mein automatically use honge.</p>
+          </div>
+        </div>
+      </div>
+      <div class="previewCard">
+        <div class="previewLabel">Selected upload details</div>
+        <div style="margin-top:12px;display:grid;gap:10px">
+          <div><b>Title:</b> <span id="videoPreviewTitleText">—</span></div>
+          <div><b>Subject:</b> <span id="videoPreviewSubjectText">—</span></div>
+          <div><b>Topic / Chapter:</b> <span id="videoPreviewChapterText">—</span></div>
+          <div><b>File:</b> <span id="videoPreviewFileText">No video selected</span></div>
+        </div>
+        <div class="previewHint">Tip: Subject select karo, phir usi subject ka chapter/topic select karo. Isse video automatically correct subject group mein jayega.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="certificatePreviewPanel">
+    <h3>🏆 Certificate Preview</h3>
+    <p class="muted">Students quiz complete karne par isi template ke according educational completion certificate receive karenge.</p>
+    <div class="previewGrid">
+      <div class="certPreview" id="certificatePreview">
+        <div class="certSeal">✓</div>
+        <div class="certBrand">TRUTH.OFLIFES</div>
+        <div class="certTitle">Certificate of Completion</div>
+        <div class="certSub">This certificate is presented to</div>
+        <div class="certName" id="certPreviewName">Student Name</div>
+        <div class="certSub">for successfully completing the learning assessment in</div>
+        <div class="certSubject" id="certPreviewSubject">Anatomy</div>
+        <div class="certScore" id="certPreviewScore">Score: 85% • Educational Completion</div>
+        <div class="certFooter"><span>Learn • Grow • Heal<br>Medical Education Platform</span><span class="certCode">CERT-TRUTH-2026<br>Verified Certificate</span></div>
+      </div>
+      <div class="previewCard">
+        <div class="previewLabel">Preview controls</div>
+        <div style="display:grid;gap:10px;margin-top:12px">
+          <input id="certPreviewNameInput" value="Student Name" placeholder="Student name">
+          <select id="certPreviewSubjectInput"><option>Anatomy</option><option>Physiology</option><option>Biochemistry</option><option>Pharmacology</option><option>Pathology</option><option>Microbiology</option><option>Medical Surgical Nursing</option><option>Pediatric Nursing</option><option>Psychiatric Nursing</option><option>OBG Nursing</option><option>Community Health Nursing</option></select>
+          <input id="certPreviewScoreInput" value="85" type="number" min="0" max="100" placeholder="Score %">
+          <button class="btn" type="button" id="updateCertPreview">🔄 Update Preview</button>
+        </div>
+        <div class="previewHint">Ye preview admin ke liye template check karne ke liye hai. Real certificate quiz completion ke baad student ke naam, subject, score aur certificate code se generate hoga.</div>
+      </div>
+    </div>
+  </section>
+
   <section class="panel">
     <h3>📚 Resources</h3>
     <div class="filters">
@@ -439,6 +508,38 @@ function logout(){
   token="";
   document.getElementById("dashboard").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
+}
+
+
+function updateVideoUploadPreview(){
+  const titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject'), chapterEl=document.getElementById('chapter'), fileEl=document.getElementById('pdf_file');
+  const title=(titleEl?.value||'Your video title').trim()||'Your video title';
+  const subject=(subjectEl?.value||'').trim()||'Select Subject';
+  const chapter=(chapterEl?.value||'').trim()||'Select Topic / Chapter';
+  const file=fileEl?.files?.[0];
+  document.getElementById('adminVideoPreviewTitle').textContent=title;
+  document.getElementById('adminVideoPreviewMeta').textContent=subject+' • '+chapter;
+  document.getElementById('videoPreviewTitleText').textContent=title;
+  document.getElementById('videoPreviewSubjectText').textContent=subject;
+  document.getElementById('videoPreviewChapterText').textContent=chapter;
+  document.getElementById('videoPreviewFileText').textContent=file?file.name:'No video selected';
+  const v=document.getElementById('adminVideoPreview');
+  if(file && /^video\//.test(file.type||'')){if(v.dataset.url)URL.revokeObjectURL(v.dataset.url);v.dataset.url=URL.createObjectURL(file);v.src=v.dataset.url;v.style.display='block';}
+  else {v.removeAttribute('src');v.load();v.style.display='none';}
+}
+function updateCertificatePreview(){
+  const name=(document.getElementById('certPreviewNameInput')?.value||'Student Name').trim()||'Student Name';
+  const subject=(document.getElementById('certPreviewSubjectInput')?.value||'Anatomy').trim()||'Anatomy';
+  let score=Math.max(0,Math.min(100,Number(document.getElementById('certPreviewScoreInput')?.value||85)));
+  document.getElementById('certPreviewName').textContent=name;
+  document.getElementById('certPreviewSubject').textContent=subject;
+  document.getElementById('certPreviewScore').textContent='Score: '+score+'% • Educational Completion';
+}
+function bindAdminPreviews(){
+  ['title','subject','chapter','pdf_file'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateVideoUploadPreview);});
+  document.getElementById('updateCertPreview')?.addEventListener('click',updateCertificatePreview);
+  ['certPreviewNameInput','certPreviewSubjectInput','certPreviewScoreInput'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateCertificatePreview));
+  updateVideoUploadPreview(); updateCertificatePreview();
 }
 
 async function loadAll(){
@@ -772,6 +873,7 @@ if(token){
   loadAll();
   setInterval(()=>loadAll().catch(()=>{}),30000);
 }
+bindAdminPreviews();
 </script>
 </body>
 </html>
