@@ -47,7 +47,7 @@ Never commit `.env`. Use a strong admin password and JWT secret.
 1. Back up PostgreSQL and apply `learning-migration.sql` first.
 2. Set `DATABASE_URL` to your intended database.
 3. Run `npm run seed-mcqs`. The import is idempotent and skips matching questions already present.
-4. Included `mcq-bank.json` contains 100 starter questions (5 per subject), not the complete 100-per-subject / 2,000-question bank. Have qualified educators review content before formal use.
+4. Included `mcq-bank.json` contains 2,000 practice questions are included in the bank; deployment seeding now imports a maximum of 50 questions per learning subject (1,000 seeded questions total across 20 learning subjects). Have qualified educators review content before formal use.
 
 
 VISUAL DESIGN UPDATE (Sep 2026)
@@ -60,7 +60,7 @@ VISUAL DESIGN UPDATE (Sep 2026)
 
 1. Back up your PostgreSQL database before making schema changes.
 2. Run `psql "$DATABASE_URL" -f learning-migration.sql` (or run the SQL through your database console). This migration is additive; inspect it before applying to production.
-3. Set `DATABASE_URL` and `NODE_ENV=production` in your deployment environment, then run `npm run seed-mcqs`. The seed is idempotent and skips matching questions already present.
+3. Set `DATABASE_URL` and `NODE_ENV=production` in your deployment environment, the deployment start command automatically runs the idempotent MCQ seeder before starting the server. The seed is idempotent and skips matching questions already present.
 4. Deploy the updated project and sign in. Each subject quiz requires 100 available questions; each question is timed for 50 seconds by server timestamp.
 5. Certificates are issued by the authenticated quiz-completion endpoint. Verify a certificate using `/api/learning/certificates/verify/:code`. Student certificate listing is scoped to the signed-in student.
 

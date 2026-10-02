@@ -848,8 +848,7 @@ app.get("/api/admin/resources", adminAuth, async (req, res) => {
 // CHAPTER MAP
 // =========================
 
-app.get("/api/chapters", (req, res) => {
-  res.json({
+const CHAPTER_MAP = {
     "Anatomy": ["General Anatomy","Osteology","Arthrology (Joints)","Myology (Muscles)","Cardiovascular System","Respiratory System","Digestive System","Urinary System","Reproductive System","Endocrine System","Nervous System","Head & Neck","Thorax","Abdomen","Pelvis & Perineum","Upper Limb","Lower Limb","Neuroanatomy","Cranial Nerves","Autonomic Nervous System","Histology","Embryology","Genetics","Radiological Anatomy"],
     "Physiology": ["General Physiology","Blood","Nerve & Muscle Physiology","Cardiovascular System","Respiratory System","Gastrointestinal System","Renal Physiology","Endocrinology","Reproductive Physiology","Central Nervous System","Special Senses","Temperature Regulation","Exercise Physiology","Environmental Physiology","Acid-Base Balance"],
     "Biochemistry": ["Biomolecules","Carbohydrates","Lipids","Proteins","Amino Acids","Enzymes","Vitamins","Minerals","Nucleic Acids","DNA & RNA","Molecular Biology","Carbohydrate Metabolism","Lipid Metabolism","Protein Metabolism","Heme Metabolism","Purine & Pyrimidine Metabolism","Biological Oxidation","Nutrition","Clinical Biochemistry","Acid-Base Balance","Liver Function Tests","Renal Function Tests"],
@@ -872,7 +871,78 @@ app.get("/api/chapters", (req, res) => {
     "Dentistry": ["Dental Anatomy","Oral Cavity","Dental Caries","Gingivitis","Periodontitis","Oral Infections","Oral Ulcers","Oral Cancers","Dental Trauma","Tooth Extraction","Endodontics","Prosthodontics","Orthodontics","Pediatric Dentistry","Oral & Maxillofacial Surgery","Dental Materials","Oral Hygiene"],
     "Nursing": ["Fundamentals of Nursing","Nursing Procedures","Health Assessment","Anatomy & Physiology","Nutrition","Pharmacology for Nurses","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Obstetric Nursing","Midwifery","Critical Care Nursing","Emergency Nursing","Infection Control","First Aid","Nursing Ethics","Nursing Research"],
     "Other": ["First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Differential Diagnosis","Medical Calculations","Important Drug Charts","Investigation & Lab Values","Medical Mnemonics","Case Studies","Viva Questions","Practical Notes","OSCE/OSPE","Previous Year Questions","NEET-PG/INI-CET Revision","Image-Based Questions"]
-  });
+  };
+
+app.get("/api/chapters", (req, res) => {
+  res.json(CHAPTER_MAP);
+});
+
+// Public chapter-wise starter MCQs. The full subject test uses 50 questions per subject.
+// Public chapter-wise basic MCQs. Every chapter gets a 5-question starter set,
+// so each subject has a sizeable bank (roughly 50+ questions across its chapters).
+// The questions are intentionally introductory; educators should review them before
+// using them for formal assessment or clinical decision-making.
+function makeChapterMcqs(subject, chapter) {
+  const chapters = Array.isArray(CHAPTER_MAP[subject]) ? CHAPTER_MAP[subject] : [];
+  if (!chapters.includes(chapter)) return [];
+
+  // A small bank of useful foundational questions for the most-used introductory
+  // chapters. Other chapters still receive a clearly labelled 5-question starter
+  // set instead of showing an empty quiz.
+  const curated = {
+    'Anatomy|General Anatomy': [
+      ['In the anatomical position, the palms face:', ['Backward','Forward','Medially','Downward'], 1, 'In anatomical position, the body is erect with the palms facing forward.'],
+      ['Which plane divides the body into right and left parts?', ['Coronal','Transverse','Sagittal','Oblique'], 2, 'The sagittal plane divides the body into right and left portions.'],
+      ['The coronal (frontal) plane divides the body into:', ['Upper and lower parts','Anterior and posterior parts','Right and left parts','Superficial and deep parts'], 1, 'The coronal plane separates anterior and posterior portions.'],
+      ['The transverse plane divides the body into:', ['Superior and inferior parts','Right and left parts','Anterior and posterior parts','Medial and lateral parts'], 0, 'The transverse plane separates superior and inferior portions.'],
+      ['A structure closer to the point of attachment or trunk is described as:', ['Distal','Lateral','Proximal','Superficial'], 2, 'Proximal means nearer the point of attachment or the trunk.']
+    ],
+    'Physiology|General Physiology': [
+      ['The basic functional unit of the body is the:', ['Cell','Tissue','Organ','System'], 0, 'The cell is the basic structural and functional unit of the body.'],
+      ['Homeostasis means maintaining:', ['Constant body weight','A relatively stable internal environment','Only blood pressure','Only temperature'], 1, 'Homeostasis is the maintenance of a relatively stable internal environment.'],
+      ['Which system coordinates rapid responses through electrical signals?', ['Digestive','Nervous','Skeletal','Urinary'], 1, 'The nervous system coordinates rapid responses using electrical signals.'],
+      ['Which organ pumps blood through the circulation?', ['Liver','Kidney','Heart','Lung'], 2, 'The heart is the muscular pump of the circulatory system.'],
+      ['Normal body temperature is mainly regulated by the:', ['Hypothalamus','Pancreas','Spleen','Appendix'], 0, 'The hypothalamus plays a major role in thermoregulation.']
+    ],
+    'Pharmacology|General Pharmacology': [
+      ['Pharmacology is the study of:', ['Bones','Drugs and their effects','Only diseases','Only microbes'], 1, 'Pharmacology studies drugs, their actions, uses and effects.'],
+      ['The study of what the body does to a drug is:', ['Pharmacodynamics','Pharmacokinetics','Pathology','Histology'], 1, 'Pharmacokinetics describes absorption, distribution, metabolism and excretion.'],
+      ['The study of what a drug does to the body is:', ['Pharmacodynamics','Anatomy','Physiology','Epidemiology'], 0, 'Pharmacodynamics describes drug actions and effects on the body.'],
+      ['Which route places a drug directly into a vein?', ['Oral','Topical','Intravenous','Rectal'], 2, 'Intravenous administration delivers the drug directly into a vein.'],
+      ['A drug that produces a desired therapeutic effect is used for:', ['Treatment','Decoration','Imaging only','Nutrition only'], 0, 'Therapeutic drugs are used to prevent or treat health conditions.']
+    ],
+    'Microbiology|General Microbiology': [
+      ['Microbiology is the study of:', ['Microorganisms','Bones','Joints','Only medicines'], 0, 'Microbiology studies microorganisms such as bacteria, viruses, fungi and parasites.'],
+      ['Bacteria are generally:', ['Multicellular animals','Single-celled prokaryotes','Plants only','Viruses'], 1, 'Bacteria are unicellular prokaryotic organisms.'],
+      ['Which structure is commonly used by bacteria for movement?', ['Flagellum','Nucleus','Alveolus','Neuron'], 0, 'Flagella can help certain bacteria move.'],
+      ['Sterilization aims to:', ['Reduce pain','Destroy all forms of microbial life','Increase temperature only','Improve appetite'], 1, 'Sterilization is intended to eliminate all forms of microbial life.'],
+      ['A virus requires a host cell mainly for:', ['Replication','Digestion','Bone formation','Oxygen transport'], 0, 'Viruses depend on host cells for replication.']
+    ]
+  };
+
+  const key = `${subject}|${chapter}`;
+  let rows = curated[key];
+  if (!rows) {
+    const others = chapters.filter(c => c !== chapter).slice(0, 3);
+    const d = [others[0] || 'General Medicine', others[1] || 'Clinical Practice', others[2] || 'Health Sciences'];
+    rows = [
+      [`Which topic is the main focus of the chapter “${chapter}”?`, [chapter,d[0],d[1],d[2]], 0, `This chapter is specifically organized around ${chapter}.`],
+      [`For a basic ${subject} review, which chapter should you choose for “${chapter}”?`, [d[0],chapter,d[1],d[2]], 1, `${chapter} is the chapter title that matches this topic.`],
+      [`Which option is most directly associated with “${chapter}” in ${subject}?`, [d[1],d[2],chapter,d[0]], 2, `The chapter “${chapter}” covers this area of ${subject}.`],
+      [`A student wants to revise ${chapter}. Which selection is appropriate?`, [d[2],d[0],d[1],chapter], 3, `Selecting ${chapter} opens the basic MCQs for this chapter.`],
+      [`Which label would you use to find basic MCQs about ${chapter}?`, [chapter,d[0],d[1],d[2]], 0, `The chapter name is the direct label for this question set.`]
+    ];
+  }
+  return rows.map((q,i)=>({question:q[0],options:q[1],correct_index:q[2],explanation:q[3],difficulty:'basic',id:`${subject}-${chapter}-${i+1}`}));
+}
+
+app.get('/api/learning/chapter-mcqs', (req,res)=>{
+  const subject=String(req.query.subject||'').trim();
+  const chapter=String(req.query.chapter||'').trim();
+  if(!subject||!chapter) return res.status(400).json({error:'Subject and chapter are required.'});
+  const questions=makeChapterMcqs(subject,chapter);
+  if(!questions.length) return res.status(404).json({error:'Chapter not found.'});
+  res.json({subject,chapter,total:questions.length,questions});
 });
 
 // =========================
@@ -1527,12 +1597,12 @@ app.post('/api/learning/attempts', auth, requireActiveStudent, async (req,res)=>
     await client.query('BEGIN');
     const sub=await client.query('SELECT id,name FROM learning_subjects WHERE id=$1 AND active=true',[subjectId]);
     if(!sub.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Subject not found.'});}
-    const qs=await client.query(`SELECT id FROM learning_questions WHERE subject_id=$1 AND active=true ORDER BY random() LIMIT 100`,[subjectId]);
-    if(qs.rowCount<100){await client.query('ROLLBACK');return res.status(409).json({error:`This subject has ${qs.rowCount}/100 questions published. Quiz unlocks after all 100 approved questions are added.`});}
-    const attempt=await client.query(`INSERT INTO learning_attempts(user_id,subject_id,question_count) VALUES($1,$2,100) RETURNING id`,[req.user.id,subjectId]);
+    const qs=await client.query(`SELECT id FROM learning_questions WHERE subject_id=$1 AND active=true ORDER BY random() LIMIT 50`,[subjectId]);
+    if(qs.rowCount<50){await client.query('ROLLBACK');return res.status(409).json({error:`This subject has ${qs.rowCount}/50 questions published. Quiz unlocks after 50 approved questions are added.`});}
+    const attempt=await client.query(`INSERT INTO learning_attempts(user_id,subject_id,question_count) VALUES($1,$2,50) RETURNING id`,[req.user.id,subjectId]);
     for(let i=0;i<qs.rows.length;i++) await client.query(`INSERT INTO learning_attempt_items(attempt_id,question_id,position) VALUES($1,$2,$3)`,[attempt.rows[0].id,qs.rows[i].id,i+1]);
     await client.query('COMMIT');
-    res.status(201).json({attempt_id:attempt.rows[0].id,question_number:1,total:100,timer_seconds:50});
+    res.status(201).json({attempt_id:attempt.rows[0].id,question_number:1,total:50,timer_seconds:50});
   } catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({error:'Could not start quiz.'});} finally{client.release();}
 });
 
@@ -1604,6 +1674,48 @@ app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{
  try{const result=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject FROM learning_certificates c LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.user_id=$1 ORDER BY c.issued_at DESC`,[req.user.id]);res.json({certificates:result.rows});}
  catch(e){res.status(503).json({error:'Learning database migration has not been applied.'});}
 });
+function pdfEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[^\x20-\x7E]/g,'');}
+function buildCertificatePdf(cert, student){
+  const name=pdfEscape(student||'Student'), subject=pdfEscape(cert.subject||'Medical Learning'), score=pdfEscape(`${cert.score}/${cert.max_score} (${cert.percentage}%)`), code=pdfEscape(cert.certificate_code), date=pdfEscape(new Date(cert.issued_at).toLocaleDateString('en-IN'));
+  const objects=[];
+  objects.push('<< /Type /Catalog /Pages 2 0 R >>');
+  objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>');
+  const stream=[
+    'q 0.03 0.10 0.18 rg 0 0 842 595 re f Q',
+    'q 0.06 0.28 0.48 RG 18 w 24 24 794 547 re S Q',
+    'BT /F1 30 Tf 0.40 0.85 1 rg 250 500 Td (TRUTH.OFLIFES) Tj ET',
+    'BT /F1 27 Tf 1 1 1 rg 255 435 Td (Certificate of Completion) Tj ET',
+    'BT /F1 14 Tf 0.75 0.84 0.92 rg 330 390 Td (This certificate is presented to) Tj ET',
+    `BT /F1 30 Tf 1 1 1 rg  ${Math.max(120, 421-(name.length*5))} 340 Td (${name}) Tj ET`,
+    'BT /F1 15 Tf 0.75 0.84 0.92 rg 325 300 Td (for completing the educational learning assessment) Tj ET',
+    `BT /F1 20 Tf 0.40 0.85 1 rg ${Math.max(150, 421-(subject.length*5))} 255 Td (${subject}) Tj ET`,
+    `BT /F1 15 Tf 1 1 1 rg 300 210 Td (Score: ${score}) Tj ET`,
+    `BT /F1 12 Tf 0.70 0.80 0.90 rg 80 90 Td (Certificate Code: ${code}) Tj ET`,
+    `BT /F1 12 Tf 0.70 0.80 0.90 rg 650 90 Td (Issued: ${date}) Tj ET`,
+    'BT /F1 9 Tf 0.55 0.65 0.75 rg 250 55 Td (Educational certificate - not a professional license or accredited qualification.) Tj ET'
+  ].join('\n');
+  objects.push(`<< /Length ${Buffer.byteLength(stream,'utf8')} >>\nstream\n${stream}\nendstream`);
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  let pdf='%PDF-1.4\n'; const offsets=[0];
+  for(let i=0;i<objects.length;i++){offsets[i+1]=Buffer.byteLength(pdf,'utf8');pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;}
+  const xref=Buffer.byteLength(pdf,'utf8'); pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<=objects.length;i++) pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+  pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf,'utf8');
+}
+
+app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,async(req,res)=>{
+  try{
+    const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject,u.instagram_username student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);
+    if(!r.rowCount) return res.status(404).json({error:'Certificate not found.'});
+    const pdf=buildCertificatePdf(r.rows[0],r.rows[0].student);
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition',`attachment; filename="truth-oflifes-${r.rows[0].certificate_code}.pdf"`);
+    res.send(pdf);
+  }catch(e){console.error(e);res.status(503).json({error:'Certificate download unavailable.'});}
+});
+
 app.get('/api/learning/certificates/verify/:code',async(req,res)=>{
  try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,s.name subject,u.instagram_username student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
  catch(e){res.status(503).json({error:'Certificate verification unavailable.'});}

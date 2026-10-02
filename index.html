@@ -69,7 +69,7 @@ footer{background:#e7f3fc!important;color:#315c7e!important;border-top:1px solid
 @media(max-width:900px){.hero .wrap{grid-template-columns:1fr!important}.art{margin:0 0 22px!important;min-height:360px!important}.hero .copy{padding:35px 0 20px!important}.art:after{font-size:clamp(105px,24vw,165px)!important}.books{right:5%!important}.trust .wrap{grid-template-columns:repeat(2,1fr)!important}}
 @media(max-width:620px){.nav{min-height:60px!important}.brand{font-size:16px!important}.logo{width:34px!important;height:34px!important}.tg,.login{font-size:12px!important;padding:9px 11px!important}.hero h1{font-size:36px!important}.hero p{font-size:14px!important}.art{min-height:280px!important;margin:0 0 16px!important}.art:after{font-size:110px!important}.books{bottom:15px!important;right:3%!important}.book{width:190px!important;height:30px!important;font-size:10px!important;padding:6px 10px!important}.trust .wrap{grid-template-columns:repeat(2,1fr)!important}.three,.formgrid{grid-template-columns:1fr!important}.links{display:none!important}}
 
-</style>
+.videoConceptArt{aspect-ratio:16/9;background:linear-gradient(135deg,#0b3553,#071c30);display:grid;place-items:center;gap:6px;color:#65d9ff;font-size:34px;padding:15px;text-align:center}.videoConceptArt span{display:block;color:#eaf8ff;font-size:15px;font-weight:800}.videoWatch{display:inline-block;margin-top:10px;color:#8fe5ff;text-decoration:none;font-weight:800}.subjectPill{cursor:pointer;font:inherit}.videoHidden{display:none!important}
 <style>
 
 /* ===== truth.oflifes reference-design v2: visual layer only ===== */
@@ -232,7 +232,7 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 <div class="quickCard"><div class="quickIcon purple">✦</div><div><h3>Learning Mode</h3><p>Structured learning path for better results</p><button onclick="location.href='/learning.html'">Start Learning →</button></div></div>
 </div></div></section>
 
-<section id="subjects"><div class="wrap"><div class="sectionMiniHead"><div><h2>Explore Subjects</h2><p>Choose your subject and find the best study resources.</p></div><button onclick="window.openAllResources();">View All Subjects →</button></div><div class="subjectPills"><a href="#resources" class="subjectPill" data-home-subject="Anatomy">🫀 Anatomy</a><a href="#resources" class="subjectPill" data-home-subject="Physiology">🧠 Physiology</a><a href="#resources" class="subjectPill" data-home-subject="Biochemistry">🧪 Biochemistry</a><a href="#resources" class="subjectPill" data-home-subject="Pharmacology">💊 Pharmacology</a><a href="#resources" class="subjectPill" data-home-subject="Pathology">🔬 Pathology</a><a href="#resources" class="subjectPill" data-home-subject="Microbiology">🦠 Microbiology</a><a href="#resources" class="subjectPill" data-home-subject="Nursing">❤️ Medical Surgical Nursing</a><a href="#resources" class="subjectPill" data-home-subject="Pediatrics">👶 Pediatric Nursing</a><a href="#resources" class="subjectPill" data-home-subject="Psychiatry">🧠 Psychiatric Nursing</a><a href="#resources" class="subjectPill" data-home-subject="OBG">🤰 OBG Nursing</a><a href="#resources" class="subjectPill" data-home-subject="Community Medicine">🏥 Community Health</a><a href="#resources" class="subjectPill" data-home-subject="Other">••• Others</a></div></div></section>
+<section id="subjects"><div class="wrap"><div class="sectionMiniHead"><div><h2>Explore Subjects</h2><p>Choose your subject and find the best study resources.</p></div><button onclick="window.openAllResources();">View All Subjects →</button></div><div class="subjectPills"><button type="button" class="subjectPill" data-home-subject="Anatomy" onclick="window.openSubject('Anatomy','Notes');return false;">🫀 Anatomy</button><button type="button" class="subjectPill" data-home-subject="Physiology" onclick="window.openSubject('Physiology','Notes');return false;">🧠 Physiology</button><button type="button" class="subjectPill" data-home-subject="Biochemistry" onclick="window.openSubject('Biochemistry','Notes');return false;">🧪 Biochemistry</button><button type="button" class="subjectPill" data-home-subject="Pharmacology" onclick="window.openSubject('Pharmacology','Notes');return false;">💊 Pharmacology</button><button type="button" class="subjectPill" data-home-subject="Pathology" onclick="window.openSubject('Pathology','Notes');return false;">🔬 Pathology</button><button type="button" class="subjectPill" data-home-subject="Microbiology" onclick="window.openSubject('Microbiology','Notes');return false;">🦠 Microbiology</button><button type="button" class="subjectPill" data-home-subject="Nursing" onclick="window.openSubject('Nursing','Notes');return false;">❤️ Medical Surgical Nursing</button><button type="button" class="subjectPill" data-home-subject="Pediatrics" onclick="window.openSubject('Pediatrics','Notes');return false;">👶 Pediatric Nursing</button><button type="button" class="subjectPill" data-home-subject="Psychiatry" onclick="window.openSubject('Psychiatry','Notes');return false;">🧠 Psychiatric Nursing</button><button type="button" class="subjectPill" data-home-subject="OBG" onclick="window.openSubject('OBG','Notes');return false;">🤰 OBG Nursing</button><button type="button" class="subjectPill" data-home-subject="Community Medicine" onclick="window.openSubject('Community Medicine','Notes');return false;">🏥 Community Health</button><button type="button" class="subjectPill" data-home-subject="Other" onclick="window.openSubject('Other','Notes');return false;">••• Others</button></div></div></section>
 
 <section id="notes"><div class="wrap"><div class="cards">
 <div class="panel"><div class="head"><div class="icon">▤</div><div><h2>Notes</h2><div class="muted">Handwritten & Typed Notes | Subject Wise</div></div></div><div class="subjects">
@@ -527,7 +527,7 @@ if(!check.ok){
 var r=await fetch("/api/resources/"+encodeURIComponent(id)+"/download",{headers:{"Authorization":"Bearer "+token,"Cache-Control":"no-cache"}});if(!r.ok){var d={};try{d=await r.json();}catch(_){}if(r.status===401){localStorage.removeItem("truthToken");localStorage.removeItem("truthRole");window.pendingDownloadId=Number(id);window.openLogin();return false;}throw new Error(d.error||"Download failed");}var blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}catch(err){alert(err.message||"Download failed. Please try again.");}return false;};
 document.addEventListener("click",function(e){
   var homeSub=e.target.closest && e.target.closest("[data-home-subject]");
-  if(homeSub){e.preventDefault();e.stopPropagation();window.openSubject(homeSub.getAttribute("data-home-subject")||"Notes","Notes");return;}
+  if(homeSub){e.preventDefault();e.stopPropagation();var hs=homeSub.getAttribute("data-home-subject")||homeSub.textContent.replace(/^[^A-Za-z]+/g,"").trim();window.openSubject(hs,"Notes");return;}
   var sub=e.target.closest && e.target.closest("[data-subject]");
   if(sub){e.preventDefault();e.stopPropagation();window.openSubject(sub.getAttribute("data-subject")||"","Notes");return;}
   var ch=e.target.closest && e.target.closest("[data-chapter]");
@@ -537,33 +537,44 @@ document.addEventListener("click",function(e){
 window.loadSubjectVideos=async function(){
   var groups=byId("videoGroups"),tabs=byId("videoSubjectTabs");
   if(!groups||!tabs)return;
-  try{
-    var r=await fetch("/api/resources",{cache:"no-store"});
-    if(!r.ok)throw new Error("failed");
-    var all=await r.json();
-    var videos=(Array.isArray(all)?all:[]).filter(function(x){return String(x.type||"").toLowerCase()==="video";});
-    if(!videos.length){
-      tabs.innerHTML="";
-      groups.innerHTML='<div class="videoEmpty">🎬 No videos uploaded yet. New subject-wise videos will appear here automatically.</div>';
-      return;
-    }
+  var fallback=[
+    {subject:"Nursing",chapter:"Infection Control",title:"Hand hygiene: five moments"},
+    {subject:"Nursing",chapter:"Health Assessment",title:"Understanding vital signs"},
+    {subject:"Physiology",chapter:"Cardiovascular System",title:"How the heart pumps blood"},
+    {subject:"Physiology",chapter:"Respiratory System",title:"Respiratory system basics"},
+    {subject:"Nursing",chapter:"Nursing Procedures",title:"IV cannula: sizes and purpose"},
+    {subject:"Pediatrics",chapter:"Nutrition",title:"Recognizing dehydration"},
+    {subject:"Pharmacology",chapter:"General Pharmacology",title:"Safe medicine habits"},
+    {subject:"Other",chapter:"First Aid",title:"First-aid basics: when to seek help"},
+    {subject:"Anatomy",chapter:"Urinary System",title:"Kidney function explained"},
+    {subject:"Nursing",chapter:"Medical Instruments",title:"Common medical instruments"}
+  ];
+  var renderMergedVideos=function(videos){
     var map={};
     videos.forEach(function(v){var sub=String(v.subject||"Other").trim()||"Other";(map[sub]||(map[sub]=[])).push(v);});
     var subjects=Object.keys(map).sort(function(a,b){return a.localeCompare(b);});
-    tabs.innerHTML='<button class="videoSubjectTab active" data-video-filter="all">All Videos</button>'+subjects.map(function(s){return '<button class="videoSubjectTab" data-video-filter="'+esc(s)+'">'+esc(s)+'</button>';}).join("");
+    tabs.innerHTML='<button class="videoSubjectTab active" data-video-filter="all">All Videos</button>'+subjects.map(function(x){return '<button class="videoSubjectTab" data-video-filter="'+esc(x)+'">'+esc(x)+'</button>';}).join("");
     groups.innerHTML=subjects.map(function(sub){
       var cards=map[sub].map(function(v){
+        if(v.isReelConcept){return '<article class="videoCard reelConcept"><div class="videoConceptArt">🎬<span>'+esc(v.title)+'</span></div><div class="videoCardBody"><h4>'+esc(v.title)+'</h4><div class="videoMeta">'+esc(sub)+' → '+esc(v.title)+(v.chapter?' • '+esc(v.chapter):'')+'</div><a class="videoWatch" href="/reels.html">Open Reel Library →</a></div></article>';}
         var src='/api/resources/'+encodeURIComponent(v.id)+'/video';
-        return '<article class="videoCard" data-video-subject="'+esc(sub)+'"><video controls preload="metadata" playsinline src="'+src+'"></video><div class="videoCardBody"><h4>'+esc(v.title||"Medical Video")+'</h4><div class="videoMeta">'+esc(sub)+(v.chapter?' • '+esc(v.chapter):'')+'</div></div></article>';
+        return '<article class="videoCard"><video controls preload="metadata" playsinline src="'+src+'"></video><div class="videoCardBody"><h4>'+esc(v.title||"Medical Video")+'</h4><div class="videoMeta">'+esc(sub)+' → '+esc(v.title||"Medical Video")+(v.chapter?' • '+esc(v.chapter):'')+'</div></div></article>';
       }).join("");
       return '<section class="videoGroup" data-video-group="'+esc(sub)+'"><div class="videoGroupHead"><h3>📚 '+esc(sub)+'</h3><span>'+map[sub].length+' video'+(map[sub].length===1?'':'s')+'</span></div><div class="videoGrid">'+cards+'</div></section>';
     }).join("");
-    tabs.querySelectorAll("[data-video-filter]").forEach(function(btn){btn.addEventListener("click",function(){
-      tabs.querySelectorAll(".videoSubjectTab").forEach(function(b){b.classList.remove("active")});btn.classList.add("active");
-      var filter=btn.getAttribute("data-video-filter");
-      groups.querySelectorAll("[data-video-group]").forEach(function(g){g.classList.toggle("videoHidden",filter!=="all"&&g.getAttribute("data-video-group")!==filter);});
-    });});
-  }catch(e){groups.innerHTML='<div class="videoEmpty">Videos could not be loaded right now. Please refresh the page.</div>';}
+    tabs.querySelectorAll("[data-video-filter]").forEach(function(btn){btn.addEventListener("click",function(){tabs.querySelectorAll(".videoSubjectTab").forEach(function(b){b.classList.remove("active")});btn.classList.add("active");var filter=btn.getAttribute("data-video-filter");groups.querySelectorAll("[data-video-group]").forEach(function(g){g.classList.toggle("videoHidden",filter!=="all"&&g.getAttribute("data-video-group")!==filter);});});});
+  };
+  try{
+    var r=await fetch("/api/resources",{cache:"no-store"});
+    var all=r.ok?await r.json():[];
+    var videos=(Array.isArray(all)?all:[]).filter(function(x){return String(x.type||"").toLowerCase()==="video";});
+    var seen={}; videos.forEach(function(v){seen[String(v.title||"").trim().toLowerCase()]=true;});
+    fallback.forEach(function(v){if(!seen[v.title.toLowerCase()])videos.push(Object.assign({isReelConcept:true},v));});
+    renderMergedVideos(videos);
+  }catch(e){
+    // API failure must not make the homepage video section blank.
+    renderMergedVideos(fallback.map(function(v){return Object.assign({isReelConcept:true},v);}));
+  }
 };
 
 window.trackVisitor=async function(){

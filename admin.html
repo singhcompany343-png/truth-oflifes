@@ -328,7 +328,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     <form id="resourceForm">
       <input id="rid" type="hidden">
       <div class="row">
-        <input id="title" placeholder="Resource Title" required>
+        <div style="flex:1;min-width:220px"><label id="titleLabel" class="muted" style="display:block;font-size:11px;margin:0 0 5px">Resource Title</label><input id="title" list="videoTopicList" placeholder="Resource Title" required style="width:100%"><datalist id="videoTopicList"><option value="Hand hygiene: five moments"></option><option value="Understanding vital signs"></option><option value="How the heart pumps blood"></option><option value="Respiratory system basics"></option><option value="IV cannula: sizes and purpose"></option><option value="Recognizing dehydration"></option><option value="Safe medicine habits"></option><option value="First-aid basics: when to seek help"></option><option value="Kidney function explained"></option><option value="Common medical instruments"></option></datalist></div>
         <select id="type" required>
           <option value="">Select Type</option>
           <option>Notes</option><option>PPT</option><option>DOC</option><option>Image</option><option>Video</option><option>Question Paper</option><option>Study Material</option><option>Other</option>
@@ -362,7 +362,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
           <video id="adminVideoPreview" controls playsinline preload="metadata"></video>
           <div class="videoPreviewBody">
             <div class="videoPreviewTitle" id="adminVideoPreviewTitle">Your video title</div>
-            <div class="videoPreviewMeta" id="adminVideoPreviewMeta">Subject • Topic / Chapter</div>
+            <div class="videoPreviewMeta" id="adminVideoPreviewMeta">Subject → Video Name • Topic / Chapter</div>
             <p class="previewHint">Upload ke baad ye title, subject aur chapter homepage ke “Video Learning — Subject Wise” section mein automatically use honge.</p>
           </div>
         </div>
@@ -372,7 +372,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
         <div style="margin-top:12px;display:grid;gap:10px">
           <div><b>Title:</b> <span id="videoPreviewTitleText">—</span></div>
           <div><b>Subject:</b> <span id="videoPreviewSubjectText">—</span></div>
-          <div><b>Topic / Chapter:</b> <span id="videoPreviewChapterText">—</span></div>
+          <div><b>Video Name / Topic:</b> <span id="videoPreviewTopicText">—</span></div><div><b>Chapter:</b> <span id="videoPreviewChapterText">—</span></div>
           <div><b>File:</b> <span id="videoPreviewFileText">No video selected</span></div>
         </div>
         <div class="previewHint">Tip: Subject select karo, phir usi subject ka chapter/topic select karo. Isse video automatically correct subject group mein jayega.</div>
@@ -518,9 +518,10 @@ function updateVideoUploadPreview(){
   const chapter=(chapterEl?.value||'').trim()||'Select Topic / Chapter';
   const file=fileEl?.files?.[0];
   document.getElementById('adminVideoPreviewTitle').textContent=title;
-  document.getElementById('adminVideoPreviewMeta').textContent=subject+' • '+chapter;
+  document.getElementById('adminVideoPreviewMeta').textContent=subject+' → '+title+(chapter?' • '+chapter:'');
   document.getElementById('videoPreviewTitleText').textContent=title;
   document.getElementById('videoPreviewSubjectText').textContent=subject;
+  const topicText=document.getElementById('videoPreviewTopicText');if(topicText)topicText.textContent=title;
   document.getElementById('videoPreviewChapterText').textContent=chapter;
   document.getElementById('videoPreviewFileText').textContent=file?file.name:'No video selected';
   const v=document.getElementById('adminVideoPreview');
@@ -609,6 +610,16 @@ async function loadChapterOptions(selected="") {
   if(selected) sel.value=selected;
 }
 document.getElementById("subject").addEventListener("change",()=>loadChapterOptions());
+function updateResourceTypeUI(){
+  const type=document.getElementById("type")?.value||"";
+  const label=document.getElementById("titleLabel");
+  const title=document.getElementById("title");
+  if(!label||!title)return;
+  if(type.toLowerCase()==="video"){label.textContent="Video Name / Topic";title.placeholder="e.g. Hand hygiene: five moments";}
+  else{label.textContent="Resource Title";title.placeholder="Resource Title";}
+}
+document.getElementById("type").addEventListener("change",updateResourceTypeUI);
+updateResourceTypeUI();
 loadChapterOptions();
 
 function renderSubjects(){
