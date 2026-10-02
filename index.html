@@ -131,6 +131,28 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 @media(max-width:900px){.hero .wrap{grid-template-columns:1fr!important}.art{min-height:350px!important;max-width:520px!important;width:100%!important;margin:0 auto 20px!important}.trust .wrap{grid-template-columns:repeat(2,1fr)!important}}
 @media(max-width:650px){.hero .wrap{padding:0 16px!important}.copy{padding:34px 0 18px!important}.hero h1{font-size:36px!important}.hero p{font-size:14px!important}.art{min-height:280px!important;background-size:contain!important}.trust .wrap{grid-template-columns:repeat(2,1fr)!important}.layout{display:block!important}.layout aside{display:flex!important;overflow-x:auto!important;position:sticky!important;top:60px!important;z-index:5!important;padding:8px!important}.layout aside .brand{display:none!important}.layout aside button{white-space:nowrap!important;width:auto!important;padding:10px!important;font-size:12px!important}.layout main{padding:14px!important}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.grid{grid-template-columns:1fr!important}.brandbar{padding:0 12px!important}.formgrid,.three{grid-template-columns:1fr!important}}
 </style>
+
+<style id="tof-v2-upgrade">
+/* truth.oflifes — UI upgrade v2 */
+:root{--v2-primary:#08a8f5;--v2-primary2:#096fd6;--v2-ink:#071a2e;--v2-muted:#7890a8;--v2-card:rgba(255,255,255,.92)}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+nav{background:rgba(2,8,16,.92)!important;backdrop-filter:blur(14px);border-bottom:1px solid rgba(72,173,255,.14)}
+.brand{letter-spacing:-.5px}.brand .logo{box-shadow:0 8px 24px rgba(8,168,245,.18)}
+.hero{position:relative;overflow:hidden}.hero:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;right:-120px;top:-170px;background:rgba(8,168,245,.14);filter:blur(4px);pointer-events:none}
+.hero .wrap{position:relative;z-index:1}.hero h1{font-weight:900}.hero h1 span{background:linear-gradient(90deg,#087fc5,#09b8ff);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.heroSub{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.heroPill{padding:8px 11px;border:1px solid #c9e6f7;background:rgba(255,255,255,.72);border-radius:999px;color:#315a79;font-size:12px;font-weight:800}
+.heroActions{display:flex;gap:10px;flex-wrap:wrap}.heroActions .btn{box-shadow:0 10px 24px rgba(8,127,197,.15)}
+.heroStats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:24px;max-width:540px}.heroStat{background:rgba(255,255,255,.72);border:1px solid #cfe6f4;border-radius:14px;padding:12px 14px}.heroStat b{display:block;font-size:20px;color:#0a6fae}.heroStat span{font-size:11px;color:#6c8296;font-weight:700}
+.art{border-left:1px solid rgba(10,127,197,.12);border-radius:28px;margin:18px 0;padding:20px;box-shadow:inset 0 0 80px rgba(255,255,255,.5)}
+.learningHub{background:#f5faff;padding:38px 0}.hubGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.hubCard{display:block;background:#fff;border:1px solid #dbeaf5;border-radius:18px;padding:20px;box-shadow:0 8px 26px rgba(26,84,122,.07);transition:.2s}.hubCard:hover{transform:translateY(-4px);border-color:#9dd7f5;box-shadow:0 14px 34px rgba(26,84,122,.12)}.hubIcon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#e6f6ff;font-size:24px;margin-bottom:13px}.hubCard h3{margin:0 0 6px;color:#123b5c}.hubCard p{margin:0;color:#71859a;font-size:13px;line-height:1.55}.hubArrow{display:block;margin-top:13px;color:#087fc5;font-weight:900;font-size:12px}
+.studyTools{background:#fff;padding:24px 0}.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f5faff;border:1px solid #dbeaf5;border-radius:18px;padding:12px}.toolSearch{flex:1;min-width:220px;border:1px solid #cbddea;background:#fff;border-radius:12px;padding:13px 15px;font:inherit;outline:none}.toolSearch:focus{border-color:#48b8ef;box-shadow:0 0 0 3px rgba(72,184,239,.12)}.toolHint{font-size:12px;color:#73889b;font-weight:700}
+.subject{transition:.16s}.subject:hover{transform:translateY(-2px);box-shadow:0 7px 18px rgba(24,83,119,.09)}
+.trust{box-shadow:0 4px 18px rgba(17,63,91,.05);position:relative;z-index:2}.trust div{padding:7px 10px;border-right:1px solid #e3edf5}.trust div:last-child{border-right:0}
+.resource{transition:transform .18s,box-shadow .18s,border-color .18s}.resource:hover{transform:translateY(-4px)}
+.mobileMenuBtn{display:none;border:1px solid #244968;background:#102c48;color:#fff;border-radius:10px;padding:8px 10px;font-size:16px;cursor:pointer}.mobileMenu{display:none}
+@media(max-width:900px){.hubGrid{grid-template-columns:1fr 1fr}.mobileMenuBtn{display:block}.mobileMenu{position:absolute;left:12px;right:12px;top:68px;background:#071522;border:1px solid #1e405d;border-radius:16px;padding:10px;box-shadow:0 18px 40px rgba(0,0,0,.35);z-index:20}.mobileMenu.show{display:grid;gap:4px}.mobileMenu a{padding:12px;border-radius:10px;color:#d8e9f7;font-weight:800;font-size:13px}.mobileMenu a:hover{background:#0e2b45}.heroStats{max-width:none}}
+@media(max-width:620px){.heroStats{grid-template-columns:1fr 1fr 1fr;gap:6px}.heroStat{padding:9px 7px}.heroStat b{font-size:16px}.heroStat span{font-size:9px}.heroSub{gap:6px}.heroPill{font-size:10px;padding:7px 9px}.heroActions .btn{width:100%}.art{border-radius:20px}.hubGrid{grid-template-columns:1fr}.studyTools{padding:18px 0}.toolbar{border-radius:14px}.toolSearch{min-width:0;width:100%}.toolHint{display:none}.trust div{border-right:0;border-bottom:1px solid #e3edf5}.trust div:nth-last-child(-n+2){border-bottom:0}}
+</style>
 </head>
 <body>
 
@@ -140,16 +162,16 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 <div class="links">
 <a href="#home">Home</a><a href="/reels.html">Reel Library</a><a href="#" onclick="event.preventDefault();window.openAllResources();">Notes</a><a href="#" onclick="event.preventDefault();window.openAllResources();">PPTs</a><a href="#collab">Collaboration</a><a href="#" onclick="event.preventDefault();window.requestUnavailable('','','Notes');">Request</a><a href="#about">About</a><a href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank" rel="noopener noreferrer">Contact</a>
 </div>
-<a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a>
+<a class="tg" href="https://t.me/+q3-9PiVKzbYyYWVl" target="_blank">Telegram</a><button class="mobileMenuBtn" type="button" aria-label="Open menu" onclick="window.toggleMobileMenu();">☰</button>
 <button id="profileBtn" class="login" type="button" onclick="openProfile()" style="display:none">Profile</button><button id="loginBtn" class="login" type="button" onclick="openLogin()">Login</button>
-</div>
+</div><div id="mobileMenu" class="mobileMenu"><a href="#home">🏠 Home</a><a href="/reels.html">🎬 Reel Library</a><a href="#notes">📚 Notes</a><a href="#ppts">📊 PPTs</a><a href="/learning.html">🧠 Learning</a><a href="/quiz.html">📝 Quiz</a><a href="#collab">🤝 Collaboration</a><a href="#about">ℹ️ About</a></div>
 </nav>
 
 <div class="visitorbar">👥 <span id="visitorCount">Loading...</span> visitors</div>
 
 <header id="home" class="hero">
 <div class="wrap">
-<div class="copy"><div class="eyebrow">For Every Medical Soul — ♡</div><h1>Your Medical Journey<br><span>Starts Here</span></h1><p>Get Notes, PPTs, Study Material & Latest Medical Updates all in one place. Join our community and grow together.</p><div class="buttons"><button class="btn" type="button" onclick="window.openAllResources();">📚 &nbsp; Explore Study Material</button></div></div>
+<div class="copy"><div class="eyebrow">For Every Medical Soul — ♡</div><h1>Your Medical Journey<br><span>Starts Here</span></h1><p>Get Notes, PPTs, Study Material & Latest Medical Updates all in one place. Join our community and grow together.</p><div class="buttons heroActions"><button class="btn" type="button" onclick="window.openAllResources();">📚 &nbsp; Explore Study Material</button><a class="btn alt" href="/quiz.html">📝 Practice MCQs</a></div><div class="heroSub"><span class="heroPill">📖 Notes</span><span class="heroPill">📊 PPTs</span><span class="heroPill">🧠 Learning</span><span class="heroPill">🎬 Medical Reels</span></div><div class="heroStats"><div class="heroStat"><b>24/7</b><span>Study access</span></div><div class="heroStat"><b>20+</b><span>Medical subjects</span></div><div class="heroStat"><b>Free</b><span>Student resources</span></div></div></div>
 <div class="art"><div class="st">🩺</div><div class="books"><div class="book">ANATOMY</div><div class="book">PHYSIOLOGY</div><div class="book">PHARMACOLOGY</div><div class="book">PATHOLOGY</div><div class="book">MEDICINE</div><div class="book">SURGERY</div></div></div>
 </div>
 </header>
@@ -158,6 +180,8 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 
 <section class="homeExplore"><div class="exploreCard"><h2>📚 Explore Study Material</h2><p>Notes, PPTs, subjects, chapters and study material — everything is organized inside one clean menu.</p><button class="btn" type="button" onclick="window.openAllResources();">Explore Study Material →</button></div></section>
 
+<section class="learningHub"><div class="wrap"><div class="sectionhead"><div><h2 style="margin:0;color:#123b5c">Your Learning Hub</h2><p class="muted" style="margin:7px 0 0">Study, practice and learn in one place.</p></div></div><div class="hubGrid" style="margin-top:18px"><a class="hubCard" href="#notes"><div class="hubIcon">📚</div><h3>Notes & PPTs</h3><p>Subject-wise and chapter-wise study material.</p><span class="hubArrow">Explore resources →</span></a><a class="hubCard" href="/quiz.html"><div class="hubIcon">📝</div><h3>Practice MCQs</h3><p>Test your preparation with medical questions.</p><span class="hubArrow">Start practice →</span></a><a class="hubCard" href="/learning.html"><div class="hubIcon">🧠</div><h3>Learning Mode</h3><p>Build a focused study routine with the learning area.</p><span class="hubArrow">Open learning →</span></a></div></div></section>
+<section class="studyTools"><div class="wrap"><div class="toolbar"><input id="resourceQuickSearch" class="toolSearch" type="search" placeholder="🔎 Search subjects or resources..." autocomplete="off"><span class="toolHint">Try: Anatomy, ECG, Pharmacology...</span></div></div></section>
 <section id="notes"><div class="wrap"><div class="cards">
 <div class="panel"><div class="head"><div class="icon">▤</div><div><h2>Notes</h2><div class="muted">Handwritten & Typed Notes | Subject Wise</div></div></div><div class="subjects">
 <a class="subject" data-type="Notes" data-subject="Anatomy" href="#resources">Anatomy</a><a class="subject" data-type="Notes" data-subject="Physiology" href="#resources">Physiology</a><a class="subject" data-type="Notes" data-subject="Biochemistry" href="#resources">Biochemistry</a><a class="subject" data-type="Notes" data-subject="Pharmacology" href="#resources">Pharmacology</a><a class="subject" data-type="Notes" data-subject="Pathology" href="#resources">Pathology</a><a class="subject" data-type="Notes" data-subject="Microbiology" href="#resources">Microbiology</a><a class="subject" data-type="Notes" data-subject="Forensic Medicine" href="#resources">Forensic Medicine</a><a class="subject" data-type="Notes" data-subject="Community Medicine" href="#resources">Community Medicine</a><a class="subject" data-type="Notes" data-subject="Medicine" href="#resources">Medicine</a><a class="subject" data-type="Notes" data-subject="Surgery" href="#resources">Surgery</a><a class="subject" data-type="Notes" data-subject="Pediatrics" href="#resources">Pediatrics</a><a class="subject" data-type="Notes" data-subject="OBG" href="#resources">OBG</a><a class="subject" data-type="Notes" data-subject="Orthopedics" href="#resources">Orthopedics</a><a class="subject" data-type="Notes" data-subject="ENT" href="#resources">ENT</a><a class="subject" data-type="Notes" data-subject="Ophthalmology" href="#resources">Ophthalmology</a><a class="subject" data-type="Notes" data-subject="Radiology" href="#resources">Radiology</a><a class="subject" data-type="Notes" data-subject="Anesthesia" href="#resources">Anesthesia</a><a class="subject" data-type="Notes" data-subject="Psychiatry" href="#resources">Psychiatry</a><a class="subject" data-type="Notes" data-subject="Dermatology" href="#resources">Dermatology</a><a class="subject" data-type="Notes" data-subject="Dentistry" href="#resources">Dentistry</a><a class="subject" data-type="Notes" data-subject="Nursing" href="#resources">Nursing</a><a class="subject" data-type="Notes" data-subject="Other" href="#resources">Other</a>
@@ -454,6 +478,11 @@ window.trackVisitor();
 try{var q=new URLSearchParams(location.search);if(q.get("request")==="1")window.requestUnavailable(q.get("subject")||"",q.get("chapter")||"",q.get("type")||"Notes");}catch(_){}
 });
 })();
+
+/* v2 interactions */
+window.toggleMobileMenu=function(){var m=document.getElementById("mobileMenu");if(m)m.classList.toggle("show");};
+document.addEventListener("click",function(e){var m=document.getElementById("mobileMenu");if(!m)return;if(!e.target.closest(".mobileMenu")&&!e.target.closest(".mobileMenuBtn"))m.classList.remove("show");if(e.target.closest(".mobileMenu a"))m.classList.remove("show");});
+(function(){var input=document.getElementById("resourceQuickSearch");if(!input)return;var timer;input.addEventListener("input",function(){clearTimeout(timer);timer=setTimeout(function(){var q=input.value.trim().toLowerCase();document.querySelectorAll(".subjects .subject").forEach(function(el){el.style.display=!q||el.textContent.toLowerCase().includes(q)?"":"none";});document.querySelectorAll("#resourceList .resource").forEach(function(el){el.style.display=!q||el.textContent.toLowerCase().includes(q)?"":"none";});},80);});})();
 </script>
 </body>
 </html>
