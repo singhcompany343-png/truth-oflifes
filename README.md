@@ -25,4 +25,4 @@ Use the normal Render Node service. The package start command is:
 
 `node server.js`
 
-No separate manual MCQ seed command is required; the server verifies the chapter bank and seeds missing questions on startup.
+Admin seed command is available as `npm run seed-admin`. Set `DATABASE_URL`, `ADMIN_USERNAME` (optional; defaults to `admin`) and `ADMIN_PASSWORD` in Render. The command is safe to run repeatedly. The server also verifies the chapter bank and seeds missing questions on startup.
