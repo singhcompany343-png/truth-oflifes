@@ -186,7 +186,11 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 .socialCard{display:block;color:inherit;transition:.2s}.socialCard:hover{transform:translateY(-3px);border-color:#28bff6!important;box-shadow:0 14px 34px rgba(0,0,0,.3)!important}.socialCard h2{color:#eefaff}.socialCard .post{cursor:pointer}
 @media(max-width:620px){.art{min-height:330px!important}.medicalCircle{width:185px;height:185px}.medicalCircle svg{width:155px;height:155px}.artTitle{font-size:21px;margin-top:14px}.artSub{font-size:8px;letter-spacing:2.2px}.floatingLine{font-size:8px;padding:7px 10px}.line1{top:14%;left:5%}.line2{top:26%;right:5%}.line3{bottom:24%;left:5%}.line4{bottom:12%;right:5%}}
 </style>
-<style id="no-legacy-mascot">.art:after{content:none!important;display:none!important;background:none!important}.art{background-image:none!important}</style></head>
+<style id="no-legacy-mascot">.art:after{content:none!important;display:none!important;background:none!important}.art{background-image:none!important}</style>
+<style id="subject-video-section">
+.videoSection{padding:34px 0;background:#04111f;color:#eefaff}.videoSection .sectionMiniHead{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:18px}.videoSection h2{margin:0;font-size:28px}.videoSection .muted{color:#9eb4c7}.videoSubjectTabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none}.videoSubjectTabs::-webkit-scrollbar{display:none}.videoSubjectTab{flex:0 0 auto;border:1px solid #194b6d;background:#071b2d;color:#cfeaff;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:800;cursor:pointer}.videoSubjectTab.active{background:#0a8ddd;border-color:#31c4ff;color:#fff}.videoGroups{display:grid;gap:18px}.videoGroup{border:1px solid #163d5a;border-radius:16px;padding:15px;background:linear-gradient(145deg,#061a2c,#081525)}.videoGroupHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.videoGroupHead h3{margin:0;font-size:17px}.videoGroupHead span{font-size:11px;color:#87abc4}.videoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.videoCard{border:1px solid #19415d;border-radius:13px;overflow:hidden;background:#061321}.videoCard video{display:block;width:100%;aspect-ratio:16/9;background:#000;object-fit:cover}.videoCardBody{padding:11px}.videoCardBody h4{margin:0 0 6px;font-size:14px;color:#fff}.videoMeta{font-size:10px;color:#8faec3}.videoEmpty{border:1px dashed #1d4e70;border-radius:14px;padding:22px;text-align:center;color:#8faec3}.videoAllBtn{color:#61cbff;font-weight:800;text-decoration:none;font-size:12px}.videoHidden{display:none!important}@media(max-width:800px){.videoGrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.videoSection{padding:28px 0}.videoSection .sectionMiniHead{align-items:start}.videoSection h2{font-size:23px}.videoGrid{grid-template-columns:1fr}.videoCard video{aspect-ratio:16/9}.videoGroup{padding:12px}}
+</style>
+</head>
 <body>
 
 <nav>
@@ -240,6 +244,18 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 </div></div></section>
 
 <section id="resources" class="dark"><div class="wrap"><div class="sectionhead"><div><h2 id="resourceTitle">Latest Resources</h2><p id="resourceSubtitle" class="muted" style="margin:0">Explore Notes, PPTs and study material subject-wise.</p></div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button id="resourceBackBtn" class="backBtn" type="button" onclick="window.goBackFromResources();" style="display:none">← Back</button><button id="allResourcesBtn" class="view allResourcesBtn" type="button" onclick="window.openAllResources();">All Resources →</button></div></div><div id="chapterPanel" class="chapterWrap" style="display:none"><div class="chapterHead"><h3 id="chapterTitle" style="margin:0">Chapters</h3><button class="backBtn" type="button" onclick="window.resetChapter();">← Back</button></div><div id="chapterList" class="chapterGrid"></div></div><div id="resourceList" class="resourcegrid"><div class="resource">Loading resources…</div></div></div></section>
+
+
+<section id="subjectVideos" class="videoSection">
+  <div class="wrap">
+    <div class="sectionMiniHead">
+      <div><h2>🎬 Video Learning — Subject Wise</h2><p class="muted">Uploaded medical videos are shown here by subject, so students can find and watch them directly.</p></div>
+      <a class="videoAllBtn" href="/reels.html">View All Videos →</a>
+    </div>
+    <div id="videoSubjectTabs" class="videoSubjectTabs"></div>
+    <div id="videoGroups" class="videoGroups"><div class="videoEmpty">Loading subject-wise videos…</div></div>
+  </div>
+</section>
 
 <section class="dark"><div class="wrap three">
 <a class="darkbox socialCard" href="https://www.instagram.com/truth.oflifes" target="_blank" rel="noopener" aria-label="Open truth.oflifes on Instagram"><h2>◎ Latest from Instagram ↗</h2><p class="muted">Follow us for daily notes, tips, motivation & more.</p><div class="posts"><div class="post">Medical<br>is not a course</div><div class="post">Small Steps<br>Big Dreams</div><div class="post">Future<br>Doctor ♡</div><div class="post">Hard Work<br>Always Pays Off</div></div><p><b>@truth.oflifes</b></p></a>
@@ -473,6 +489,39 @@ if(!check.ok){
 var r=await fetch("/api/resources/"+encodeURIComponent(id)+"/download",{headers:{"Authorization":"Bearer "+token,"Cache-Control":"no-cache"}});if(!r.ok){var d={};try{d=await r.json();}catch(_){}if(r.status===401){localStorage.removeItem("truthToken");localStorage.removeItem("truthRole");window.pendingDownloadId=Number(id);window.openLogin();return false;}throw new Error(d.error||"Download failed");}var blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}catch(err){alert(err.message||"Download failed. Please try again.");}return false;};
 document.querySelectorAll(".subjectPill[data-home-subject]").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();window.openSubject(this.dataset.homeSubject||"", "Notes");});});
 document.querySelectorAll(".subject[data-subject]").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();window.openSubject(this.dataset.subject||"",this.dataset.type||"Notes");});});
+
+window.loadSubjectVideos=async function(){
+  var groups=byId("videoGroups"),tabs=byId("videoSubjectTabs");
+  if(!groups||!tabs)return;
+  try{
+    var r=await fetch("/api/resources",{cache:"no-store"});
+    if(!r.ok)throw new Error("failed");
+    var all=await r.json();
+    var videos=(Array.isArray(all)?all:[]).filter(function(x){return String(x.type||"").toLowerCase()==="video";});
+    if(!videos.length){
+      tabs.innerHTML="";
+      groups.innerHTML='<div class="videoEmpty">🎬 No videos uploaded yet. New subject-wise videos will appear here automatically.</div>';
+      return;
+    }
+    var map={};
+    videos.forEach(function(v){var sub=String(v.subject||"Other").trim()||"Other";(map[sub]||(map[sub]=[])).push(v);});
+    var subjects=Object.keys(map).sort(function(a,b){return a.localeCompare(b);});
+    tabs.innerHTML='<button class="videoSubjectTab active" data-video-filter="all">All Videos</button>'+subjects.map(function(s){return '<button class="videoSubjectTab" data-video-filter="'+esc(s)+'">'+esc(s)+'</button>';}).join("");
+    groups.innerHTML=subjects.map(function(sub){
+      var cards=map[sub].map(function(v){
+        var src='/api/resources/'+encodeURIComponent(v.id)+'/video';
+        return '<article class="videoCard" data-video-subject="'+esc(sub)+'"><video controls preload="metadata" playsinline src="'+src+'"></video><div class="videoCardBody"><h4>'+esc(v.title||"Medical Video")+'</h4><div class="videoMeta">'+esc(sub)+(v.chapter?' • '+esc(v.chapter):'')+'</div></div></article>';
+      }).join("");
+      return '<section class="videoGroup" data-video-group="'+esc(sub)+'"><div class="videoGroupHead"><h3>📚 '+esc(sub)+'</h3><span>'+map[sub].length+' video'+(map[sub].length===1?'':'s')+'</span></div><div class="videoGrid">'+cards+'</div></section>';
+    }).join("");
+    tabs.querySelectorAll("[data-video-filter]").forEach(function(btn){btn.addEventListener("click",function(){
+      tabs.querySelectorAll(".videoSubjectTab").forEach(function(b){b.classList.remove("active")});btn.classList.add("active");
+      var filter=btn.getAttribute("data-video-filter");
+      groups.querySelectorAll("[data-video-group]").forEach(function(g){g.classList.toggle("videoHidden",filter!=="all"&&g.getAttribute("data-video-group")!==filter);});
+    });});
+  }catch(e){groups.innerHTML='<div class="videoEmpty">Videos could not be loaded right now. Please refresh the page.</div>';}
+};
+
 window.trackVisitor=async function(){
 var el=byId("visitorCount");
 try{
@@ -524,6 +573,7 @@ document.addEventListener("DOMContentLoaded",function(){
 setAuthUI();
 window.loadChapters().then(window.loadResources);
 window.trackVisitor();
+window.loadSubjectVideos();
 try{var q=new URLSearchParams(location.search);if(q.get("request")==="1")window.requestUnavailable(q.get("subject")||"",q.get("chapter")||"",q.get("type")||"Notes");}catch(_){}
 });
 })();

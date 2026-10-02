@@ -324,16 +324,30 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/learning", (req, res) => res.redirect(302, "/"));
-app.get("/quiz.html", (req, res) => res.redirect(302, "/"));
-app.get("/student.html", (req, res) => res.redirect(302, "/"));
-
-app.get("/admin.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "admin.html"));
-});
-
-app.get("/forgot-password.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "forgot-password.html"));
+// Static educational pages — serve the actual page instead of redirecting to home.
+// This fixes the brief blank/return-to-home behavior seen on mobile when opening
+// Quiz, Learning, Student, Videos and policy pages.
+const pageRoutes = {
+  "/learning": "learning.html",
+  "/learning.html": "learning.html",
+  "/quiz": "quiz.html",
+  "/quiz.html": "quiz.html",
+  "/student": "student.html",
+  "/student.html": "student.html",
+  "/reels": "reels.html",
+  "/reels.html": "reels.html",
+  "/about.html": "about.html",
+  "/privacy.html": "privacy.html",
+  "/terms.html": "terms.html",
+  "/disclaimer.html": "disclaimer.html",
+  "/forgot-password.html": "forgot-password.html",
+  "/admin.html": "admin.html"
+};
+Object.entries(pageRoutes).forEach(([route, file]) => {
+  app.get(route, (req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.sendFile(path.join(__dirname, file));
+  });
 });
 
 // =========================
@@ -753,6 +767,42 @@ app.post("/api/admin/login", async (req, res) => {
 // =========================
 // RESOURCES - PUBLIC LIST
 // =========================
+
+// Public video preview endpoint. Only resources explicitly marked as Video are exposed here,
+// so uploaded educational videos can be watched directly from the homepage without login.
+app.get("/api/resources/:id/video", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT type, file_url, file_data, file_name, mime_type, title
+      FROM resources WHERE id = $1
+    `, [req.params.id]);
+    if (!result.rowCount) return res.status(404).json({ error: "Video not found" });
+    const row = result.rows[0];
+    if (String(row.type || "").toLowerCase() !== "video") {
+      return res.status(404).json({ error: "This resource is not a video" });
+    }
+
+    // External video URL: redirect so YouTube/CDN links continue to work.
+    if (row.file_url && /^https?:\/\//i.test(row.file_url)) {
+      return res.redirect(row.file_url);
+    }
+
+    if (!row.file_data) return res.status(404).json({ error: "Video file is not available" });
+    const data = String(row.file_data);
+    const comma = data.indexOf(",");
+    const payload = comma >= 0 ? data.slice(comma + 1) : data;
+    const mime = row.mime_type || (comma >= 0 && data.slice(0, comma).match(/^data:([^;]+)/i)?.[1]) || "video/mp4";
+    const buffer = Buffer.from(payload, "base64");
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Content-Disposition", `inline; filename="${String(row.file_name || row.title || "video").replace(/[^a-zA-Z0-9._-]+/g, "_")}"`);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    return res.end(buffer);
+  } catch (error) {
+    console.error("Video preview error", error);
+    return res.status(500).json({ error: "Could not load video" });
+  }
+});
 
 app.get("/api/resources", async (req, res) => {
   try {
