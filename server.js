@@ -357,13 +357,6 @@ async function setupDatabase() {
 // AUTH MIDDLEWARE
 // =========================
 
-function maybeAuth(req, res, next) {
-  const header = req.headers.authorization || "";
-  if (!header.startsWith("Bearer ")) { req.user = null; return next(); }
-  try { req.user = jwt.verify(header.substring(7), JWT_SECRET); } catch (error) { req.user = null; }
-  next();
-}
-
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
 
@@ -1066,9 +1059,10 @@ app.get('/api/learning/chapter-mcqs', (req,res)=>{
 // =========================
 // PUBLIC RESOURCE OPEN (VIEW ONLY)
 // =========================
-// Notes require login to open. PPT remains viewable through this route;
-// the separate /download endpoint remains authenticated for downloads.
-app.get("/api/resources/:id/open", maybeAuth, async (req, res) => {
+// Notes/PPT can be opened in the browser without login. The separate
+// /download endpoint below remains authenticated, so opening never grants
+// a free download action from the site.
+app.get("/api/resources/:id/open", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT type, file_url, file_data, file_name, mime_type, title
@@ -1078,9 +1072,6 @@ app.get("/api/resources/:id/open", maybeAuth, async (req, res) => {
     if (!result.rowCount) return res.status(404).json({error:"Resource not found"});
     const row = result.rows[0];
     const type = String(row.type || "").toLowerCase();
-    if (type === "notes" && !req.user) {
-      return res.status(401).json({error:"Login required to open Notes"});
-    }
     if (type === "video") return res.redirect(`/api/resources/${encodeURIComponent(req.params.id)}/video`);
 
     const fileUrl = String(row.file_url || "").trim();
