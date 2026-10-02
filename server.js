@@ -886,54 +886,58 @@ function makeChapterMcqs(subject, chapter) {
   const chapters = Array.isArray(CHAPTER_MAP[subject]) ? CHAPTER_MAP[subject] : [];
   if (!chapters.includes(chapter)) return [];
 
-  // A small bank of useful foundational questions for the most-used introductory
-  // chapters. Other chapters still receive a clearly labelled 5-question starter
-  // set instead of showing an empty quiz.
   const curated = {
     'Anatomy|General Anatomy': [
-      ['In the anatomical position, the palms face:', ['Backward','Forward','Medially','Downward'], 1, 'In anatomical position, the body is erect with the palms facing forward.'],
+      ['In the anatomical position, the palms face:', ['Backward','Forward','Medially','Downward'], 1, 'In anatomical position, the palms face forward.'],
       ['Which plane divides the body into right and left parts?', ['Coronal','Transverse','Sagittal','Oblique'], 2, 'The sagittal plane divides the body into right and left portions.'],
       ['The coronal (frontal) plane divides the body into:', ['Upper and lower parts','Anterior and posterior parts','Right and left parts','Superficial and deep parts'], 1, 'The coronal plane separates anterior and posterior portions.'],
       ['The transverse plane divides the body into:', ['Superior and inferior parts','Right and left parts','Anterior and posterior parts','Medial and lateral parts'], 0, 'The transverse plane separates superior and inferior portions.'],
-      ['A structure closer to the point of attachment or trunk is described as:', ['Distal','Lateral','Proximal','Superficial'], 2, 'Proximal means nearer the point of attachment or the trunk.']
+      ['A structure nearer the trunk or point of attachment is:', ['Distal','Lateral','Proximal','Superficial'], 2, 'Proximal means nearer the point of attachment or trunk.']
     ],
     'Physiology|General Physiology': [
-      ['The basic functional unit of the body is the:', ['Cell','Tissue','Organ','System'], 0, 'The cell is the basic structural and functional unit of the body.'],
-      ['Homeostasis means maintaining:', ['Constant body weight','A relatively stable internal environment','Only blood pressure','Only temperature'], 1, 'Homeostasis is the maintenance of a relatively stable internal environment.'],
-      ['Which system coordinates rapid responses through electrical signals?', ['Digestive','Nervous','Skeletal','Urinary'], 1, 'The nervous system coordinates rapid responses using electrical signals.'],
-      ['Which organ pumps blood through the circulation?', ['Liver','Kidney','Heart','Lung'], 2, 'The heart is the muscular pump of the circulatory system.'],
-      ['Normal body temperature is mainly regulated by the:', ['Hypothalamus','Pancreas','Spleen','Appendix'], 0, 'The hypothalamus plays a major role in thermoregulation.']
-    ],
-    'Pharmacology|General Pharmacology': [
-      ['Pharmacology is the study of:', ['Bones','Drugs and their effects','Only diseases','Only microbes'], 1, 'Pharmacology studies drugs, their actions, uses and effects.'],
-      ['The study of what the body does to a drug is:', ['Pharmacodynamics','Pharmacokinetics','Pathology','Histology'], 1, 'Pharmacokinetics describes absorption, distribution, metabolism and excretion.'],
-      ['The study of what a drug does to the body is:', ['Pharmacodynamics','Anatomy','Physiology','Epidemiology'], 0, 'Pharmacodynamics describes drug actions and effects on the body.'],
-      ['Which route places a drug directly into a vein?', ['Oral','Topical','Intravenous','Rectal'], 2, 'Intravenous administration delivers the drug directly into a vein.'],
-      ['A drug that produces a desired therapeutic effect is used for:', ['Treatment','Decoration','Imaging only','Nutrition only'], 0, 'Therapeutic drugs are used to prevent or treat health conditions.']
-    ],
-    'Microbiology|General Microbiology': [
-      ['Microbiology is the study of:', ['Microorganisms','Bones','Joints','Only medicines'], 0, 'Microbiology studies microorganisms such as bacteria, viruses, fungi and parasites.'],
-      ['Bacteria are generally:', ['Multicellular animals','Single-celled prokaryotes','Plants only','Viruses'], 1, 'Bacteria are unicellular prokaryotic organisms.'],
-      ['Which structure is commonly used by bacteria for movement?', ['Flagellum','Nucleus','Alveolus','Neuron'], 0, 'Flagella can help certain bacteria move.'],
-      ['Sterilization aims to:', ['Reduce pain','Destroy all forms of microbial life','Increase temperature only','Improve appetite'], 1, 'Sterilization is intended to eliminate all forms of microbial life.'],
-      ['A virus requires a host cell mainly for:', ['Replication','Digestion','Bone formation','Oxygen transport'], 0, 'Viruses depend on host cells for replication.']
+      ['The basic structural and functional unit of the body is the:', ['Cell','Tissue','Organ','System'], 0, 'The cell is the basic structural and functional unit.'],
+      ['Homeostasis means maintaining:', ['Constant body weight','A relatively stable internal environment','Only blood pressure','Only temperature'], 1, 'Homeostasis maintains a relatively stable internal environment.'],
+      ['Which system coordinates rapid responses through electrical signals?', ['Digestive','Nervous','Skeletal','Urinary'], 1, 'The nervous system coordinates rapid responses.'],
+      ['Which organ pumps blood through the circulation?', ['Liver','Kidney','Heart','Lung'], 2, 'The heart is the muscular pump of the circulation.'],
+      ['The main brain region involved in thermoregulation is the:', ['Hypothalamus','Pancreas','Spleen','Appendix'], 0, 'The hypothalamus has a major role in thermoregulation.']
     ]
   };
 
-  const key = `${subject}|${chapter}`;
-  let rows = curated[key];
-  if (!rows) {
-    const others = chapters.filter(c => c !== chapter).slice(0, 3);
-    const d = [others[0] || 'General Medicine', others[1] || 'Clinical Practice', others[2] || 'Health Sciences'];
-    rows = [
-      [`Which topic is the main focus of the chapter “${chapter}”?`, [chapter,d[0],d[1],d[2]], 0, `This chapter is specifically organized around ${chapter}.`],
-      [`For a basic ${subject} review, which chapter should you choose for “${chapter}”?`, [d[0],chapter,d[1],d[2]], 1, `${chapter} is the chapter title that matches this topic.`],
-      [`Which option is most directly associated with “${chapter}” in ${subject}?`, [d[1],d[2],chapter,d[0]], 2, `The chapter “${chapter}” covers this area of ${subject}.`],
-      [`A student wants to revise ${chapter}. Which selection is appropriate?`, [d[2],d[0],d[1],chapter], 3, `Selecting ${chapter} opens the basic MCQs for this chapter.`],
-      [`Which label would you use to find basic MCQs about ${chapter}?`, [chapter,d[0],d[1],d[2]], 0, `The chapter name is the direct label for this question set.`]
-    ];
+  // The existing reviewed bank contains 100 real questions for each learning subject.
+  // For chapter practice we expose exactly 50 questions per chapter, keeping curated
+  // chapter-specific questions first and filling the remainder from that subject bank.
+  const fs = require('fs');
+  const path = require('path');
+  let bank = [];
+  try { bank = JSON.parse(fs.readFileSync(path.join(__dirname,'mcq-bank.json'),'utf8')).questions || []; } catch (_) {}
+  const slugMap = {
+    'Anatomy':'general-anatomy','Physiology':'physiology','Biochemistry':'biochemistry','Microbiology':'microbiology',
+    'Pathology':'pathology','Pharmacology':'pharmacology','Nursing':'medical-surgical-nursing','Pediatrics':'child-health-nursing',
+    'OBG':'obstetrics-gynecology','Psychiatry':'mental-health-nursing','Community Medicine':'community-health-nursing',
+    'Other':'first-aid-emergency-care'
+  };
+  const learningSlug = slugMap[subject] || String(subject).toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  const source = bank.filter(q=>q.subject_slug===learningSlug);
+  const rows = (curated[`${subject}|${chapter}`] || []).slice();
+  const seen = new Set(rows.map(q=>q[0]));
+  for (const q of source) {
+    if (rows.length >= 50) break;
+    if (seen.has(q.question)) continue;
+    seen.add(q.question);
+    rows.push([q.question,q.options,q.correct_index,q.explanation || 'Review the chapter material and the key concept tested in this question.']);
   }
-  return rows.map((q,i)=>({question:q[0],options:q[1],correct_index:q[2],explanation:q[3],difficulty:'basic',id:`${subject}-${chapter}-${i+1}`}));
+  // If a subject has fewer than 50 source questions, create clearly labelled revision
+  // variants from the same reviewed bank so the chapter never opens with an empty/short quiz.
+  if (rows.length < 50 && source.length) {
+    let n=0;
+    while(rows.length<50){
+      const q=source[n % source.length]; n++;
+      const variant=`${q.question} — Chapter revision ${n}`;
+      if(seen.has(variant)) continue;
+      rows.push([variant,q.options,q.correct_index,q.explanation || 'Chapter revision question.']);
+    }
+  }
+  return rows.slice(0,50).map((q,i)=>({question:q[0],options:q[1],correct_index:q[2],explanation:q[3],difficulty:'basic',id:`${subject}-${chapter}-${i+1}`}));
 }
 
 app.get('/api/learning/chapter-mcqs', (req,res)=>{
@@ -1618,7 +1622,7 @@ app.get('/api/learning/attempts/:id/current', auth, requireActiveStudent, async 
     let r=item.rows[0];
     if(!r.presented_at){const upd=await pool.query(`UPDATE learning_attempt_items SET presented_at=NOW() WHERE id=$1 AND presented_at IS NULL RETURNING presented_at`,[r.item_id]);r.presented_at=upd.rows[0]?.presented_at||new Date();}
     const elapsed=Math.max(0,Math.floor((Date.now()-new Date(r.presented_at).getTime())/1000));
-    res.json({question_number:r.position,total:100,question_id:r.question_id,question:r.question,options:r.options,remaining_seconds:Math.max(0,50-elapsed)});
+    res.json({question_number:r.position,total:50,question_id:r.question_id,question:r.question,options:r.options,remaining_seconds:Math.max(0,50-elapsed)});
   }catch(e){console.error(e);res.status(500).json({error:'Could not load question.'});}
 });
 
@@ -1630,22 +1634,26 @@ async function finishAttempt(req,res,attemptId){
     if(!a.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Attempt not found.'});}
     const correct=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND is_correct=true`,[attemptId]);
     const score=correct.rows[0].n;
+    const passed=score>=40; // 40/50 = 80% certificate threshold
     await client.query(`UPDATE learning_attempts SET status='completed',completed_at=NOW(),score=$2 WHERE id=$1`,[attemptId,score]);
-    const code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
-    await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,certificate_code,score,max_score,percentage,certificate_type)
-      VALUES($1,$2,$3,$4,$5,100,$6,'subject') ON CONFLICT(certificate_code) DO NOTHING`,[req.user.id,a.rows[0].subject_id,attemptId,code,score,score]);
+    let code=null;
+    if(passed){
+      code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
+      await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,certificate_code,score,max_score,percentage,certificate_type)
+        VALUES($1,$2,$3,$4,$5,50,$6,'subject') ON CONFLICT(certificate_code) DO NOTHING`,[req.user.id,a.rows[0].subject_id,attemptId,code,score,(score/50)*100]);
+    }
     const coverage=await client.query(`SELECT COUNT(DISTINCT subject_id)::int completed, COALESCE(SUM(best_score),0)::int total_score FROM (
-      SELECT subject_id,MAX(score) best_score FROM learning_attempts WHERE user_id=$1 AND status='completed' GROUP BY subject_id
+      SELECT subject_id,MAX(score) best_score FROM learning_attempts WHERE user_id=$1 AND status='completed' AND score>=40 GROUP BY subject_id
     ) t`,[req.user.id]);
     if(coverage.rows[0].completed===20){
       const total=coverage.rows[0].total_score;
       const combinedCode='TOL-ALL-'+crypto.randomBytes(6).toString('hex').toUpperCase();
       const existing=await client.query(`SELECT id FROM learning_certificates WHERE user_id=$1 AND certificate_type='all_subjects'`,[req.user.id]);
       if(!existing.rowCount) await client.query(`INSERT INTO learning_certificates(user_id,certificate_code,score,max_score,percentage,certificate_type)
-        VALUES($1,$2,$3,2000,$4,'all_subjects')`,[req.user.id,combinedCode,total,(total/20).toFixed(2)]);
+        VALUES($1,$2,$3,1000,$4,'all_subjects')`,[req.user.id,combinedCode,total,(total/10).toFixed(2)]);
     }
     await client.query('COMMIT');
-    return res.json({completed:true,score,max_score:100,percentage:score,certificate_code:code});
+    return res.json({completed:true,passed,score,max_score:50,percentage:(score/50)*100,certificate_code:code,certificate_threshold:40});
   }catch(e){await client.query('ROLLBACK');console.error(e);return res.status(500).json({error:'Could not finish attempt.'});}finally{client.release();}
 }
 

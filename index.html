@@ -232,7 +232,20 @@ footer{background:#010a15!important;color:#dcefff!important;border-top:1px solid
 <div class="quickCard"><div class="quickIcon purple">✦</div><div><h3>Learning Mode</h3><p>Structured learning path for better results</p><button onclick="location.href='/learning.html'">Start Learning →</button></div></div>
 </div></div></section>
 
-<section id="subjects"><div class="wrap"><div class="sectionMiniHead"><div><h2>Explore Subjects</h2><p>Choose your subject and find the best study resources.</p></div><button onclick="window.openAllResources();">View All Subjects →</button></div><div class="subjectPills"><button type="button" class="subjectPill" data-home-subject="Anatomy" onclick="window.openSubject('Anatomy','Notes');return false;">🫀 Anatomy</button><button type="button" class="subjectPill" data-home-subject="Physiology" onclick="window.openSubject('Physiology','Notes');return false;">🧠 Physiology</button><button type="button" class="subjectPill" data-home-subject="Biochemistry" onclick="window.openSubject('Biochemistry','Notes');return false;">🧪 Biochemistry</button><button type="button" class="subjectPill" data-home-subject="Pharmacology" onclick="window.openSubject('Pharmacology','Notes');return false;">💊 Pharmacology</button><button type="button" class="subjectPill" data-home-subject="Pathology" onclick="window.openSubject('Pathology','Notes');return false;">🔬 Pathology</button><button type="button" class="subjectPill" data-home-subject="Microbiology" onclick="window.openSubject('Microbiology','Notes');return false;">🦠 Microbiology</button><button type="button" class="subjectPill" data-home-subject="Nursing" onclick="window.openSubject('Nursing','Notes');return false;">❤️ Medical Surgical Nursing</button><button type="button" class="subjectPill" data-home-subject="Pediatrics" onclick="window.openSubject('Pediatrics','Notes');return false;">👶 Pediatric Nursing</button><button type="button" class="subjectPill" data-home-subject="Psychiatry" onclick="window.openSubject('Psychiatry','Notes');return false;">🧠 Psychiatric Nursing</button><button type="button" class="subjectPill" data-home-subject="OBG" onclick="window.openSubject('OBG','Notes');return false;">🤰 OBG Nursing</button><button type="button" class="subjectPill" data-home-subject="Community Medicine" onclick="window.openSubject('Community Medicine','Notes');return false;">🏥 Community Health</button><button type="button" class="subjectPill" data-home-subject="Other" onclick="window.openSubject('Other','Notes');return false;">••• Others</button></div></div></section>
+<section id="subjects"><div class="wrap"><div class="sectionMiniHead"><div><h2>Explore Subjects</h2><p>Choose your subject and find the best study resources.</p></div><button onclick="window.openAllResources();">View All Subjects →</button></div><div class="subjectPills">
+<a class="subjectPill" data-home-subject="Anatomy" href="#resources" onclick="window.openSubject('Anatomy','Notes');">🫀 Anatomy</a>
+<a class="subjectPill" data-home-subject="Physiology" href="#resources" onclick="window.openSubject('Physiology','Notes');">🧠 Physiology</a>
+<a class="subjectPill" data-home-subject="Biochemistry" href="#resources" onclick="window.openSubject('Biochemistry','Notes');">🧪 Biochemistry</a>
+<a class="subjectPill" data-home-subject="Pharmacology" href="#resources" onclick="window.openSubject('Pharmacology','Notes');">💊 Pharmacology</a>
+<a class="subjectPill" data-home-subject="Pathology" href="#resources" onclick="window.openSubject('Pathology','Notes');">🔬 Pathology</a>
+<a class="subjectPill" data-home-subject="Microbiology" href="#resources" onclick="window.openSubject('Microbiology','Notes');">🦠 Microbiology</a>
+<a class="subjectPill" data-home-subject="Nursing" href="#resources" onclick="window.openSubject('Nursing','Notes');">❤️ Medical Surgical Nursing</a>
+<a class="subjectPill" data-home-subject="Pediatrics" href="#resources" onclick="window.openSubject('Pediatrics','Notes');">👶 Pediatric Nursing</a>
+<a class="subjectPill" data-home-subject="Psychiatry" href="#resources" onclick="window.openSubject('Psychiatry','Notes');">🧠 Psychiatric Nursing</a>
+<a class="subjectPill" data-home-subject="OBG" href="#resources" onclick="window.openSubject('OBG','Notes');">🤰 OBG Nursing</a>
+<a class="subjectPill" data-home-subject="Community Medicine" href="#resources" onclick="window.openSubject('Community Medicine','Notes');">🏥 Community Health</a>
+<a class="subjectPill" data-home-subject="Other" href="#resources" onclick="window.openSubject('Other','Notes');">••• Others</a>
+</div></div></section>
 
 <section id="notes"><div class="wrap"><div class="cards">
 <div class="panel"><div class="head"><div class="icon">▤</div><div><h2>Notes</h2><div class="muted">Handwritten & Typed Notes | Subject Wise</div></div></div><div class="subjects">
@@ -461,8 +474,9 @@ window.openSubject=async function(subject,type){
   if(!subject)return false;
   window.currentResourceSubject=subject; window.currentResourceType=type; window.currentResourceChapter=null;
   if(window.allResourceMode){
-    if(!Object.keys(window.chapterMap||{}).length && window.loadChapters){try{await window.loadChapters();}catch(_){}}
-    window.renderAllResourceChapters(); return false;
+    window.renderAllResourceChapters();
+    if(window.loadChapters) window.loadChapters().then(window.renderAllResourceChapters).catch(function(){});
+    return false;
   }
   byId("allResourcesPanel").style.display="none";
   byId("resourceList").style.display="none";
@@ -470,9 +484,10 @@ window.openSubject=async function(subject,type){
   byId("resourceTitle").textContent=subject+" — "+type;
   byId("resourceSubtitle").textContent="Choose a chapter to continue.";
   byId("resourceList").innerHTML="";
-  if(!Object.keys(window.chapterMap||{}).length && window.loadChapters){try{await window.loadChapters();}catch(_){}}
+  // Render immediately from the built-in fallback so a slow API cannot make the click look dead.
   window.renderChapters();
   var cp=byId("chapterPanel"); if(cp){cp.style.display="block"; cp.scrollIntoView({behavior:"smooth",block:"start"});}
+  if(window.loadChapters) window.loadChapters().then(function(){ if(window.currentResourceSubject===subject) window.renderChapters(); }).catch(function(){});
   return false;
 };
 window.renderAllResourceChapters=function(){var box=byId("allResourceContent"),subject=window.currentResourceSubject,type=window.currentResourceType,arr=window.chapterMap[subject]||[];box.innerHTML='<div class="allResourcesPopupTop"><div><div class="allResourcesBadge">📚 '+esc(type||"Resource")+'</div><h2 style="margin:8px 0 0;color:#fff">'+esc(subject)+' Chapters</h2><p class="muted" style="margin:4px 0 0">Choose a chapter to continue.</p></div><button class="allResourcesPopupBack" type="button" onclick="window.backAllResourceStep();">← Back</button></div><div class="popupChapterGrid">'+(arr.length?arr.map(function(ch){return '<button class="chapter" type="button" data-popup-chapter="'+esc(ch)+'">'+esc(ch)+'</button>';}).join(""):window.unavailableCard(subject+" "+type))+'</div>';};
@@ -491,7 +506,6 @@ document.addEventListener("click",function(e){var b=e.target.closest("[data-requ
 document.getElementById("allResourcesPanel").addEventListener("click",function(e){var btn=e.target.closest("[data-all-subject]");if(btn){e.preventDefault();window.openSubject(btn.getAttribute("data-all-subject")||"",btn.getAttribute("data-all-type")||"Notes");return;}var ch=e.target.closest("[data-popup-chapter]");if(ch){e.preventDefault();window.openAllResourceChapter(ch.getAttribute("data-popup-chapter")||"");}});
 byId("chapterList").addEventListener("click",function(e){var btn=e.target.closest("button[data-chapter]");if(!btn)return;e.preventDefault();e.stopPropagation();window.openChapter(btn.getAttribute("data-chapter")||"");});
 window.loadChapters=async function(){
-  try{var r=await fetch("/api/chapters",{cache:"no-store"});if(r.ok){var d=await r.json();if(d&&typeof d==="object")window.chapterMap=d;}}catch(_){}
   if(!window.chapterMap || !Object.keys(window.chapterMap).length){
     window.chapterMap={
       "Anatomy":["General Anatomy","Osteology","Arthrology (Joints)","Myology (Muscles)","Cardiovascular System","Respiratory System","Digestive System","Urinary System","Reproductive System","Nervous System"],
@@ -508,6 +522,7 @@ window.loadChapters=async function(){
       "Other":["First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Medical Calculations","Investigation & Lab Values"]
     };
   }
+  try{var r=await fetch("/api/chapters",{cache:"no-store"});if(r.ok){var d=await r.json();if(d&&typeof d==="object"&&Object.keys(d).length)window.chapterMap=d;}}catch(_){}
   window.renderChapters();
   return window.chapterMap;
 };
