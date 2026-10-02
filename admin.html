@@ -531,7 +531,7 @@ async function openResourcePdf(id){
     if(!r.ok){
       let d={};
       try{d=await r.json();}catch(e){}
-      throw new Error(d.error||"Could not open PDF");
+      throw new Error(d.error||"Could not open resource");
     }
     const blob=await r.blob();
     const url=URL.createObjectURL(blob);
@@ -554,7 +554,7 @@ function renderResources(){
       <div class="meta"><span class="typeBadge ${String(r.type||"").toLowerCase()==="notes"?"notes":String(r.type||"").toLowerCase()==="ppt"?"ppt":"other"}">${String(r.type||"").toLowerCase()==="notes"?"💚":String(r.type||"").toLowerCase()==="ppt"?"🟣":"📘"} ${esc(r.type)}</span>${esc(r.subject||"No subject")}${r.chapter?" · "+esc(r.chapter):""} · ${date(r.created_at)}</div>
       ${r.description?`<div style="font-size:13px;margin-bottom:8px">${esc(r.description)}</div>`:""}
       <div class="actions">
-        <button class="btn small" type="button" onclick="openResourcePdf(${r.id})">📄 Open PDF</button>
+        <button class="btn small" type="button" onclick="openResourcePdf(${r.id})">📄 Open Resource</button>
         <button class="muted small" onclick="editResource(${r.id})">✏️ Edit</button>
         <button class="danger small" onclick="deleteResource(${r.id})">Delete</button>
       </div>
@@ -606,8 +606,8 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
           if(!value || !value.includes(",") || value.length<40) return reject(new Error("Could not read PDF data. Please choose the PDF again from Files."));
           resolve(value);
         };
-        reader.onerror=()=>reject(new Error("Could not read PDF."));
-        reader.onabort=()=>reject(new Error("PDF reading was cancelled."));
+        reader.onerror=()=>reject(new Error("Could not read selected file."));
+        reader.onabort=()=>reject(new Error("File reading was cancelled."));
         reader.readAsDataURL(file);
       });
       body.file_name=file.name;

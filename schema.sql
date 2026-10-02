@@ -7,9 +7,12 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE TABLE IF NOT EXISTS resources (
   id SERIAL PRIMARY KEY,
   title TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('Notes','PPT')),
+  type TEXT NOT NULL CHECK (type IN ('Notes','PPT','DOC','Image','Video','Question Paper','Study Material','Other')),
   subject TEXT,
-  file_url TEXT NOT NULL,
+  file_url TEXT,
+  file_data TEXT,
+  file_name TEXT,
+  mime_type TEXT,
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

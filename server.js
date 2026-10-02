@@ -9,7 +9,7 @@ const crypto = require("crypto");
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "40mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 3000;
@@ -164,6 +164,18 @@ async function setupDatabase() {
 
   // Older databases may have resources tables without the chapter column.
   await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS chapter TEXT;`);
+
+  // Final resource-type migration: older databases restricted resources to Notes/PPT only.
+  // Replace that legacy constraint with the full set supported by the admin uploader.
+  await pool.query(`ALTER TABLE resources DROP CONSTRAINT IF EXISTS resources_type_check;`);
+  await pool.query(`
+    ALTER TABLE resources
+      ADD CONSTRAINT resources_type_check
+      CHECK (type IN ('Notes','PPT','DOC','Image','Video','Question Paper','Study Material','Other'))
+  `);
+  await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS file_data TEXT;`);
+  await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS file_name TEXT;`);
+  await pool.query(`ALTER TABLE resources ADD COLUMN IF NOT EXISTS mime_type TEXT;`);
 
   // Direct PDF storage: allow legacy databases where file_url was NOT NULL.
   await pool.query(`
@@ -826,7 +838,7 @@ app.get("/api/resources/:id/download", auth, async (req, res) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
     const result = await pool.query(
-      `SELECT file_url FROM resources WHERE id = $1`,
+      `SELECT file_url, file_data, file_name, mime_type, type, title FROM resources WHERE id = $1`,
       [req.params.id]
     );
 
@@ -836,12 +848,32 @@ app.get("/api/resources/:id/download", auth, async (req, res) => {
       });
     }
 
-    const fileUrl = String(result.rows[0].file_url || "").trim();
+    const row = result.rows[0];
+    const fileUrl = String(row.file_url || "").trim();
+    const fileData = String(row.file_data || "").trim();
+
+    // Files uploaded from the admin panel are stored as data URLs in PostgreSQL.
+    // Serve them directly so PDFs, PPTs, DOCs, images and videos all work.
+    if (fileData) {
+      let mime = row.mime_type || "application/octet-stream";
+      let buffer;
+      if (fileData.startsWith('data:')) {
+        const comma = fileData.indexOf(',');
+        const meta = fileData.slice(5, comma);
+        const payload = fileData.slice(comma + 1);
+        mime = String(row.mime_type || meta.split(';')[0] || mime);
+        buffer = meta.includes(';base64') ? Buffer.from(payload, 'base64') : Buffer.from(decodeURIComponent(payload));
+      } else {
+        buffer = Buffer.from(fileData, 'base64');
+      }
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(row.file_name || row.title || 'resource')}`);
+      try { await pool.query(`INSERT INTO resource_downloads (user_id, resource_id) VALUES ($1, $2)`, [req.user.id, req.params.id]); } catch (trackError) { console.error('Download tracking failed:', trackError); }
+      return res.send(buffer);
+    }
 
     if (!fileUrl) {
-      return res.status(404).json({
-        error: "File not available"
-      });
+      return res.status(404).json({ error: "File not available" });
     }
 
     // Normalize common cloud-storage share links into downloadable URLs.
@@ -934,46 +966,27 @@ app.post("/api/resources", adminAuth, async (req, res) => {
     const type = String(req.body.type || "").trim();
     const subject = String(req.body.subject || "").trim();
     const chapter = String(req.body.chapter || "").trim();
-    const description = String(
-      req.body.description || ""
-    ).trim();
+    const description = String(req.body.description || "").trim();
+    const file_url = String(req.body.file_url || req.body.fileUrl || "").trim();
+    const file_data = String(req.body.file_data || "").trim();
+    const file_name = String(req.body.file_name || "").trim();
+    const mime_type = String(req.body.mime_type || "").trim();
 
-    const file_url = String(
-      req.body.file_url ||
-      req.body.fileUrl ||
-      ""
-    ).trim();
-
-    if (!title || !type || !file_url) {
-      return res.status(400).json({
-        error: "Title, type and file URL are required"
-      });
-    }
+    const allowedTypes = ['Notes','PPT','DOC','Image','Video','Question Paper','Study Material','Other'];
+    if (!title || !type || !allowedTypes.includes(type)) return res.status(400).json({ error: "Please select a valid resource type." });
+    if (!file_url && !file_data) return res.status(400).json({ error: "Please select a resource file or provide a resource URL." });
+    if (file_data && file_data.length > 38 * 1024 * 1024) return res.status(413).json({ error: "Uploaded file is too large. Maximum is 25 MB." });
 
     const result = await pool.query(
-      `INSERT INTO resources
-       (title, type, subject, chapter, description, file_url)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, title, type, subject, chapter, description, file_url, created_at`,
-      [
-        title,
-        type,
-        subject,
-        chapter,
-        description,
-        file_url
-      ]
+      `INSERT INTO resources (title, type, subject, chapter, description, file_url, file_data, file_name, mime_type)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id,title,type,subject,chapter,description,created_at`,
+      [title,type,subject,chapter,description,file_url || null,file_data || null,file_name || null,mime_type || null]
     );
-
-    res.json({
-      success: true,
-      resource: result.rows[0]
-    });
+    res.json({ success: true, resource: result.rows[0] });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      error: "Could not add resource"
-    });
+    res.status(500).json({ error: "Could not add resource: " + (error.code === '23514' ? 'unsupported resource type' : error.message) });
   }
 });
 
@@ -989,25 +1002,16 @@ app.put("/api/resources/:id", adminAuth, async (req, res) => {
     const chapter = String(req.body.chapter || "").trim();
     const description = String(req.body.description || "").trim();
     const file_url = String(req.body.file_url || req.body.fileUrl || "").trim();
+    const file_data = String(req.body.file_data || "").trim();
+    const file_name = String(req.body.file_name || "").trim();
+    const mime_type = String(req.body.mime_type || "").trim();
+    const allowedTypes = ['Notes','PPT','DOC','Image','Video','Question Paper','Study Material','Other'];
+    if (!title || !type || !allowedTypes.includes(type)) return res.status(400).json({ error: "Please select a valid resource type." });
 
-    if (!title || !type || !file_url) {
-      return res.status(400).json({
-        error: "Title, type and file URL are required"
-      });
-    }
-
-    const result = await pool.query(
-      `UPDATE resources
-       SET title=$1, type=$2, subject=$3, chapter=$4, description=$5, file_url=$6
-       WHERE id=$7
-       RETURNING id, title, type, subject, chapter, description, file_url, created_at`,
-      [title, type, subject, chapter, description, file_url, req.params.id]
-    );
-
-    if (!result.rows.length) {
-      return res.status(404).json({ error: "Resource not found" });
-    }
-
+    const result = file_data || file_url
+      ? await pool.query(`UPDATE resources SET title=$1,type=$2,subject=$3,chapter=$4,description=$5,file_url=$6,file_data=$7,file_name=$8,mime_type=$9 WHERE id=$10 RETURNING id,title,type,subject,chapter,description,created_at`, [title,type,subject,chapter,description,file_url || null,file_data || null,file_name || null,mime_type || null,req.params.id])
+      : await pool.query(`UPDATE resources SET title=$1,type=$2,subject=$3,chapter=$4,description=$5 WHERE id=$6 RETURNING id,title,type,subject,chapter,description,created_at`, [title,type,subject,chapter,description,req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "Resource not found" });
     res.json({ success: true, resource: result.rows[0] });
   } catch (error) {
     console.error(error);
@@ -1432,15 +1436,6 @@ app.get("/api/users", adminAuth, async (req, res) => {
       error: "Could not load users"
     });
   }
-});
-
-// =========================
-// Learning features are disabled at the HTTP layer; historical records/tables are intentionally preserved.
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api/learning") || req.path.startsWith("/api/students") || req.path.startsWith("/api/certificates")) {
-    return res.status(404).json({ error: "This feature is no longer available." });
-  }
-  next();
 });
 
 // LEARNING PLATFORM API (additive; preserves existing tables/data)
