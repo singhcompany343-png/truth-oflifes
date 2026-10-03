@@ -1,1 +1,49 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Medical Reel Library | Truth.ofLifes</title><style>body{margin:0;background:#071426;color:#eef7ff;font:16px Arial}.wrap{max-width:1100px;margin:auto;padding:24px}a{color:#7bd3ff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.card{background:#112a43;border:1px solid #31506c;border-radius:18px;padding:18px}.scene{aspect-ratio:9/16;max-height:310px;background:linear-gradient(145deg,#d7f4ff,#e9e0ff);color:#17334a;border-radius:12px;display:grid;place-items:center;text-align:center;font-size:52px;padding:12px}.scene b{display:block;font-size:16px;background:#ffffffd9;border-radius:10px;padding:10px;margin-top:10px}</style><main class="wrap"><a href="/">← Home</a><h1>🎬 Medical Reel Library</h1><p>Professional medical education reel concepts. Confirm medical facts with a qualified instructor before posting.</p><div class="grid" id="grid"></div><p>@truth.oflifes</p></main><script>const topics=['Hand hygiene: five moments','Understanding vital signs','How the heart pumps blood','Respiratory system basics','IV cannula: sizes and purpose','Recognizing dehydration','Safe medicine habits','First-aid basics: when to seek help','Kidney function explained','Common medical instruments'];grid.innerHTML=topics.map((t,i)=>`<article class="card"><div class="scene">🩺<br><b>Episode ${i+1}: ${t}</b></div><p><b>Medical learning</b><br>9:16 reel concept</p><p>Educational topic idea; not a substitute for clinical training.</p></article>`).join('')</script></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Medical Video Library | Truth.ofLifes</title><style>
+:root{--bg:#061221;--card:#0b2034;--line:#194b6d;--text:#eef7ff;--muted:#9db7ca;--blue:#0a8ddd}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px Arial,sans-serif}.wrap{max-width:1180px;margin:auto;padding:22px 16px 45px}a{color:#7bd3ff;text-decoration:none}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.hero{padding:20px 0 8px}.hero h1{margin:8px 0;font-size:32px}.hero p{color:var(--muted)}.tabs{display:flex;gap:8px;overflow:auto;padding:8px 0 14px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:1px solid var(--line);background:#071b2d;color:#dff3ff;border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}.tab.active{background:var(--blue);border-color:#31c4ff;color:#fff}.group{border:1px solid #163d5a;border-radius:16px;padding:15px;margin:16px 0;background:linear-gradient(145deg,#061a2c,#081525)}.groupHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.groupHead h2{margin:0;font-size:19px}.count{color:#87abc4;font-size:11px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid #19415d;border-radius:13px;overflow:hidden;background:#061321}.card video{display:block;width:100%;aspect-ratio:16/9;background:#000;object-fit:cover}.body{padding:12px}.body h3{margin:0 0 6px;font-size:15px}.meta{font-size:11px;color:#8faec3}.empty{border:1px dashed #1d4e70;border-radius:14px;padding:25px;text-align:center;color:var(--muted)}.topicPending{padding:18px;text-align:center;color:var(--muted);min-height:120px;display:grid;place-items:center}.topicPending b{color:#e9f7ff;font-size:14px}.topicPending small{display:block;margin-top:5px;color:#7898ae}.badge{display:inline-block;background:#082f4d;border:1px solid #146d9d;color:#76d9ff;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900;margin-bottom:8px}@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.hero h1{font-size:25px}.grid{grid-template-columns:1fr}.group{padding:12px}}
+</style></head><body><main class="wrap"><div class="top"><a href="/">← Home</a><a href="/learning.html">Learning Mode →</a></div><div class="hero"><span class="badge">VIDEO LIBRARY</span><h1>🎬 Study Videos — Subject → Chapter → Extra Topic</h1><p>Admin se upload kiye gaye videos yahan subject aur chapter ke hisaab se automatically merge hote hain.</p></div><div id="tabs" class="tabs"></div><div id="groups"><div class="empty">Loading videos…</div></div></main><script>
+const $=id=>document.getElementById(id);
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+const STARTER=[
+ {title:'Hand hygiene: five moments',subject:'Nursing',chapter:'Infection Control'},
+ {title:'Understanding vital signs',subject:'Nursing',chapter:'Health Assessment'},
+ {title:'How the heart pumps blood',subject:'Physiology',chapter:'Cardiovascular System'},
+ {title:'Respiratory system basics',subject:'Physiology',chapter:'Respiratory System'},
+ {title:'IV cannula: sizes and purpose',subject:'Nursing',chapter:'Nursing Procedures'},
+ {title:'Recognizing dehydration',subject:'Pediatrics',chapter:'Nutrition'},
+ {title:'Safe medicine habits',subject:'Pharmacology',chapter:'General Pharmacology'},
+ {title:'First-aid basics: when to seek help',subject:'Other',chapter:'First Aid'},
+ {title:'Kidney function explained',subject:'Anatomy',chapter:'Urinary System'},
+ {title:'Common medical instruments',subject:'Nursing',chapter:'Medical Instruments'}
+];
+function norm(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'');}
+async function load(){
+ try{
+  const r=await fetch('/api/resources',{cache:'no-store'});if(!r.ok)throw new Error('failed');
+  const all=await r.json();
+  const videos=(Array.isArray(all)?all:[]).filter(x=>String(x.type||'').toLowerCase()==='video');
+  const map={};
+  videos.forEach(v=>{const s=String(v.subject||'Other').trim()||'Other';(map[s]||(map[s]=[])).push(v);});
+  // Always keep an Other tab with all 10 starter topics, even before videos are uploaded.
+  map.Other=map.Other||[];
+  const subjects=Object.keys(map).sort((a,b)=>a.localeCompare(b));
+  $('tabs').innerHTML='<button class="tab active" data-filter="all">All Videos</button>'+subjects.map(s=>'<button class="tab" data-filter="'+esc(s)+'">'+esc(s)+'</button>').join('');
+  $('groups').innerHTML=subjects.map(s=>{
+    let cards='';
+    if(s==='Other'){
+      const byTitle={};map.Other.forEach(v=>byTitle[norm(v.title)]=v);
+      cards=STARTER.map(t=>{
+        const v=byTitle[norm(t.title)];
+        if(v)return '<article class="card"><video controls preload="metadata" playsinline src="/api/resources/'+encodeURIComponent(v.id)+'/video"></video><div class="body"><h3>'+esc(t.title)+'</h3><div class="meta">'+esc(t.subject)+' → '+esc(t.chapter)+' → Extra Topic</div></div></article>';
+        return '<article class="card"><div class="topicPending"><div><b>🎬 '+esc(t.title)+'</b><small>Video upload pending · Admin → Video → Extra Topic</small></div></div><div class="body"><div class="meta">'+esc(t.subject)+' → '+esc(t.chapter)+' → Extra Topic</div></div></article>';
+      }).join('');
+    }else{
+      cards=map[s].sort((a,b)=>String(a.chapter||'').localeCompare(String(b.chapter||''))).map(v=>'<article class="card"><video controls preload="metadata" playsinline src="/api/resources/'+encodeURIComponent(v.id)+'/video"></video><div class="body"><h3>'+esc(v.title||'Medical Video')+'</h3><div class="meta">'+esc(s)+' → '+esc(v.chapter||'General')+' → Extra Topic</div></div></article>').join('');
+    }
+    const count=s==='Other'?STARTER.length:map[s].length;
+    return '<section class="group" data-group="'+esc(s)+'"><div class="groupHead"><h2>📚 '+esc(s)+'</h2><span class="count">'+count+' topic'+(count===1?'':'s')+'</span></div><div class="grid">'+cards+'</div></section>';
+  }).join('');
+  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');const f=b.dataset.filter;document.querySelectorAll('[data-group]').forEach(g=>g.style.display=(f==='all'||g.dataset.group===f)?'block':'none');});
+ }catch(e){$('groups').innerHTML='<div class="empty">Videos temporarily unavailable. Please try again.</div>';}
+}
+load();
+</script></body></html>

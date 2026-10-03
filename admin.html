@@ -162,16 +162,16 @@ textarea{min-height:80px;resize:vertical}
 }
 
 
+
+.videoTopicBox{padding:12px;border:1px solid #1597ff;border-radius:10px;background:rgba(4,21,34,.72);margin:10px 0}.videoTopicBox select{width:100%;padding:10px}
+
 .pdfUploadBox{padding:12px;border:1px solid #174966;border-radius:10px;background:rgba(4,21,34,.72);margin:10px 0}
 .pdfUploadBox input[type=file]{width:100%;padding:9px;background:#041522;color:#eaf7ff;border:1px dashed #1597ff;border-radius:8px}
 
-/* Final admin previews */
+/* Certificate preview */
 .previewGrid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:14px}
 .previewCard{background:#071d31;border:1px solid #245574;border-radius:18px;padding:18px;color:#eef8ff}
 .previewLabel{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#73d7ff;font-weight:800}
-.videoPreview{border:1px solid #245574;border-radius:15px;overflow:hidden;background:#041321}
-.videoPreview video{display:block;width:100%;max-height:300px;background:#000}
-.videoPreviewBody{padding:14px}.videoPreviewTitle{font-size:18px;font-weight:900;margin:5px 0}.videoPreviewMeta{color:#9bb5c9;font-size:12px}
 .certPreview{min-height:390px;background:linear-gradient(135deg,#071b2d,#0a2944);border:2px solid #58caff;border-radius:18px;padding:26px;text-align:center;position:relative;overflow:hidden}
 .certPreview:before{content:'';position:absolute;inset:12px;border:1px solid rgba(88,202,255,.45);border-radius:12px;pointer-events:none}
 .certSeal{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin:2px auto 10px;background:#0799ea;color:#fff;font-size:30px;box-shadow:0 0 24px rgba(24,168,255,.35)}
@@ -328,7 +328,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     <form id="resourceForm">
       <input id="rid" type="hidden">
       <div class="row">
-        <input id="title" placeholder="Resource Title" required>
+        <div style="flex:1;min-width:220px"><label id="titleLabel" class="muted" style="display:block;font-size:11px;margin:0 0 5px">Resource Title</label><input id="title" list="videoTopicList" placeholder="Resource Title" required style="width:100%"><datalist id="videoTopicList"><option value="Hand hygiene: five moments"></option><option value="Understanding vital signs"></option><option value="How the heart pumps blood"></option><option value="Respiratory system basics"></option><option value="IV cannula: sizes and purpose"></option><option value="Recognizing dehydration"></option><option value="Safe medicine habits"></option><option value="First-aid basics: when to seek help"></option><option value="Kidney function explained"></option><option value="Common medical instruments"></option></datalist></div>
         <select id="type" required>
           <option value="">Select Type</option>
           <option>Notes</option><option>PPT</option><option>DOC</option><option>Image</option><option>Video</option><option>Question Paper</option><option>Study Material</option><option>Other</option>
@@ -338,6 +338,24 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
         <option value="">Select Subject</option><option value="Anatomy">Anatomy</option><option value="Physiology">Physiology</option><option value="Biochemistry">Biochemistry</option><option value="Pharmacology">Pharmacology</option><option value="Pathology">Pathology</option><option value="Microbiology">Microbiology</option><option value="Forensic Medicine">Forensic Medicine</option><option value="Community Medicine">Community Medicine</option><option value="Medicine">Medicine</option><option value="Surgery">Surgery</option><option value="Pediatrics">Pediatrics</option><option value="OBG">OBG</option><option value="Orthopedics">Orthopedics</option><option value="ENT">ENT</option><option value="Ophthalmology">Ophthalmology</option><option value="Radiology">Radiology</option><option value="Anesthesia">Anesthesia</option><option value="Psychiatry">Psychiatry</option><option value="Dermatology">Dermatology</option><option value="Dentistry">Dentistry</option><option value="Nursing">Nursing</option><option value="Other">Other</option>
       </select>
       <select id="chapter"><option value="">Select Chapter</option></select>
+      <div id="videoTopicBox" class="videoTopicBox" style="display:none">
+        <label style="display:block;margin-bottom:6px;font-weight:800">🎬 Video Topic (10 starter topics)</label>
+        <select id="videoTopicSelect">
+          <option value="">Select Video Topic</option>
+          <option value="Hand hygiene: five moments">Nursing → Infection Control → Hand hygiene: five moments</option>
+          <option value="Understanding vital signs">Nursing → Health Assessment → Understanding vital signs</option>
+          <option value="How the heart pumps blood">Physiology → Cardiovascular System → How the heart pumps blood</option>
+          <option value="Respiratory system basics">Physiology → Respiratory System → Respiratory system basics</option>
+          <option value="IV cannula: sizes and purpose">Nursing → Nursing Procedures → IV cannula: sizes and purpose</option>
+          <option value="Recognizing dehydration">Pediatrics → Nutrition → Recognizing dehydration</option>
+          <option value="Safe medicine habits">Pharmacology → General Pharmacology → Safe medicine habits</option>
+          <option value="First-aid basics: when to seek help">Other → First Aid → First-aid basics: when to seek help</option>
+          <option value="Kidney function explained">Anatomy → Urinary System → Kidney function explained</option>
+          <option value="Common medical instruments">Nursing → Medical Instruments → Common medical instruments</option>
+          <option value="__custom__">Custom video topic</option>
+        </select>
+        <div class="muted" style="font-size:11px;margin-top:5px">Topic select karne par Subject + Chapter automatically fill honge. Chapter dropdown mein us subject ke saare chapters visible rahenge.</div>
+      </div>
       <div class="pdfUploadBox">
       <label style="display:block;margin-bottom:6px;font-weight:700">📎 Resource File</label>
       <input id="pdf_file" type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg,.jpeg,.webp,.mp4,.webm">
@@ -352,32 +370,11 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     </form>
   </section>
 
-  <section class="panel" id="videoPreviewPanel">
-    <h3>🎬 Video Upload Preview — Homepage</h3>
-    <p class="muted">Video upload karte waqt yahan exactly wahi Subject + Topic/Chapter + Title preview hoga jo students ko main screen par dikhega.</p>
-    <div class="previewGrid">
-      <div class="previewCard">
-        <div class="previewLabel">Homepage video card</div>
-        <div class="videoPreview" style="margin-top:10px">
-          <video id="adminVideoPreview" controls playsinline preload="metadata"></video>
-          <div class="videoPreviewBody">
-            <div class="videoPreviewTitle" id="adminVideoPreviewTitle">Your video title</div>
-            <div class="videoPreviewMeta" id="adminVideoPreviewMeta">Subject • Topic / Chapter</div>
-            <p class="previewHint">Upload ke baad ye title, subject aur chapter homepage ke “Video Learning — Subject Wise” section mein automatically use honge.</p>
-          </div>
-        </div>
-      </div>
-      <div class="previewCard">
-        <div class="previewLabel">Selected upload details</div>
-        <div style="margin-top:12px;display:grid;gap:10px">
-          <div><b>Title:</b> <span id="videoPreviewTitleText">—</span></div>
-          <div><b>Subject:</b> <span id="videoPreviewSubjectText">—</span></div>
-          <div><b>Topic / Chapter:</b> <span id="videoPreviewChapterText">—</span></div>
-          <div><b>File:</b> <span id="videoPreviewFileText">No video selected</span></div>
-        </div>
-        <div class="previewHint">Tip: Subject select karo, phir usi subject ka chapter/topic select karo. Isse video automatically correct subject group mein jayega.</div>
-      </div>
-    </div>
+  <section class="panel" id="mcqAuditPanel">
+    <h3>🧠 MCQ Bank Audit</h3>
+    <div class="analyticsKpis" style="margin-bottom:12px"><div class="analyticsKpi"><span class="meta">Total MCQs</span><strong id="mcqTotal">—</strong></div><div class="analyticsKpi"><span class="meta">Subjects / Chapters</span><strong id="mcqCoverage">—</strong></div></div>
+    <div id="mcqSubjectCounts" class="scrollBox"></div>
+    <div style="margin-top:14px"><h3 style="font-size:14px">🔁 Duplicate Question Checker</h3><div id="mcqDuplicates" class="scrollBox"><div class="empty">Checking…</div></div></div>
   </section>
 
   <section class="panel" id="certificatePreviewPanel">
@@ -465,7 +462,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 
 <script>
 let token = localStorage.getItem("adminToken") || localStorage.getItem("token");
-let resources=[], users=[], requests=[], collaborations=[], resetRequests=[];
+let resources=[], users=[], requests=[], collaborations=[], resetRequests=[], mcqAudit=null;
 
 function headers(){ return {"Content-Type":"application/json","Authorization":"Bearer "+token}; }
 
@@ -511,21 +508,46 @@ function logout(){
 }
 
 
-function updateVideoUploadPreview(){
-  const titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject'), chapterEl=document.getElementById('chapter'), fileEl=document.getElementById('pdf_file');
-  const title=(titleEl?.value||'Your video title').trim()||'Your video title';
-  const subject=(subjectEl?.value||'').trim()||'Select Subject';
-  const chapter=(chapterEl?.value||'').trim()||'Select Topic / Chapter';
-  const file=fileEl?.files?.[0];
-  document.getElementById('adminVideoPreviewTitle').textContent=title;
-  document.getElementById('adminVideoPreviewMeta').textContent=subject+' • '+chapter;
-  document.getElementById('videoPreviewTitleText').textContent=title;
-  document.getElementById('videoPreviewSubjectText').textContent=subject;
-  document.getElementById('videoPreviewChapterText').textContent=chapter;
-  document.getElementById('videoPreviewFileText').textContent=file?file.name:'No video selected';
-  const v=document.getElementById('adminVideoPreview');
-  if(file && /^video\//.test(file.type||'')){if(v.dataset.url)URL.revokeObjectURL(v.dataset.url);v.dataset.url=URL.createObjectURL(file);v.src=v.dataset.url;v.style.display='block';}
-  else {v.removeAttribute('src');v.load();v.style.display='none';}
+const VIDEO_TOPIC_MAP={
+  'Hand hygiene: five moments':['Nursing','Infection Control'],
+  'Understanding vital signs':['Nursing','Health Assessment'],
+  'How the heart pumps blood':['Physiology','Cardiovascular System'],
+  'Respiratory system basics':['Physiology','Respiratory System'],
+  'IV cannula: sizes and purpose':['Nursing','Nursing Procedures'],
+  'Recognizing dehydration':['Pediatrics','Nutrition'],
+  'Safe medicine habits':['Pharmacology','General Pharmacology'],
+  'First-aid basics: when to seek help':['Other','First Aid'],
+  'Kidney function explained':['Anatomy','Urinary System'],
+  'Common medical instruments':['Nursing','Medical Instruments']
+};
+let topicAutoFillTimer=null;
+async function applyVideoTopic(topic){
+  const pair=VIDEO_TOPIC_MAP[topic];
+  const typeEl=document.getElementById('type');
+  if(typeEl && typeEl.value!=='Video') return;
+  if(!pair){ return; }
+  const titleEl=document.getElementById('title'), subjectEl=document.getElementById('subject');
+  if(subjectEl) subjectEl.value=pair[0];
+  if(typeof loadChapterOptions==='function') await loadChapterOptions(pair[1]);
+  if(titleEl) titleEl.value=topic;
+}
+function syncVideoTopicUI(){
+  const isVideo=(document.getElementById('type')?.value||'').toLowerCase()==='video';
+  const box=document.getElementById('videoTopicBox');
+  if(box) box.style.display=isVideo?'block':'none';
+  if(!isVideo){ const sel=document.getElementById('videoTopicSelect'); if(sel) sel.value=''; }
+  const title=document.getElementById('title');
+  if(title) title.placeholder=isVideo?'Video Name / Topic':'Resource Title';
+  const label=document.getElementById('titleLabel');
+  if(label) label.textContent=isVideo?'Video Name / Topic':'Resource Title';
+}
+async function autoFillVideoTopic(){
+  if((document.getElementById('type')?.value||'').toLowerCase()!=='video') return;
+  const key=(document.getElementById('title')?.value||'').trim();
+  if(VIDEO_TOPIC_MAP[key]){
+    const sel=document.getElementById('videoTopicSelect'); if(sel) sel.value=key;
+    await applyVideoTopic(key);
+  }
 }
 function updateCertificatePreview(){
   const name=(document.getElementById('certPreviewNameInput')?.value||'Student Name').trim()||'Student Name';
@@ -536,18 +558,26 @@ function updateCertificatePreview(){
   document.getElementById('certPreviewScore').textContent='Score: '+score+'% • Educational Completion';
 }
 function bindAdminPreviews(){
-  ['title','subject','chapter','pdf_file'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateVideoUploadPreview);});
+  const topicSel=document.getElementById('videoTopicSelect');
+  topicSel?.addEventListener('change',async()=>{
+    const value=topicSel.value;
+    if(value && value!=='__custom__') await applyVideoTopic(value);
+  });
+  document.getElementById('type')?.addEventListener('change',syncVideoTopicUI);
+  document.getElementById('title')?.addEventListener('change',()=>{clearTimeout(topicAutoFillTimer);topicAutoFillTimer=setTimeout(autoFillVideoTopic,0);});
+  document.getElementById('subject')?.addEventListener('change',()=>loadChapterOptions());
   document.getElementById('updateCertPreview')?.addEventListener('click',updateCertificatePreview);
   ['certPreviewNameInput','certPreviewSubjectInput','certPreviewScoreInput'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateCertificatePreview));
-  updateVideoUploadPreview(); updateCertificatePreview();
+  syncVideoTopicUI();
+  updateCertificatePreview();
 }
 
 async function loadAll(){
   try{
-    const [v,u,r,an,req,co,n,pr,ov]=await Promise.all([
+    const [v,u,r,an,req,co,n,pr,ov,ms,md]=await Promise.all([
       api("/api/visits"),api("/api/users"),api("/api/resources"),
       api("/api/analytics/visits"),api("/api/requests"),api("/api/collaborations"),
-      api("/api/admin/notifications"),api("/api/admin/password-reset-requests"),api("/api/admin/analytics/overview")
+      api("/api/admin/notifications"),api("/api/admin/password-reset-requests"),api("/api/admin/analytics/overview"),api("/api/admin/mcq-stats"),api("/api/admin/mcq-duplicates")
     ]);
     document.getElementById("visitors").textContent=v.count??0;
     users=u.users||[]; resources=r||[]; requests=req.requests||[]; collaborations=co.collaborations||[]; resetRequests=pr.requests||[];
@@ -559,8 +589,18 @@ async function loadAll(){
     renderResourceAnalytics(ov);
     const pop=ov.popular||[];
     document.getElementById("popularResources").innerHTML=pop.length?pop.map((x,i)=>`<div class="item"><b>${i+1}. ${esc(x.title)}</b><div class="meta">${esc(x.type)}${x.subject?" · "+esc(x.subject):""} · ${Number(x.downloads||0)} downloads</div></div>`).join(""):"No downloads yet.";
-    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); updateNotifications(n);
+    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); renderMcqAudit(ms,md); updateNotifications(n);
   }catch(e){console.error(e);}
+}
+
+function renderMcqAudit(ms,md){
+  mcqAudit=ms||{};
+  const total=Number(ms?.total_questions||0), subjects=Number(ms?.subjects||0), chapters=Number(ms?.chapters||0);
+  const a=document.getElementById("mcqTotal"),b=document.getElementById("mcqCoverage");if(a)a.textContent=total.toLocaleString();if(b)b.textContent=subjects+" / "+chapters;
+  const list=document.getElementById("mcqSubjectCounts");const rows=Array.isArray(ms?.by_subject)?ms.by_subject:[];
+  list.innerHTML=rows.length?rows.map(x=>`<div class="item"><div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(x.subject)}</b><span class="badge">${Number(x.questions||0)} MCQs · ${Number(x.chapters||0)} chapters</span></div><div class="meta">${Number(x.complete_chapters||0)} chapters have 50/50 questions</div></div>`).join(""):"<div class=\"empty\">No MCQ data.</div>";
+  const dup=document.getElementById("mcqDuplicates"),groups=Array.isArray(md?.duplicates)?md.duplicates:[];
+  dup.innerHTML=groups.length?groups.map(x=>`<div class="item"><b>${Number(x.count)}×</b> ${esc(x.question)}<div class="meta">${esc(x.locations)}</div></div>`).join(""):"<div class=\"empty\">✅ No exact duplicate question text found.</div>";
 }
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
@@ -590,7 +630,7 @@ const fallbackChapterMap={
   "Dermatology":["Basic Dermatology","Bacterial Skin Infections","Viral Skin Infections","Fungal Infections","Parasitic Diseases","Eczema & Dermatitis","Psoriasis","Acne","Autoimmune Disorders","Skin Tumors"],
   "Dentistry":["Oral Anatomy","Oral Physiology","Dental Caries","Periodontal Diseases","Oral Infections","Oral Pathology","Oral Surgery","Prosthodontics","Orthodontics","Preventive Dentistry"],
   "Nursing":["Fundamentals of Nursing","Medical-Surgical Nursing","Community Health Nursing","Child Health Nursing","Mental Health Nursing","Midwifery","Pharmacology for Nurses","Nutrition","First Aid & Emergency Care"],
-  "Other":["General","Introduction","Basic Concepts","Clinical Topics","Practical Topics","Revision"]
+  "Other":["Extra Topics","First Aid","CPR/BLS","ECG","ABG","Medical Terminology","Clinical Examination","Medical Calculations","Investigation & Lab Values","Medical Mnemonics","Case Studies","Viva Questions","Practical Notes","OSCE/OSPE","Previous Year Questions","NEET-PG/INI-CET Revision","Image-Based Questions"]
 };
 async function loadChapterOptions(selected="") {
   const sel=document.getElementById("chapter");
@@ -609,6 +649,16 @@ async function loadChapterOptions(selected="") {
   if(selected) sel.value=selected;
 }
 document.getElementById("subject").addEventListener("change",()=>loadChapterOptions());
+function updateResourceTypeUI(){
+  const type=document.getElementById("type")?.value||"";
+  const label=document.getElementById("titleLabel");
+  const title=document.getElementById("title");
+  if(!label||!title)return;
+  if(type.toLowerCase()==="video"){label.textContent="Video Name / Topic";title.placeholder="e.g. Hand hygiene: five moments";}
+  else{label.textContent="Resource Title";title.placeholder="Resource Title";}
+}
+document.getElementById("type").addEventListener("change",updateResourceTypeUI);
+updateResourceTypeUI();
 loadChapterOptions();
 
 function renderSubjects(){
@@ -691,11 +741,16 @@ document.getElementById("resourceForm").addEventListener("submit",async e=>{
       if(!allowed.includes(file.type) && !allowedExt.includes(ext)) throw new Error("Unsupported file type.");
     }
 
+    const selectedType=type.value.trim();
+    const selectedSubject=subject.value.trim();
+    const selectedChapter=chapter.value.trim();
+    if(!selectedType) throw new Error('Please select a resource type.');
+    if(selectedType==='Video' && (!selectedSubject || !selectedChapter)) throw new Error('For Video upload, select Subject and Chapter. Example: Anatomy → General Anatomy.');
     const body={
       title:title.value.trim(),
-      type:type.value,
-      subject:subject.value,
-      chapter:chapter.value.trim(),
+      type:selectedType,
+      subject:selectedSubject,
+      chapter:selectedChapter,
       description:description.value.trim()
     };
 
@@ -736,7 +791,7 @@ async function deleteResource(id){
 function renderUsers(){
   const q=document.getElementById("userSearch").value.toLowerCase();
   const list=users.filter(u=>(String(u.instagram_username).toLowerCase()+" "+String(u.email||"").toLowerCase()).includes(q));
-  document.getElementById("userList").innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="danger small" onclick="resetUserPassword(${u.id})">Reset</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
+  document.getElementById("userList").innerHTML=list.map((u,i)=>`<tr><td>${i+1}</td><td>${esc(u.instagram_username)}</td><td>${esc(u.email||"—")}</td><td>${date(u.created_at)}</td><td><button class="muted small" type="button" onclick="resetUserPassword(${u.id})">Reset</button> <button class="danger small" type="button" onclick="deleteUser(${u.id})">Delete</button></td></tr>`).join("")||`<tr><td colspan="5" class="empty">No users found.</td></tr>`;
 }
 async function resetUserPassword(id){
   const p=prompt("Enter a new password (minimum 6 characters):");
@@ -744,6 +799,19 @@ async function resetUserPassword(id){
   if(p.length<6){alert("Password must be at least 6 characters");return;}
   try{await api(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify({newPassword:p})});alert("Password reset successfully.");await loadAll();}
   catch(e){alert(e.message);}
+}
+async function deleteUser(id){
+  const user=users.find(u=>Number(u.id)===Number(id));
+  if(!user)return;
+  if(!confirm(`Delete registered user @${user.instagram_username}? This permanently removes the account and its learning history.`))return;
+  const adminPassword=prompt("Enter your ADMIN password to permanently delete this user:");
+  if(adminPassword===null)return;
+  if(!adminPassword){alert("Admin password is required.");return;}
+  try{
+    await api(`/api/admin/users/${id}`,{method:"DELETE",body:JSON.stringify({adminPassword})});
+    alert("Registered user deleted successfully.");
+    await loadAll();
+  }catch(e){alert(e.message||"Could not delete user.");}
 }
 
 function statusBadge(s){return `<span class="badge ${s}">${esc(s)}</span>`;}
