@@ -1413,6 +1413,7 @@ async function submitRequest(req, res) {
 // Support the current endpoint plus common frontend/older endpoint names.
 app.post(
   ["/api/requests", "/api/request", "/api/requests/submit"],
+  auth,
   submitRequest
 );
 
