@@ -406,6 +406,15 @@ function adminAuth(req, res, next) {
 }
 
 // =========================
+// STATIC HERO ASSET
+// =========================
+// Keep the homepage medical hero image available without exposing the full project directory.
+app.get("/hero-medical-visual.jpg", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.sendFile(path.join(__dirname, "hero-medical-visual.jpg"));
+});
+
+// =========================
 // PAGES
 // =========================
 
