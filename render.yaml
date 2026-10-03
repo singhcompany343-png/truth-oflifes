@@ -3,7 +3,7 @@ services:
     name: truth-oflifes
     runtime: node
     buildCommand: npm install
-    startCommand: node seed-mcqs.js && npm start
+    startCommand: npm start
     envVars:
       - key: DATABASE_URL
         sync: false
