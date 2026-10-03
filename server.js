@@ -109,9 +109,6 @@ async function setupDatabase() {
       explanation TEXT NOT NULL DEFAULT '', difficulty TEXT NOT NULL DEFAULT 'basic', active BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
-  await pool.query(`INSERT INTO learning_subjects(slug,name,sort_order) VALUES
-    ('general-anatomy','General Anatomy',1),('physiology','Physiology',2),('biochemistry','Biochemistry',3),('microbiology','Microbiology',4),('pathology','Pathology',5),('pharmacology','Pharmacology',6),('fundamentals-nursing','Fundamentals of Nursing',7),('medical-surgical-nursing','Medical-Surgical Nursing',8),('community-health-nursing','Community Health Nursing',9),('child-health-nursing','Child Health Nursing',10),('obstetrics-gynecology','Obstetrics & Gynecology',11),('mental-health-nursing','Mental Health Nursing',12),('first-aid-emergency-care','First Aid & Emergency Care',13),('nutrition','Nutrition',14),('infection-control','Infection Control',15),('medical-instruments','Medical Instruments',16),('nursing-procedures','Nursing Procedures',17),('ecg-basic-cardiology','ECG & Basic Cardiology',18),('respiratory-system','Respiratory System',19),('medical-terminology','Medical Terminology',20)
-    ON CONFLICT(slug) DO NOTHING;`);
   // Migrate older users tables safely.
   // Some older deployments used `username` and/or `password_hash`
   // instead of the current `instagram_username` and `password` columns.
@@ -262,6 +259,12 @@ async function setupDatabase() {
   `);
 
   await pool.query(`UPDATE requests SET status='pending' WHERE status IS NULL;`);
+  await pool.query(`
+    INSERT INTO learning_subjects(slug,name,sort_order) VALUES
+    ('anatomy','Anatomy',1),('physiology','Physiology',2),('biochemistry','Biochemistry',3),('pharmacology','Pharmacology',4),('pathology','Pathology',5),('microbiology','Microbiology',6),('forensic-medicine','Forensic Medicine',7),('community-medicine','Community Medicine',8),('medicine','Medicine',9),('surgery','Surgery',10),('pediatrics','Pediatrics',11),('obg','OBG',12),('orthopedics','Orthopedics',13),('ent','ENT',14),('ophthalmology','Ophthalmology',15),('radiology','Radiology',16),('anesthesia','Anesthesia',17),('psychiatry','Psychiatry',18),('dermatology','Dermatology',19),('dentistry','Dentistry',20),('nursing','Nursing',21),('other','Other',22)
+    ON CONFLICT(slug) DO NOTHING;
+  `);
+
   // Legacy collaboration tables can contain older NOT NULL columns.
   // Make existing form fields nullable so the current form can submit safely.
   await pool.query(`
@@ -888,29 +891,6 @@ app.get("/api/chapters", (req, res) => {
 });
 
 // =========================
-// AUTHENTICATED RESOURCE PREVIEW / DOWNLOAD
-// =========================
-
-app.get("/api/resources/:id/open", auth, async (req, res) => {
-  if (req.user.role !== "user" && req.user.role !== "admin") return res.status(403).json({error:"Login required"});
-  try {
-    const result=await pool.query(`SELECT file_url,file_data,file_name,mime_type,type,title FROM resources WHERE id=$1`,[req.params.id]);
-    if(!result.rows.length) return res.status(404).json({error:"Resource not found"});
-    const row=result.rows[0];
-    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma','no-cache');
-    if(row.file_data){
-      const data=String(row.file_data).trim(); let mime=row.mime_type||'application/octet-stream'; let buffer;
-      if(data.startsWith('data:')){const comma=data.indexOf(',');const meta=data.slice(5,comma);const payload=data.slice(comma+1);mime=String(row.mime_type||meta.split(';')[0]||mime);buffer=meta.includes(';base64')?Buffer.from(payload,'base64'):Buffer.from(decodeURIComponent(payload));}
-      else buffer=Buffer.from(data,'base64');
-      res.setHeader('Content-Type',mime);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(row.file_name||row.title||'resource')}`);return res.send(buffer);
-    }
-    if(row.file_url){return res.redirect(row.file_url);}
-    return res.status(404).json({error:'Preview file is not available'});
-  } catch(e){console.error('Resource preview error',e);res.status(500).json({error:'Could not open resource'});}
-});
-
-// =========================
 // AUTHENTICATED RESOURCE DOWNLOAD
 // =========================
 
@@ -1524,13 +1504,43 @@ app.get("/api/users", adminAuth, async (req, res) => {
 });
 
 // =========================
-// ADMIN MCQ BANK
+// ADMIN MCQ BANK CRUD
 // =========================
-app.get('/api/admin/mcq/subjects',adminAuth,async(req,res)=>{try{const r=await pool.query(`SELECT s.id,s.name,s.slug,COUNT(q.id)::int question_count FROM learning_subjects s LEFT JOIN learning_questions q ON q.subject_id=s.id AND q.active=true WHERE s.active=true GROUP BY s.id ORDER BY s.sort_order`);res.json({subjects:r.rows});}catch(e){res.status(503).json({error:'MCQ database is not ready. Please redeploy so learning tables are created.'});}});
-app.get('/api/admin/mcq/questions',adminAuth,async(req,res)=>{try{const subject=Number(req.query.subject_id||0);const params=[];let where='q.active=true';if(subject>0){params.push(subject);where+=' AND q.subject_id=$1';}const r=await pool.query(`SELECT q.id,q.subject_id,s.name subject,q.chapter,q.question,q.options,q.correct_index,q.explanation,q.difficulty,q.created_at FROM learning_questions q JOIN learning_subjects s ON s.id=q.subject_id WHERE ${where} ORDER BY q.id DESC LIMIT 500`,params);res.json({questions:r.rows});}catch(e){res.status(500).json({error:'Could not load MCQs'});}});
-app.post('/api/admin/mcq/questions',adminAuth,async(req,res)=>{try{const subject_id=Number(req.body.subject_id);const chapter=String(req.body.chapter||'General').trim()||'General';const question=String(req.body.question||'').trim();const options=Array.isArray(req.body.options)?req.body.options.map(x=>String(x).trim()):[];const correct_index=Number(req.body.correct_index);const explanation=String(req.body.explanation||'').trim();const difficulty=String(req.body.difficulty||'basic').trim();if(!Number.isInteger(subject_id)||!question||options.length!==4||options.some(x=>!x)||![0,1,2,3].includes(correct_index))return res.status(400).json({error:'Subject, question, 4 options and correct answer are required'});const r=await pool.query(`INSERT INTO learning_questions(subject_id,chapter,question,options,correct_index,explanation,difficulty) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7) RETURNING id`,[subject_id,chapter,question,JSON.stringify(options),correct_index,explanation,difficulty]);res.status(201).json({success:true,id:r.rows[0].id});}catch(e){console.error(e);res.status(500).json({error:'Could not add MCQ'});}});
-app.put('/api/admin/mcq/questions/:id',adminAuth,async(req,res)=>{try{const id=Number(req.params.id),subject_id=Number(req.body.subject_id),chapter=String(req.body.chapter||'General').trim()||'General',question=String(req.body.question||'').trim(),options=Array.isArray(req.body.options)?req.body.options.map(x=>String(x).trim()):[],correct_index=Number(req.body.correct_index),explanation=String(req.body.explanation||'').trim(),difficulty=String(req.body.difficulty||'basic').trim();if(!Number.isInteger(id)||!Number.isInteger(subject_id)||!question||options.length!==4||options.some(x=>!x)||![0,1,2,3].includes(correct_index))return res.status(400).json({error:'Invalid MCQ data'});const r=await pool.query(`UPDATE learning_questions SET subject_id=$1,chapter=$2,question=$3,options=$4::jsonb,correct_index=$5,explanation=$6,difficulty=$7,active=true WHERE id=$8 RETURNING id`,[subject_id,chapter,question,JSON.stringify(options),correct_index,explanation,difficulty,id]);if(!r.rowCount)return res.status(404).json({error:'MCQ not found'});res.json({success:true,id});}catch(e){res.status(500).json({error:'Could not update MCQ'});}});
-app.delete('/api/admin/mcq/questions/:id',adminAuth,async(req,res)=>{try{const r=await pool.query(`UPDATE learning_questions SET active=false WHERE id=$1 RETURNING id`,[Number(req.params.id)]);if(!r.rowCount)return res.status(404).json({error:'MCQ not found'});res.json({success:true});}catch(e){res.status(500).json({error:'Could not delete MCQ'});}});
+app.get('/api/admin/mcq-bank', adminAuth, async (req,res)=>{
+  try{
+    const subject=String(req.query.subject||'').trim(), chapter=String(req.query.chapter||'').trim();
+    const where=[], args=[];
+    if(subject){args.push(subject);where.push(`LOWER(s.name)=LOWER($${args.length})`)}
+    if(chapter){args.push(chapter);where.push(`LOWER(q.chapter)=LOWER($${args.length})`)}
+    const sql=`SELECT q.id,q.question,q.options,q.correct_index,q.explanation,q.difficulty,q.chapter,q.active,s.name AS subject,q.created_at
+      FROM learning_questions q JOIN learning_subjects s ON s.id=q.subject_id ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY q.created_at DESC,q.id DESC LIMIT 500`;
+    const r=await pool.query(sql,args); res.json({questions:r.rows});
+  }catch(e){console.error(e);res.status(500).json({error:'Could not load MCQ bank.'})}
+});
+app.post('/api/admin/mcq-bank', adminAuth, async (req,res)=>{
+  try{
+    const subject=String(req.body.subject||'').trim(),chapter=String(req.body.chapter||'').trim(),question=String(req.body.question||'').trim(),explanation=String(req.body.explanation||'').trim(),difficulty=String(req.body.difficulty||'basic').trim();
+    const options=Array.isArray(req.body.options)?req.body.options.map(x=>String(x||'').trim()):[]; const correct=Number(req.body.correct_index);
+    if(!subject||!chapter||!question||options.length!==4||options.some(x=>!x)||!Number.isInteger(correct)||correct<0||correct>3)return res.status(400).json({error:'Subject, chapter, question, 4 options and correct answer are required.'});
+    const sub=await pool.query('SELECT id FROM learning_subjects WHERE LOWER(name)=LOWER($1) LIMIT 1',[subject]);
+    if(!sub.rowCount)return res.status(400).json({error:'Subject not found.'});
+    const r=await pool.query(`INSERT INTO learning_questions(subject_id,chapter,question,options,correct_index,explanation,difficulty) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7) RETURNING id`,[sub.rows[0].id,chapter,question,JSON.stringify(options),correct,explanation,difficulty]);
+    res.status(201).json({success:true,id:r.rows[0].id});
+  }catch(e){console.error(e);res.status(500).json({error:'Could not add MCQ.'})}
+});
+app.put('/api/admin/mcq-bank/:id', adminAuth, async (req,res)=>{
+  try{
+    const id=Number(req.params.id),subject=String(req.body.subject||'').trim(),chapter=String(req.body.chapter||'').trim(),question=String(req.body.question||'').trim(),explanation=String(req.body.explanation||'').trim(),difficulty=String(req.body.difficulty||'basic').trim();
+    const options=Array.isArray(req.body.options)?req.body.options.map(x=>String(x||'').trim()):[]; const correct=Number(req.body.correct_index);
+    const sub=await pool.query('SELECT id FROM learning_subjects WHERE LOWER(name)=LOWER($1) LIMIT 1',[subject]);
+    if(!sub.rowCount||options.length!==4||options.some(x=>!x)||!Number.isInteger(correct)||correct<0||correct>3)return res.status(400).json({error:'Invalid MCQ data.'});
+    const r=await pool.query(`UPDATE learning_questions SET subject_id=$1,chapter=$2,question=$3,options=$4::jsonb,correct_index=$5,explanation=$6,difficulty=$7 WHERE id=$8 RETURNING id`,[sub.rows[0].id,chapter,question,JSON.stringify(options),correct,explanation,difficulty,id]);
+    if(!r.rowCount)return res.status(404).json({error:'MCQ not found.'}); res.json({success:true});
+  }catch(e){console.error(e);res.status(500).json({error:'Could not update MCQ.'})}
+});
+app.delete('/api/admin/mcq-bank/:id', adminAuth, async (req,res)=>{
+  try{const r=await pool.query('DELETE FROM learning_questions WHERE id=$1 RETURNING id',[Number(req.params.id)]);if(!r.rowCount)return res.status(404).json({error:'MCQ not found.'});res.json({success:true});}catch(e){res.status(500).json({error:'Could not delete MCQ.'})}
+});
 
 // LEARNING PLATFORM API (additive; preserves existing tables/data)
 // Apply learning-migration.sql before using these endpoints.
