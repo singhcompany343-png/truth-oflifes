@@ -1,19 +1,10 @@
 {
   "name": "truth-oflifes-secure",
-  "version": "2.0.2",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js",
-    "seed-admin": "node seed-admin.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.1"
+    "start": "node -r ./direct-pdf.js server.js",
+    "seed-admin": "node seed-admin.js",
+    "seed-mcqs": "node seed-mcqs.js"
   }
 }
