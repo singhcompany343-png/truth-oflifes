@@ -260,7 +260,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
   <h2 style="margin-top:0">🔐 Admin Login</h2>
   <input id="loginUser" placeholder="Admin username" autocomplete="username">
   <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
-  <button class="btn" style="width:100%" onclick="doLogin()">Login</button><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:10px"><button type="button" onclick="location.href='/?login=1'">User Login</button><button type="button" onclick="document.getElementById('loginUser').focus()">Admin Login</button><button type="button" onclick="location.href='/?register=1'">Create Account</button></div>
+  <button class="btn" style="width:100%" onclick="doLogin()">Login</button>
   <div style="text-align:center;margin-top:8px"><a href="/forgot-password.html">Forgot password?</a></div>
   <div id="loginMsg" class="empty"></div>
 </section>
@@ -377,26 +377,6 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     <div style="margin-top:14px"><h3 style="font-size:14px">🔁 Duplicate Question Checker</h3><div id="mcqDuplicates" class="scrollBox"><div class="empty">Checking…</div></div></div>
   </section>
 
-  <section class="panel" id="mcqBankPanel">
-    <h3>📝 MCQ Bank — Add Questions</h3>
-    <p class="muted">Yahan se baad mein subject/chapter-wise questions add, edit aur delete kar sakte ho.</p>
-    <form id="mcqForm" class="formgrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <input type="hidden" id="mcqId">
-      <select id="mcqSubject" required><option value="">Select Subject</option></select>
-      <select id="mcqChapter" required><option value="">Select Chapter</option></select>
-      <textarea id="mcqQuestion" rows="3" placeholder="Question" required style="grid-column:1/-1"></textarea>
-      <input id="mcqOpt0" placeholder="Option A" required><input id="mcqOpt1" placeholder="Option B" required>
-      <input id="mcqOpt2" placeholder="Option C" required><input id="mcqOpt3" placeholder="Option D" required>
-      <select id="mcqCorrect" required><option value="">Correct option</option><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select>
-      <select id="mcqDifficulty"><option value="basic">Basic</option><option value="moderate">Moderate</option><option value="advanced">Advanced</option></select>
-      <textarea id="mcqExplanation" rows="2" placeholder="Explanation (optional)" style="grid-column:1/-1"></textarea>
-      <div><button class="btn" type="submit" id="mcqSaveBtn">＋ Add MCQ</button> <button class="muted hidden" type="button" id="mcqCancel" onclick="resetMcqForm()">Cancel</button></div>
-      <div id="mcqMsg" class="empty"></div>
-    </form>
-    <div class="filters" style="margin-top:14px"><input id="mcqSearch" placeholder="🔎 Search MCQ" oninput="loadMcqBank()"><select id="mcqListSubject" onchange="loadMcqBank()"><option value="">All Subjects</option></select><select id="mcqListChapter" onchange="loadMcqBank()"><option value="">All Chapters</option></select></div>
-    <div id="mcqBankList" class="scrollBox" style="margin-top:10px"><div class="empty">Loading MCQs…</div></div>
-  </section>
-
   <section class="panel" id="certificatePreviewPanel">
     <h3>🏆 Certificate Preview</h3>
     <p class="muted">Students quiz complete karne par isi template ke according educational completion certificate receive karenge.</p>
@@ -481,8 +461,8 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
 </div>
 
 <script>
-let token = localStorage.getItem("adminToken") || localStorage.getItem("token");
-let resources=[], users=[], requests=[], collaborations=[], resetRequests=[], mcqAudit=null, mcqBank=[];
+let token = localStorage.getItem("adminToken") || ((localStorage.getItem("truthRole") === "admin") ? localStorage.getItem("truthToken") : "") || localStorage.getItem("token");
+let resources=[], users=[], requests=[], collaborations=[], resetRequests=[], mcqAudit=null;
 
 function headers(){ return {"Content-Type":"application/json","Authorization":"Bearer "+token}; }
 
@@ -507,6 +487,8 @@ async function doLogin(){
     if(!r.ok||d.role!=="admin") throw new Error(d.error||"Invalid admin credentials");
     token=d.token;
     localStorage.setItem("adminToken",token);
+    localStorage.setItem("truthToken",token);
+    localStorage.setItem("truthRole","admin");
     showDashboard();
     await loadAll();
   }catch(e){msg.textContent=e.message;}
@@ -609,7 +591,7 @@ async function loadAll(){
     renderResourceAnalytics(ov);
     const pop=ov.popular||[];
     document.getElementById("popularResources").innerHTML=pop.length?pop.map((x,i)=>`<div class="item"><b>${i+1}. ${esc(x.title)}</b><div class="meta">${esc(x.type)}${x.subject?" · "+esc(x.subject):""} · ${Number(x.downloads||0)} downloads</div></div>`).join(""):"No downloads yet.";
-    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); renderMcqAudit(ms,md); updateNotifications(n); populateMcqSubjects(); loadMcqBank();
+    renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); renderMcqAudit(ms,md); updateNotifications(n);
   }catch(e){console.error(e);}
 }
 
@@ -622,24 +604,6 @@ function renderMcqAudit(ms,md){
   const dup=document.getElementById("mcqDuplicates"),groups=Array.isArray(md?.duplicates)?md.duplicates:[];
   dup.innerHTML=groups.length?groups.map(x=>`<div class="item"><b>${Number(x.count)}×</b> ${esc(x.question)}<div class="meta">${esc(x.locations)}</div></div>`).join(""):"<div class=\"empty\">✅ No exact duplicate question text found.</div>";
 }
-
-function populateMcqSubjects(){
-  const names=Object.keys(fallbackChapterMap);
-  ['mcqSubject','mcqListSubject'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const first=id==='mcqSubject'?'<option value="">Select Subject</option>':'<option value="">All Subjects</option>';el.innerHTML=first+names.map(x=>`<option>${esc(x)}</option>`).join('');});
-  const s=document.getElementById('mcqSubject'); if(s)s.onchange=()=>fillMcqChapters('mcqChapter',s.value);
-  const ls=document.getElementById('mcqListSubject'); if(ls)ls.onchange=()=>{fillMcqChapters('mcqListChapter',ls.value,true);loadMcqBank()};
-  fillMcqChapters('mcqChapter',''); fillMcqChapters('mcqListChapter','',true);
-}
-function fillMcqChapters(id,subject,all=false){const el=document.getElementById(id);if(!el)return;const arr=fallbackChapterMap[subject]||[];el.innerHTML=(all?'<option value="">All Chapters</option>':'<option value="">Select Chapter</option>')+arr.map(x=>`<option>${esc(x)}</option>`).join('');}
-async function loadMcqBank(){
-  const sub=document.getElementById('mcqListSubject')?.value||'', ch=document.getElementById('mcqListChapter')?.value||'';
-  try{const d=await api('/api/admin/mcq-bank?subject='+encodeURIComponent(sub)+'&chapter='+encodeURIComponent(ch));mcqBank=d.questions||[];const q=String(document.getElementById('mcqSearch')?.value||'').toLowerCase();const rows=mcqBank.filter(x=>!q||String(x.question).toLowerCase().includes(q));document.getElementById('mcqBankList').innerHTML=rows.length?rows.map(x=>`<div class="item"><b>${esc(x.question)}</b><div class="meta">${esc(x.subject)} → ${esc(x.chapter)} · Correct: ${['A','B','C','D'][Number(x.correct_index)]} · ${esc(x.difficulty||'basic')}</div><div class="actions" style="margin-top:7px"><button class="btn small" onclick="editMcq(${x.id})">Edit</button><button class="danger small" onclick="deleteMcq(${x.id})">Delete</button></div></div>`).join(''):'<div class="empty">No MCQs found.</div>';}catch(e){document.getElementById('mcqBankList').innerHTML='<div class="empty">MCQ bank unavailable.</div>'}
-}
-function mcqPayload(){return {subject:mcqSubject.value,chapter:mcqChapter.value,question:mcqQuestion.value.trim(),options:[mcqOpt0.value.trim(),mcqOpt1.value.trim(),mcqOpt2.value.trim(),mcqOpt3.value.trim()],correct_index:Number(mcqCorrect.value),difficulty:mcqDifficulty.value,explanation:mcqExplanation.value.trim()}}
-document.getElementById('mcqForm')?.addEventListener('submit',async e=>{e.preventDefault();const msg=document.getElementById('mcqMsg');msg.textContent='Saving…';try{const id=Number(mcqId.value);const r=await fetch(id?'/api/admin/mcq-bank/'+id:'/api/admin/mcq-bank',{method:id?'PUT':'POST',headers:headers(),body:JSON.stringify(mcqPayload())});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not save MCQ');msg.textContent=id?'MCQ updated successfully.':'MCQ added successfully.';resetMcqForm();await loadMcqBank();}catch(err){msg.textContent=err.message}});
-function editMcq(id){const x=mcqBank.find(q=>Number(q.id)===Number(id));if(!x)return;mcqId.value=x.id;mcqSubject.value=x.subject;fillMcqChapters('mcqChapter',x.subject);mcqChapter.value=x.chapter;mcqQuestion.value=x.question;const o=Array.isArray(x.options)?x.options:[];[0,1,2,3].forEach(i=>document.getElementById('mcqOpt'+i).value=o[i]||'');mcqCorrect.value=x.correct_index;mcqDifficulty.value=x.difficulty||'basic';mcqExplanation.value=x.explanation||'';mcqSaveBtn.textContent='Save MCQ';mcqCancel.classList.remove('hidden');document.getElementById('mcqBankPanel').scrollIntoView({behavior:'smooth'})}
-function resetMcqForm(){document.getElementById('mcqForm').reset();mcqId.value='';mcqSaveBtn.textContent='＋ Add MCQ';mcqCancel.classList.add('hidden');fillMcqChapters('mcqChapter','')}
-async function deleteMcq(id){if(!confirm('Delete this MCQ?'))return;try{const r=await fetch('/api/admin/mcq-bank/'+id,{method:'DELETE',headers:headers()});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not delete');await loadMcqBank();await loadAll();}catch(e){alert(e.message)}}
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
 function date(s){return s?new Date(s).toLocaleString():"—";}
@@ -860,6 +824,7 @@ function renderRequests(){
       <h4>${esc(r.type||"Resource Request")} ${statusBadge(r.status)}</h4>
       <div class="meta">${esc(r.name||"")} ${r.instagram_username?"· @"+esc(r.instagram_username):""} · ${date(r.created_at)}</div>
       ${r.subject?`<div><b>Subject:</b> ${esc(r.subject)}</div>`:""}
+      ${r.chapter?`<div><b>Chapter:</b> ${esc(r.chapter)}</div>`:""}
       ${r.message?`<div style="margin:6px 0">${esc(r.message)}</div>`:""}
       <div class="actions">
         <button class="success small" onclick="setRequest(${r.id},'approved')">✓ Approve</button>
