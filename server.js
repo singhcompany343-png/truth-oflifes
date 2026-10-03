@@ -894,6 +894,72 @@ app.get("/api/chapters", (req, res) => {
 // AUTHENTICATED RESOURCE DOWNLOAD
 // =========================
 
+app.get("/api/resources/:id/open", auth, async (req, res) => {
+  if (req.user.role !== "user" && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Login required" });
+  }
+  try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    const result = await pool.query(
+      `SELECT file_url, file_data, file_name, mime_type, type, title FROM resources WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: "Resource not found" });
+    const row = result.rows[0];
+    const fileData = String(row.file_data || "").trim();
+    const fileUrl = String(row.file_url || "").trim();
+
+    if (fileData) {
+      let mime = row.mime_type || "application/octet-stream";
+      let buffer;
+      if (fileData.startsWith("data:")) {
+        const comma = fileData.indexOf(",");
+        if (comma < 0) return res.status(400).json({ error: "Invalid file data" });
+        const meta = fileData.slice(5, comma);
+        const payload = fileData.slice(comma + 1);
+        mime = String(row.mime_type || meta.split(";")[0] || mime);
+        buffer = meta.includes(";base64") ? Buffer.from(payload, "base64") : Buffer.from(decodeURIComponent(payload));
+      } else {
+        buffer = Buffer.from(fileData, "base64");
+      }
+      res.setHeader("Content-Type", mime);
+      res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(row.file_name || row.title || "resource")}`);
+      res.setHeader("Content-Length", buffer.length);
+      return res.send(buffer);
+    }
+
+    if (!fileUrl) return res.status(404).json({ error: "File not available" });
+
+    let openUrl = fileUrl;
+    try {
+      const parsed = new URL(fileUrl);
+      const host = parsed.hostname.toLowerCase();
+      if (host.includes("drive.google.com")) {
+        const id = (parsed.pathname.match(/\/d\/([^/]+)/) || [])[1] || parsed.searchParams.get("id");
+        if (id) openUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
+      } else if (host === "dropbox.com" || host.endsWith(".dropbox.com")) {
+        parsed.searchParams.set("dl", "1");
+        openUrl = parsed.toString();
+      } else if (host === "github.com" && parsed.pathname.includes("/blob/")) {
+        openUrl = parsed.toString().replace("github.com/", "raw.githubusercontent.com/").replace("/blob/", "/");
+      }
+    } catch (_) {}
+
+    const upstream = await fetch(openUrl, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (compatible; TruthOfLifes/1.0)" } });
+    if (!upstream.ok) return res.status(502).json({ error: "Could not fetch resource file" });
+    const contentType = upstream.headers.get("content-type") || row.mime_type || "application/octet-stream";
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(row.file_name || row.title || "resource")}`);
+    res.setHeader("Content-Length", buffer.length);
+    return res.send(buffer);
+  } catch (error) {
+    console.error("Resource preview error", error);
+    return res.status(500).json({ error: "Could not open resource" });
+  }
+});
+
 app.get("/api/resources/:id/download", auth, async (req, res) => {
   if (req.user.role !== "user" && req.user.role !== "admin") {
     return res.status(403).json({ error: "Login required" });
