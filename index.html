@@ -73,6 +73,12 @@ header{background:rgba(3,20,39,.97);border-bottom:1px solid #123d5e}
 .requestChoices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:4px 0 12px}.requestChoice{width:100%}
 .requestChoice{border:1px solid #225f80;background:#08253d;color:#d7edf8;border-radius:9px;padding:8px 10px;font-size:11px;font-weight:900}
 .requestChoice:hover,.requestChoice.active{border-color:#35c8ff;color:#fff;background:#0b4b6d}
+
+/* SUBJECT GRID FINAL */
+.subjectGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media(max-width:1050px){.subjectGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.subjectGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+@media(max-width:480px){.subjectGrid{grid-template-columns:1fr 1fr;gap:9px}.subjectCard{min-height:105px;padding:13px}}
 </style>
 </head>
 <body>
