@@ -406,17 +406,10 @@ function adminAuth(req, res, next) {
 }
 
 // =========================
-// STATIC HERO ASSET
-// =========================
-// Keep the homepage medical hero image available without exposing the full project directory.
-app.get("/hero-medical-visual.jpg", (req, res) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.sendFile(path.join(__dirname, "hero-medical-visual.jpg"));
-});
-
-// =========================
 // PAGES
 // =========================
+
+app.get("/hero-medical-visual.jpg", (req,res)=>res.sendFile(path.join(__dirname,"hero-medical-visual.jpg")));
 
 app.get("/", (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
@@ -1858,6 +1851,44 @@ app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,as
 app.get('/api/learning/certificates/verify/:code',async(req,res)=>{
  try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
  catch(e){res.status(503).json({error:'Certificate verification unavailable.'});}
+});
+
+app.get('/api/admin/mcq',adminAuth,async(req,res)=>{
+ try{
+  const q=String(req.query.q||'').trim(); const subject=String(req.query.subject||'').trim(); const chapter=String(req.query.chapter||'').trim();
+  const params=[]; const where=["q.active=true"];
+  if(subject){params.push(subject);where.push(`s.name=$${params.length}`)}
+  if(chapter){params.push(chapter);where.push(`q.chapter=$${params.length}`)}
+  if(q){params.push('%'+q.toLowerCase()+'%');where.push(`LOWER(q.question) LIKE $${params.length}`)}
+  const r=await pool.query(`SELECT q.id,s.name subject,q.chapter,q.question,q.options,q.correct_index,q.explanation,q.difficulty,q.created_at FROM learning_questions q JOIN learning_subjects s ON s.id=q.subject_id WHERE ${where.join(' AND ')} ORDER BY q.id DESC LIMIT 500`,params);
+  res.json({questions:r.rows});
+ }catch(e){console.error(e);res.status(500).json({error:'Could not load MCQ bank.'});}
+});
+app.post('/api/admin/mcq',adminAuth,async(req,res)=>{
+ try{
+  const subject=String(req.body.subject||'').trim(),chapter=String(req.body.chapter||'').trim(),question=String(req.body.question||'').trim();
+  const options=Array.isArray(req.body.options)?req.body.options.map(x=>String(x||'').trim()):[]; const correct=Number(req.body.correct_index);
+  if(!subject||!chapter||!question||options.length!==4||options.some(x=>!x)||![0,1,2,3].includes(correct)) return res.status(400).json({error:'Subject, chapter, question, four options and correct answer are required.'});
+  const sub=await pool.query(`SELECT id FROM learning_subjects WHERE LOWER(name)=LOWER($1) LIMIT 1`,[subject]);
+  if(!sub.rowCount)return res.status(400).json({error:'Subject not found in learning subjects.'});
+  const r=await pool.query(`INSERT INTO learning_questions(subject_id,chapter,question,options,correct_index,explanation,difficulty,active) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7,true) RETURNING id`,[sub.rows[0].id,chapter,question,JSON.stringify(options),correct,String(req.body.explanation||''),String(req.body.difficulty||'basic')]);
+  res.status(201).json({id:r.rows[0].id});
+ }catch(e){console.error(e);res.status(500).json({error:'Could not create MCQ.'});}
+});
+app.patch('/api/admin/mcq/:id',adminAuth,async(req,res)=>{
+ try{
+  if(!/^\d+$/.test(req.params.id))return res.status(400).json({error:'Invalid MCQ id.'});
+  const subject=String(req.body.subject||'').trim(),chapter=String(req.body.chapter||'').trim(),question=String(req.body.question||'').trim();
+  const options=Array.isArray(req.body.options)?req.body.options.map(x=>String(x||'').trim()):[]; const correct=Number(req.body.correct_index);
+  if(!subject||!chapter||!question||options.length!==4||options.some(x=>!x)||![0,1,2,3].includes(correct))return res.status(400).json({error:'Complete all MCQ fields.'});
+  const sub=await pool.query(`SELECT id FROM learning_subjects WHERE LOWER(name)=LOWER($1) LIMIT 1`,[subject]);if(!sub.rowCount)return res.status(400).json({error:'Subject not found.'});
+  const r=await pool.query(`UPDATE learning_questions SET subject_id=$1,chapter=$2,question=$3,options=$4::jsonb,correct_index=$5,explanation=$6,difficulty=$7 WHERE id=$8 AND active=true RETURNING id`,[sub.rows[0].id,chapter,question,JSON.stringify(options),correct,String(req.body.explanation||''),String(req.body.difficulty||'basic'),Number(req.params.id)]);
+  if(!r.rowCount)return res.status(404).json({error:'MCQ not found.'});res.json({ok:true});
+ }catch(e){console.error(e);res.status(500).json({error:'Could not update MCQ.'});}
+});
+app.delete('/api/admin/mcq/:id',adminAuth,async(req,res)=>{
+ try{if(!/^\d+$/.test(req.params.id))return res.status(400).json({error:'Invalid MCQ id.'});const r=await pool.query(`UPDATE learning_questions SET active=false WHERE id=$1 AND active=true RETURNING id`,[Number(req.params.id)]);if(!r.rowCount)return res.status(404).json({error:'MCQ not found.'});res.json({ok:true});}
+ catch(e){console.error(e);res.status(500).json({error:'Could not delete MCQ.'});}
 });
 
 app.get('/api/admin/mcq-stats',adminAuth,async(req,res)=>{

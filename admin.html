@@ -376,7 +376,24 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     </form>
   </section>
 
-  <section class="panel" id="mcqAuditPanel">
+  <section class="panel" id="mcqBankPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">🧠 MCQ Bank — Add / Edit / Delete</h3><span class="badge approved">Live Question Bank</span></div>
+    <form id="mcqForm" class="row" style="margin-top:14px">
+      <input type="hidden" id="mcqId">
+      <div><label class="meta">Subject</label><select id="mcqSubject" required></select></div>
+      <div><label class="meta">Chapter</label><select id="mcqChapter" required></select></div>
+      <div style="grid-column:1/-1"><label class="meta">Question</label><textarea id="mcqQuestion" required placeholder="Enter MCQ question"></textarea></div>
+      <div><input id="mcqOpt0" required placeholder="Option A"></div><div><input id="mcqOpt1" required placeholder="Option B"></div><div><input id="mcqOpt2" required placeholder="Option C"></div><div><input id="mcqOpt3" required placeholder="Option D"></div>
+      <div><label class="meta">Correct option</label><select id="mcqCorrect"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>
+      <div><label class="meta">Difficulty</label><select id="mcqDifficulty"><option>basic</option><option>medium</option><option>hard</option></select></div>
+      <div style="grid-column:1/-1"><textarea id="mcqExplanation" placeholder="Explanation (optional)"></textarea></div>
+      <div class="actions" style="grid-column:1/-1"><button class="btn" type="submit" id="mcqSaveBtn">＋ Add MCQ</button><button class="muted hidden" type="button" id="mcqCancelBtn" onclick="resetMcqForm()">Cancel Edit</button><span id="mcqFormMsg" class="empty"></span></div>
+    </form>
+    <div class="filters" style="margin-top:16px"><input id="mcqSearch" oninput="loadMcqBank()" placeholder="🔎 Search questions..."><select id="mcqFilterSubject" onchange="loadMcqBank()"><option value="">All Subjects</option></select><select id="mcqFilterChapter" onchange="loadMcqBank()"><option value="">All Chapters</option></select></div>
+    <div id="mcqBankList" class="scrollBox" style="margin-top:8px"></div>
+  </section>
+
+<section class="panel" id="mcqAuditPanel">
     <h3>🧠 MCQ Bank Audit</h3>
     <div class="analyticsKpis" style="margin-bottom:12px"><div class="analyticsKpi"><span class="meta">Total MCQs</span><strong id="mcqTotal">—</strong></div><div class="analyticsKpi"><span class="meta">Subjects / Chapters</span><strong id="mcqCoverage">—</strong></div></div>
     <div id="mcqSubjectCounts" class="scrollBox"></div>
@@ -600,6 +617,26 @@ async function loadAll(){
     renderSubjects();renderResources();renderUsers();renderRequests();renderCollabs();renderResets();renderChart(an.days||[]); renderMcqAudit(ms,md); updateNotifications(n);
   }catch(e){console.error(e);}
 }
+
+let adminChapterMap={};
+async function loadAdminMcqMeta(){
+  try{const r=await fetch('/api/chapters',{cache:'no-store'});adminChapterMap=await r.json();}catch(e){adminChapterMap={};}
+  const names=Object.keys(adminChapterMap).sort();
+  const ids=['mcqSubject','mcqFilterSubject'];ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;const first=id==='mcqSubject'?'Select Subject':'All Subjects';el.innerHTML=`<option value="">${first}</option>`+names.map(n=>`<option>${esc(n)}</option>`).join('');});
+  refreshMcqChapterOptions();
+}
+function refreshMcqChapterOptions(){
+ const s=document.getElementById('mcqSubject')?.value||''; const chapters=adminChapterMap[s]||[]; const a=document.getElementById('mcqChapter');if(a)a.innerHTML='<option value="">Select Chapter</option>'+chapters.map(c=>`<option>${esc(c)}</option>`).join('');
+ const fs=document.getElementById('mcqFilterSubject')?.value||''; const fc=document.getElementById('mcqFilterChapter');if(fc)fc.innerHTML='<option value="">All Chapters</option>'+(adminChapterMap[fs]||[]).map(c=>`<option>${esc(c)}</option>`).join('');
+}
+async function loadMcqBank(){
+ try{const qs=new URLSearchParams();const q=document.getElementById('mcqSearch')?.value.trim();const s=document.getElementById('mcqFilterSubject')?.value;const c=document.getElementById('mcqFilterChapter')?.value;if(q)qs.set('q',q);if(s)qs.set('subject',s);if(c)qs.set('chapter',c);const d=await api('/api/admin/mcq?'+qs.toString());const rows=d.questions||[];window.mcqRows=rows;const el=document.getElementById('mcqBankList');el.innerHTML=rows.length?rows.map(x=>{const opts=Array.isArray(x.options)?x.options:[];return `<div class="item"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><b>${esc(x.question)}</b><div class="meta">${esc(x.subject)} · ${esc(x.chapter)} · ${esc(x.difficulty||'basic')}</div></div><span class="badge">#${x.id}</span></div><div class="meta">A. ${esc(opts[0]||'')} · B. ${esc(opts[1]||'')} · C. ${esc(opts[2]||'')} · D. ${esc(opts[3]||'')} · Correct: ${['A','B','C','D'][Number(x.correct_index)]||'—'}</div><div class="actions"><button class="muted small" type="button" onclick="editMcq(${Number(x.id)})">✏️ Edit</button><button class="danger small" type="button" onclick="deleteMcq(${Number(x.id)})">🗑 Delete</button></div></div>`}).join(''):'<div class="empty">No MCQs found.</div>';}catch(e){document.getElementById('mcqBankList').innerHTML=`<div class="empty">${esc(e.message)}</div>`;}
+}
+function editMcq(id){const x=(window.mcqRows||[]).find(r=>Number(r.id)===Number(id));if(!x)return;document.getElementById('mcqId').value=x.id;document.getElementById('mcqSubject').value=x.subject;refreshMcqChapterOptions();document.getElementById('mcqChapter').value=x.chapter;document.getElementById('mcqQuestion').value=x.question;const o=x.options||[];[0,1,2,3].forEach(i=>document.getElementById('mcqOpt'+i).value=o[i]||'');document.getElementById('mcqCorrect').value=x.correct_index;document.getElementById('mcqDifficulty').value=x.difficulty||'basic';document.getElementById('mcqExplanation').value=x.explanation||'';document.getElementById('mcqSaveBtn').textContent='💾 Update MCQ';document.getElementById('mcqCancelBtn').classList.remove('hidden');document.getElementById('mcqBankPanel').scrollIntoView({behavior:'smooth'});}
+function resetMcqForm(){document.getElementById('mcqForm').reset();document.getElementById('mcqId').value='';refreshMcqChapterOptions();document.getElementById('mcqSaveBtn').textContent='＋ Add MCQ';document.getElementById('mcqCancelBtn').classList.add('hidden');document.getElementById('mcqFormMsg').textContent='';}
+async function deleteMcq(id){if(!confirm('Delete this MCQ from the active bank?'))return;try{await api('/api/admin/mcq/'+id,{method:'DELETE'});await loadMcqBank();await loadAll();}catch(e){alert(e.message);}}
+document.getElementById('mcqSubject')?.addEventListener('change',refreshMcqChapterOptions);document.getElementById('mcqFilterSubject')?.addEventListener('change',refreshMcqChapterOptions);
+document.getElementById('mcqForm')?.addEventListener('submit',async e=>{e.preventDefault();const id=document.getElementById('mcqId').value;const body={subject:document.getElementById('mcqSubject').value,chapter:document.getElementById('mcqChapter').value,question:document.getElementById('mcqQuestion').value.trim(),options:[0,1,2,3].map(i=>document.getElementById('mcqOpt'+i).value.trim()),correct_index:Number(document.getElementById('mcqCorrect').value),difficulty:document.getElementById('mcqDifficulty').value,explanation:document.getElementById('mcqExplanation').value.trim()};const msg=document.getElementById('mcqFormMsg');try{await api(id?'/api/admin/mcq/'+id:'/api/admin/mcq',{method:id?'PATCH':'POST',body:JSON.stringify(body)});msg.textContent=id?'MCQ updated successfully.':'MCQ added successfully.';msg.style.color='#65efb2';resetMcqForm();await loadMcqBank();await loadAll();}catch(e){msg.textContent=e.message;msg.style.color='#ff7995';}});
 
 function renderMcqAudit(ms,md){
   mcqAudit=ms||{};
@@ -947,6 +984,8 @@ document.getElementById("adminPasswordForm").addEventListener("submit",async e=>
 
 if(token){
   showDashboard();
+  loadAdminMcqMeta();
+  loadMcqBank();
   loadAll();
   setInterval(()=>loadAll().catch(()=>{}),30000);
 }
