@@ -314,7 +314,6 @@ async function setupDatabase() {
   await pool.query(`ALTER TABLE learning_attempts ADD COLUMN IF NOT EXISTS chapter TEXT;`);
   await pool.query(`ALTER TABLE learning_attempts ADD COLUMN IF NOT EXISTS duration_seconds INT NOT NULL DEFAULT 1800;`);
   await pool.query(`ALTER TABLE learning_certificates ADD COLUMN IF NOT EXISTS chapter TEXT;`);
-  await pool.query(`ALTER TABLE learning_certificates ADD COLUMN IF NOT EXISTS student_name TEXT;`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS learning_subjects_name_unique ON learning_subjects(name);`);
   let questionUniqueIndexReady=true;
   try{await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS learning_questions_subject_chapter_question_unique ON learning_questions(subject_id,chapter,question);`);}catch(e){questionUniqueIndexReady=false;console.warn('MCQ unique index could not be created; using duplicate-safe seed filtering.',e.message);}
@@ -435,8 +434,7 @@ const pageRoutes = {
   "/terms.html": "terms.html",
   "/disclaimer.html": "disclaimer.html",
   "/forgot-password.html": "forgot-password.html",
-  "/admin.html": "admin.html",
-  "/verify.html": "verify.html"
+  "/admin.html": "admin.html"
 };
 Object.entries(pageRoutes).forEach(([route, file]) => {
   app.get(route, (req, res) => {
@@ -1806,11 +1804,11 @@ app.post('/api/learning/attempts/:id/answer',auth,requireActiveStudent,async(req
 
 app.post('/api/learning/attempts/:id/finish',auth,requireActiveStudent,async(req,res)=>finishAttempt(req,res,req.params.id,false));
 
-app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.user_id=$1 ORDER BY c.issued_at DESC`,[req.user.id]);res.json({certificates:r.rows});}catch(e){res.status(503).json({error:'Could not load certificates.'});}});
+app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.user_id=$1 ORDER BY c.issued_at DESC`,[req.user.id]);res.json({certificates:r.rows});}catch(e){res.status(503).json({error:'Could not load certificates.'});}});
 
 function pdfEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[^\x20-\x7E]/g,'');}
 function buildCertificatePdf(cert, student){
-  const name=pdfEscape(student||'Student'), subject=pdfEscape(cert.subject||'Medical Learning'), chapter=pdfEscape(cert.chapter||''), score=pdfEscape(`${cert.score}/${cert.max_score} (${cert.percentage}%)`), code=pdfEscape(cert.certificate_code), date=pdfEscape(new Date(cert.issued_at).toLocaleDateString('en-IN')), verify=pdfEscape(`${process.env.PUBLIC_URL||''}/verify.html?code=${encodeURIComponent(cert.certificate_code)}`);
+  const name=pdfEscape(student||'Student'), subject=pdfEscape(cert.subject||'Medical Learning'), chapter=pdfEscape(cert.chapter||''), score=pdfEscape(`${cert.score}/${cert.max_score} (${cert.percentage}%)`), code=pdfEscape(cert.certificate_code), date=pdfEscape(new Date(cert.issued_at).toLocaleDateString('en-IN'));
   const objects=[];
   objects.push('<< /Type /Catalog /Pages 2 0 R >>');
   objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
@@ -1828,9 +1826,7 @@ function buildCertificatePdf(cert, student){
     `BT /F1 15 Tf 1 1 1 rg 300 195 Td (Score: ${score}) Tj ET`,
     `BT /F1 12 Tf 0.70 0.80 0.90 rg 80 90 Td (Certificate Code: ${code}) Tj ET`,
     `BT /F1 12 Tf 0.70 0.80 0.90 rg 650 90 Td (Issued: ${date}) Tj ET`,
-    'BT /F1 12 Tf 0.88 0.74 0.35 rg 390 125 Td (Founder: Its.Abhi) Tj ET',
-    `BT /F1 8 Tf 0.75 0.84 0.92 rg 80 70 Td (Verify online: ${verify}) Tj ET`,
-    'BT /F1 9 Tf 0.55 0.65 0.75 rg 250 45 Td (Educational certificate - not a professional license or accredited qualification.) Tj ET'
+    'BT /F1 9 Tf 0.55 0.65 0.75 rg 250 55 Td (Educational certificate - not a professional license or accredited qualification.) Tj ET'
   ].join('\n');
   objects.push(`<< /Length ${Buffer.byteLength(stream,'utf8')} >>\nstream\n${stream}\nendstream`);
   objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
@@ -1842,52 +1838,23 @@ function buildCertificatePdf(cert, student){
   return Buffer.from(pdf,'utf8');
 }
 
-app.post('/api/admin/certificates/manual',adminAuth,async(req,res)=>{
- try{
-  const student=String(req.body.student||'').trim(),course=String(req.body.course||'').trim();
-  const score=Number(req.body.score),max=Number(req.body.max_score);
-  if(!student||!course||!Number.isInteger(score)||!Number.isInteger(max)||max<1||score<0||score>max)return res.status(400).json({error:'Enter student name, course, marks obtained and total marks.'});
-  let user=await pool.query(`SELECT id,COALESCE(display_name,instagram_username) student FROM users WHERE LOWER(instagram_username)=LOWER($1) OR LOWER(email)=LOWER($1) LIMIT 1`,[student]);
-  let userId,studentName;
-  if(user.rowCount){userId=user.rows[0].id;studentName=user.rows[0].student||student;}
-  else {
-   studentName=student;
-   const username='certificate-'+crypto.randomBytes(8).toString('hex');
-   const password=crypto.randomBytes(32).toString('hex');
-   const made=await pool.query(`INSERT INTO users(instagram_username,email,password,display_name) VALUES($1,NULL,$2,$3) RETURNING id`,[username,password,studentName]);
-   userId=made.rows[0].id;
-  }
-  let subject=await pool.query(`SELECT id FROM learning_subjects WHERE LOWER(name)=LOWER($1) LIMIT 1`,[course]);
-  if(!subject.rowCount){const slug=course.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)||('manual-'+crypto.randomBytes(3).toString('hex'));subject=await pool.query(`INSERT INTO learning_subjects(slug,name,active) VALUES($1,$2,true) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id`,[slug,course]);}
-  const code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase(),percentage=Number(((score/max)*100).toFixed(2));
-  const r=await pool.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,chapter,certificate_code,score,max_score,percentage,certificate_type,student_name) VALUES($1,$2,NULL,NULL,$3,$4,$5,$6,'subject',$7) RETURNING certificate_code,score,max_score,percentage,issued_at`,[userId,subject.rows[0]?.id||null,code,score,max,percentage,studentName]);
-  res.status(201).json({...r.rows[0],student:studentName,subject:course});
- }catch(e){console.error(e);res.status(503).json({error:'Could not issue manual certificate.'});}
-});
-
 app.get('/api/admin/certificates',adminAuth,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student,u.instagram_username FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id ORDER BY c.issued_at DESC LIMIT 500`);res.json({certificates:r.rows});}
+ try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student,u.instagram_username FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id ORDER BY c.issued_at DESC LIMIT 500`);res.json({certificates:r.rows});}
  catch(e){console.error(e);res.status(503).json({error:'Could not load issued certificates.'});}
 });
 app.get('/api/admin/certificates/:code/preview',adminAuth,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
+ try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
  catch(e){console.error(e);res.status(503).json({error:'Certificate preview unavailable.'});}
 });
 
-
-app.get('/api/admin/certificates/:code/download',adminAuth,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`attachment; filename="truth-oflifes-${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
- catch(e){console.error(e);res.status(503).json({error:'Certificate download unavailable.'});}
-});
-
 app.get('/api/learning/certificates/:code/preview',auth,requireActiveStudent,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
+ try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
  catch(e){console.error(e);res.status(503).json({error:'Certificate preview unavailable.'});}
 });
 
 app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,async(req,res)=>{
   try{
-    const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);
+    const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);
     if(!r.rowCount) return res.status(404).json({error:'Certificate not found.'});
     const pdf=buildCertificatePdf(r.rows[0],r.rows[0].student);
     res.setHeader('Content-Type','application/pdf');
@@ -1897,7 +1864,7 @@ app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,as
 });
 
 app.get('/api/learning/certificates/verify/:code',async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(c.student_name,u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
+ try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({valid:false});res.json({valid:true,certificate:r.rows[0],notice:'Educational quiz completion certificate; not a professional license or accredited qualification.'});}
  catch(e){res.status(503).json({error:'Certificate verification unavailable.'});}
 });
 

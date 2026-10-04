@@ -28,8 +28,6 @@ CREATE TABLE IF NOT EXISTS learning_certificates (
  certificate_code TEXT UNIQUE NOT NULL, score INT NOT NULL, max_score INT NOT NULL, percentage NUMERIC(5,2) NOT NULL,
  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), certificate_type TEXT NOT NULL CHECK(certificate_type IN ('subject','all_subjects'))
 );
-ALTER TABLE learning_certificates ADD COLUMN IF NOT EXISTS student_name TEXT;
-
 CREATE TABLE IF NOT EXISTS learning_user_status (
  user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE RESTRICT, is_active BOOLEAN NOT NULL DEFAULT TRUE,
  deactivated_at TIMESTAMPTZ, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
