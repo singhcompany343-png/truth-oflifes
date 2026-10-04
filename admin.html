@@ -526,10 +526,12 @@ async function api(url,opt={}) {
 }
 function logout(){
   localStorage.removeItem("adminToken");
+  localStorage.removeItem("truthToken");
+  localStorage.removeItem("truthRole");
   localStorage.removeItem("token");
+  sessionStorage.removeItem("tol_after_login_url");
   token="";
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("loginScreen").classList.remove("hidden");
+  window.location.replace("/?loggedout=1");
 }
 
 
