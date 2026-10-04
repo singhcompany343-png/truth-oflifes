@@ -1086,7 +1086,10 @@ app.get("/api/resources/:id/open", maybeAuth, async (req, res) => {
     if (type === "video") return res.redirect(`/api/resources/${encodeURIComponent(req.params.id)}/video`);
 
     const fileUrl = String(row.file_url || "").trim();
-    if (fileUrl && /^https?:\/\//i.test(fileUrl)) return res.redirect(fileUrl);
+    if (fileUrl && /^https?:\/\//i.test(fileUrl)) {
+      if (String(req.query.format || "").toLowerCase() === "json") return res.json({url:fileUrl, title:row.title || row.file_name || "Resource", type:row.type || ""});
+      return res.redirect(fileUrl);
+    }
 
     const data = String(row.file_data || "").trim();
     if (!data) return res.status(404).json({error:"File is not available to open"});
@@ -1816,10 +1819,18 @@ function buildCertificatePdf(cert, student){
   objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>');
   const stream=[
     'q 0.98 0.98 0.96 rg 0 0 842 595 re f Q',
-    'q 0.02 0.12 0.24 rg 0 0 842 20 re f Q',
-    'q 0.02 0.12 0.24 rg 0 575 842 20 re f Q',
-    'q 0.02 0.12 0.24 RG 5 w 18 18 806 559 re S Q',
-    'q 0.78 0.60 0.22 RG 1.5 w 29 29 784 537 re S Q',
+    'q 0.02 0.12 0.24 rg 0 0 842 24 re f Q',
+    'q 0.02 0.12 0.24 rg 0 571 842 24 re f Q',
+    'q 0.02 0.12 0.24 RG 6 w 14 14 814 567 re S Q',
+    'q 0.78 0.60 0.22 RG 2 w 25 25 792 545 re S Q',
+    'q 0.78 0.60 0.22 RG 1 w 36 36 770 523 re S Q',
+    'q 0.78 0.60 0.22 RG 1.4 w 42 42 m 120 42 l S 722 42 m 800 42 l S Q',
+    'q 0.78 0.60 0.22 RG 1.4 w 42 553 m 120 553 l S 722 553 m 800 553 l S Q',
+    'q 0.02 0.12 0.24 RG 2 w 710 365 76 76 re S Q',
+    'q 0.78 0.60 0.22 RG 3 w 715 370 66 66 re S Q',
+    'BT /F2 11 Tf 0.68 0.49 0.16 rg 721 403 Td (CERTIFIED) Tj ET',
+    'BT /F2 10 Tf 0.02 0.12 0.24 rg 721 388 Td (MEDICAL) Tj ET',
+    'BT /F2 10 Tf 0.02 0.12 0.24 rg 727 375 Td (LEARNER) Tj ET',
     'q 0.78 0.60 0.22 RG 1 w 60 62 m 782 62 l S Q',
     'BT /F2 27 Tf 0.02 0.12 0.24 rg 270 515 Td (TRUTH.OFLIFES) Tj ET',
     'BT /F1 11 Tf 0.16 0.38 0.60 rg 300 495 Td (LEARN  -  GROW  -  HEAL) Tj ET',
@@ -1832,10 +1843,13 @@ function buildCertificatePdf(cert, student){
     `BT /F2 20 Tf 0.02 0.12 0.24 rg ${Math.max(110,421-(subject.length*4))} 250 Td (${subject}) Tj ET`,
     chapter ? `BT /F1 13 Tf 0.18 0.25 0.34 rg ${Math.max(110,421-(chapter.length*3))} 224 Td (${chapter}) Tj ET` : '',
     `BT /F1 14 Tf 0.02 0.12 0.24 rg 310 190 Td (Score: ${score}) Tj ET`,
-    'BT /F1 12 Tf 0.52 0.40 0.16 rg 345 135 Td (Founder: Its.Abhi) Tj ET',
+    'BT /F1 10 Tf 0.18 0.25 0.34 rg 105 122 Td (________________________) Tj ET',
+    'BT /F2 13 Tf 0.02 0.12 0.24 rg 116 102 Td (Its.Abhi) Tj ET',
+    'BT /F1 10 Tf 0.52 0.40 0.16 rg 132 87 Td (Founder) Tj ET',
     `BT /F1 10 Tf 0.18 0.25 0.34 rg 55 82 Td (Certificate ID: ${code}) Tj ET`,
     `BT /F1 10 Tf 0.18 0.25 0.34 rg 650 82 Td (Issued: ${date}) Tj ET`,
-    'BT /F1 8 Tf 0.35 0.40 0.45 rg 230 42 Td (Educational completion certificate - not a professional license.) Tj ET'
+    'BT /F1 8 Tf 0.95 0.90 0.76 rg 230 8 Td (KNOWLEDGE TODAY  -  HEALTHIER TOMORROW) Tj ET',
+    'BT /F1 8 Tf 0.35 0.40 0.45 rg 230 29 Td (Educational completion certificate - not a professional license.) Tj ET'
   ].join('\n');
   objects.push(`<< /Length ${Buffer.byteLength(stream,'utf8')} >>\nstream\n${stream}\nendstream`);
   objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
