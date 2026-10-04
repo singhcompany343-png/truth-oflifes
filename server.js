@@ -1808,28 +1808,38 @@ app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{
 
 function pdfEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[^\x20-\x7E]/g,'');}
 function buildCertificatePdf(cert, student){
-  const name=pdfEscape(student||'Student'), subject=pdfEscape(cert.subject||'Medical Learning'), chapter=pdfEscape(cert.chapter||''), score=pdfEscape(`${cert.score}/${cert.max_score} (${cert.percentage}%)`), code=pdfEscape(cert.certificate_code), date=pdfEscape(new Date(cert.issued_at).toLocaleDateString('en-IN'));
+  const safe=v=>pdfEscape(String(v??'').replace(/[\r\n]+/g,' ').slice(0,120));
+  const name=safe(student||'Student'), subject=safe(cert.subject||'Medical Learning'), chapter=safe(cert.chapter||''), score=safe(`${cert.score}/${cert.max_score} (${Number(cert.percentage).toFixed(2)}%)`), code=safe(cert.certificate_code), date=safe(new Date(cert.issued_at).toLocaleDateString('en-IN'));
   const objects=[];
   objects.push('<< /Type /Catalog /Pages 2 0 R >>');
   objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>');
+  objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>');
   const stream=[
-    'q 0.03 0.10 0.18 rg 0 0 842 595 re f Q',
-    'q 0.06 0.28 0.48 RG 18 w 24 24 794 547 re S Q',
-    'BT /F1 30 Tf 0.40 0.85 1 rg 250 500 Td (TRUTH.OFLIFES) Tj ET',
-    'BT /F1 27 Tf 1 1 1 rg 255 435 Td (Certificate of Completion) Tj ET',
-    'BT /F1 14 Tf 0.75 0.84 0.92 rg 330 390 Td (This certificate is presented to) Tj ET',
-    `BT /F1 30 Tf 1 1 1 rg  ${Math.max(120, 421-(name.length*5))} 340 Td (${name}) Tj ET`,
-    'BT /F1 15 Tf 0.75 0.84 0.92 rg 325 300 Td (for completing the educational learning assessment) Tj ET',
-    `BT /F1 20 Tf 0.40 0.85 1 rg ${Math.max(150, 421-(subject.length*5))} 255 Td (${subject}) Tj ET`,
-    chapter ? `BT /F1 12 Tf 0.75 0.84 0.92 rg ${Math.max(180, 421-(chapter.length*4))} 230 Td (Chapter: ${chapter}) Tj ET` : '',
-    `BT /F1 15 Tf 1 1 1 rg 300 195 Td (Score: ${score}) Tj ET`,
-    `BT /F1 12 Tf 0.70 0.80 0.90 rg 80 90 Td (Certificate Code: ${code}) Tj ET`,
-    `BT /F1 12 Tf 0.70 0.80 0.90 rg 650 90 Td (Issued: ${date}) Tj ET`,
-    'BT /F1 9 Tf 0.55 0.65 0.75 rg 250 55 Td (Educational certificate - not a professional license or accredited qualification.) Tj ET'
+    'q 0.98 0.98 0.96 rg 0 0 842 595 re f Q',
+    'q 0.02 0.12 0.24 rg 0 0 842 20 re f Q',
+    'q 0.02 0.12 0.24 rg 0 575 842 20 re f Q',
+    'q 0.02 0.12 0.24 RG 5 w 18 18 806 559 re S Q',
+    'q 0.78 0.60 0.22 RG 1.5 w 29 29 784 537 re S Q',
+    'q 0.78 0.60 0.22 RG 1 w 60 62 m 782 62 l S Q',
+    'BT /F2 27 Tf 0.02 0.12 0.24 rg 270 515 Td (TRUTH.OFLIFES) Tj ET',
+    'BT /F1 11 Tf 0.16 0.38 0.60 rg 300 495 Td (LEARN  -  GROW  -  HEAL) Tj ET',
+    'BT /F2 35 Tf 0.02 0.12 0.24 rg 235 438 Td (CERTIFICATE) Tj ET',
+    'BT /F2 20 Tf 0.68 0.49 0.16 rg 300 408 Td (OF COMPLETION) Tj ET',
+    'BT /F1 13 Tf 0.18 0.25 0.34 rg 315 372 Td (THIS IS TO CERTIFY THAT) Tj ET',
+    `BT /F2 29 Tf 0.02 0.12 0.24 rg ${Math.max(90,421-(name.length*5))} 326 Td (${name}) Tj ET`,
+    'q 0.78 0.60 0.22 RG 1 w 170 313 m 672 313 l S Q',
+    'BT /F1 14 Tf 0.18 0.25 0.34 rg 300 282 Td (has successfully completed the course) Tj ET',
+    `BT /F2 20 Tf 0.02 0.12 0.24 rg ${Math.max(110,421-(subject.length*4))} 250 Td (${subject}) Tj ET`,
+    chapter ? `BT /F1 13 Tf 0.18 0.25 0.34 rg ${Math.max(110,421-(chapter.length*3))} 224 Td (${chapter}) Tj ET` : '',
+    `BT /F1 14 Tf 0.02 0.12 0.24 rg 310 190 Td (Score: ${score}) Tj ET`,
+    'BT /F1 12 Tf 0.52 0.40 0.16 rg 345 135 Td (Founder: Its.Abhi) Tj ET',
+    `BT /F1 10 Tf 0.18 0.25 0.34 rg 55 82 Td (Certificate ID: ${code}) Tj ET`,
+    `BT /F1 10 Tf 0.18 0.25 0.34 rg 650 82 Td (Issued: ${date}) Tj ET`,
+    'BT /F1 8 Tf 0.35 0.40 0.45 rg 230 42 Td (Educational completion certificate - not a professional license.) Tj ET'
   ].join('\n');
   objects.push(`<< /Length ${Buffer.byteLength(stream,'utf8')} >>\nstream\n${stream}\nendstream`);
   objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
   let pdf='%PDF-1.4\n'; const offsets=[0];
   for(let i=0;i<objects.length;i++){offsets[i+1]=Buffer.byteLength(pdf,'utf8');pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;}
   const xref=Buffer.byteLength(pdf,'utf8'); pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
@@ -1837,6 +1847,22 @@ function buildCertificatePdf(cert, student){
   pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   return Buffer.from(pdf,'utf8');
 }
+
+app.get('/api/admin/certificate-options',adminAuth,async(req,res)=>{
+ try{const [u,s]=await Promise.all([pool.query(`SELECT id,instagram_username,display_name FROM users ORDER BY COALESCE(display_name,instagram_username)`),pool.query(`SELECT id,name FROM learning_subjects WHERE active=true ORDER BY sort_order,name`)]);res.json({users:u.rows,subjects:s.rows});}
+ catch(e){console.error(e);res.status(503).json({error:'Could not load certificate options.'});}
+});
+app.post('/api/admin/certificates/manual',adminAuth,async(req,res)=>{
+ const userId=Number(req.body.user_id),subjectId=Number(req.body.subject_id),course=String(req.body.course||'').trim(),score=Number(req.body.score),max=Number(req.body.max_score);
+ if(!Number.isInteger(userId)||!Number.isInteger(subjectId)||!course||course.length>120||!Number.isInteger(score)||!Number.isInteger(max)||max<1||score<0||score>max)return res.status(400).json({error:'Choose student, subject/course and valid marks.'});
+ try{const user=await pool.query('SELECT id FROM users WHERE id=$1',[userId]);if(!user.rowCount)return res.status(404).json({error:'Student account not found.'});const sub=await pool.query('SELECT id,name FROM learning_subjects WHERE id=$1 AND active=true',[subjectId]);if(!sub.rowCount)return res.status(404).json({error:'Subject not found.'});const code='TOL-MAN-'+crypto.randomBytes(5).toString('hex').toUpperCase();const pct=Number((score/max*100).toFixed(2));await pool.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,chapter,certificate_code,score,max_score,percentage,certificate_type) VALUES($1,$2,NULL,$3,$4,$5,$6,$7,'subject')`,[userId,subjectId,course,code,score,max,pct]);res.status(201).json({certificate_code:code,percentage:pct});}
+ catch(e){console.error(e);res.status(503).json({error:'Could not create certificate.'});}
+});
+app.delete('/api/admin/certificates/:code',adminAuth,async(req,res)=>{
+ const password=String(req.body?.password||'');if(!password)return res.status(400).json({error:'Admin password required to delete.'});
+ try{const a=await pool.query('SELECT password_hash FROM admins WHERE id=$1',[req.user.id]);if(!a.rowCount||!await bcrypt.compare(password,a.rows[0].password_hash))return res.status(401).json({error:'Admin password incorrect.'});const d=await pool.query('DELETE FROM learning_certificates WHERE certificate_code=$1 RETURNING certificate_code',[req.params.code]);if(!d.rowCount)return res.status(404).json({error:'Certificate not found.'});res.json({deleted:true,certificate_code:d.rows[0].certificate_code});}
+ catch(e){console.error(e);res.status(503).json({error:'Could not delete certificate.'});}
+});
 
 app.get('/api/admin/certificates',adminAuth,async(req,res)=>{
  try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student,u.instagram_username FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id ORDER BY c.issued_at DESC LIMIT 500`);res.json({certificates:r.rows});}
