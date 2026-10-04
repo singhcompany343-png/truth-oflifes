@@ -428,6 +428,12 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
     </div>
   </section>
 
+  <section class="panel" id="issuedCertificatesPanel">
+    <h3>🎓 Issued Student Certificates</h3>
+    <p class="muted">Passed MCQ tests ke certificates yahan saved record ke saath dikhte hain. Student ke naam ya Preview par click karke actual certificate PDF kholen.</p>
+    <div id="issuedCertificatesList" class="scrollBox"><div class="empty">Loading certificates…</div></div>
+  </section>
+
   <section class="panel">
     <h3>📚 Resources</h3>
     <div class="filters">
@@ -631,6 +637,9 @@ function refreshMcqChapterOptions(){
  const s=document.getElementById('mcqSubject')?.value||''; const chapters=adminChapterMap[s]||[]; const a=document.getElementById('mcqChapter');if(a)a.innerHTML='<option value="">Select Chapter</option>'+chapters.map(c=>`<option>${esc(c)}</option>`).join('');
  const fs=document.getElementById('mcqFilterSubject')?.value||''; const fc=document.getElementById('mcqFilterChapter');if(fc)fc.innerHTML='<option value="">All Chapters</option>'+(adminChapterMap[fs]||[]).map(c=>`<option>${esc(c)}</option>`).join('');
 }
+function escHtml(s){return String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
+async function loadIssuedCertificates(){const box=document.getElementById('issuedCertificatesList');if(!box)return;try{const d=await api('/api/admin/certificates');const rows=d.certificates||[];if(!rows.length){box.innerHTML='<div class="empty">Abhi koi certificate issue nahi hua hai.</div>';return;}box.innerHTML='<table style="width:100%;border-collapse:collapse"><thead><tr><th>Student</th><th>Course</th><th>Marks</th><th>Percentage</th><th>Issued</th><th>Certificate</th></tr></thead><tbody>'+rows.map(c=>'<tr><td><b>'+escHtml(c.student||c.instagram_username||'Student')+'</b><br><small>'+escHtml(c.instagram_username||'')+'</small></td><td>'+escHtml(c.subject||'Medical Learning')+(c.chapter?' — '+escHtml(c.chapter):'')+'</td><td>'+Number(c.score)+'/'+Number(c.max_score)+'</td><td>'+Number(c.percentage).toFixed(2)+'%</td><td>'+new Date(c.issued_at).toLocaleDateString('en-IN')+'</td><td><button class="btn" type="button" onclick="previewIssuedCertificate(\''+encodeURIComponent(c.certificate_code)+'\')">Preview / Open PDF</button><br><small>'+escHtml(c.certificate_code)+'</small></td></tr>').join('')+'</tbody></table>';}catch(e){box.innerHTML='<div class="empty">Could not load certificates: '+escHtml(e.message||'Please retry')+'</div>';}}
+async function previewIssuedCertificate(code){try{const t=localStorage.getItem('adminToken')||localStorage.getItem('truthToken')||localStorage.getItem('token')||token;const r=await fetch('/api/admin/certificates/'+decodeURIComponent(code)+'/preview',{headers:{Authorization:'Bearer '+t}});if(!r.ok)throw new Error('Preview unavailable');const b=await r.blob(),u=URL.createObjectURL(b);window.open(u,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(u),60000);}catch(e){alert(e.message||'Could not open certificate');}}
 async function loadMcqBank(){
  try{const qs=new URLSearchParams();const q=document.getElementById('mcqSearch')?.value.trim();const s=document.getElementById('mcqFilterSubject')?.value;const c=document.getElementById('mcqFilterChapter')?.value;if(q)qs.set('q',q);if(s)qs.set('subject',s);if(c)qs.set('chapter',c);const d=await api('/api/admin/mcq?'+qs.toString());const rows=d.questions||[];window.mcqRows=rows;const el=document.getElementById('mcqBankList');el.innerHTML=rows.length?rows.map(x=>{const opts=Array.isArray(x.options)?x.options:[];return `<div class="item"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><b>${esc(x.question)}</b><div class="meta">${esc(x.subject)} · ${esc(x.chapter)} · ${esc(x.difficulty||'basic')}</div></div><span class="badge">#${x.id}</span></div><div class="meta">A. ${esc(opts[0]||'')} · B. ${esc(opts[1]||'')} · C. ${esc(opts[2]||'')} · D. ${esc(opts[3]||'')} · Correct: ${['A','B','C','D'][Number(x.correct_index)]||'—'}</div><div class="actions"><button class="muted small" type="button" onclick="editMcq(${Number(x.id)})">✏️ Edit</button><button class="danger small" type="button" onclick="deleteMcq(${Number(x.id)})">🗑 Delete</button></div></div>`}).join(''):'<div class="empty">No MCQs found.</div>';}catch(e){document.getElementById('mcqBankList').innerHTML=`<div class="empty">${esc(e.message)}</div>`;}
 }
@@ -988,6 +997,7 @@ if(token){
   showDashboard();
   loadAdminMcqMeta();
   loadMcqBank();
+  loadIssuedCertificates();
   loadAll();
   setInterval(()=>loadAll().catch(()=>{}),30000);
 }
