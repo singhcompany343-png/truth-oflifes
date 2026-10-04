@@ -183,6 +183,22 @@ textarea{min-height:80px;resize:vertical}
 .chapterGrid,.chapters,.chapterList{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;align-items:stretch;}
 @media(max-width:900px){.subjectGrid,.subjects,.subjectPills{grid-template-columns:repeat(3,minmax(0,1fr))!important}.chapterGrid,.chapters,.chapterList{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:620px){.subjectGrid,.subjects,.subjectPills{grid-template-columns:repeat(2,minmax(0,1fr))!important}.chapterGrid,.chapters,.chapterList{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Reference-inspired certificate preview: ivory paper, navy frame, gold rules, no overlaps. */
+.certPreview{min-height:0!important;aspect-ratio:1.414/1;background:#fbfaf5!important;color:#092747!important;border:7px solid #082344!important;border-radius:0!important;padding:clamp(16px,3vw,34px)!important;text-align:center!important;position:relative;overflow:hidden;box-shadow:inset 0 0 0 2px #c9a34a,inset 0 0 0 9px #fbfaf5,inset 0 0 0 10px #c9a34a!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(4px,.8vw,9px)}
+.certPreview:before{content:'✦  MEDICAL EDUCATION  ✦';position:absolute;top:14px;left:16px;right:16px;border-bottom:1px solid #c9a34a;padding-bottom:5px;color:#092747;font-size:clamp(7px,.8vw,10px);letter-spacing:2px;border-radius:0}
+.certPreview:after{content:'KNOWLEDGE TODAY  •  HEALTHIER TOMORROW';position:absolute;bottom:0;left:0;right:0;background:#082344;color:#f1d27e;padding:7px 4px;font-size:clamp(6px,.7vw,9px);letter-spacing:2px}
+.certSeal{width:clamp(36px,5vw,62px)!important;height:clamp(36px,5vw,62px)!important;border-radius:50%!important;display:grid;place-items:center;margin:15px auto 0!important;background:#0b5b91!important;color:#fff!important;font-size:clamp(16px,2vw,28px)!important;box-shadow:0 0 0 3px #d3ad55,0 0 0 6px #fff!important;flex-shrink:0}
+.certBrand{font-size:clamp(9px,1.2vw,15px)!important;letter-spacing:2px!important;color:#0b5b91!important;font-weight:900}
+.certTitle{font-family:Georgia,serif!important;font-size:clamp(17px,3vw,34px)!important;line-height:1.05!important;font-weight:900!important;margin:2px 0!important;color:#082344!important;text-transform:uppercase}
+.certSub{color:#18344d!important;font-size:clamp(8px,1vw,12px)!important;line-height:1.35!important}
+.certName{font-family:Georgia,serif!important;font-style:italic!important;font-size:clamp(17px,2.5vw,29px)!important;color:#082344!important;margin:4px auto!important;padding:0 10px 4px!important;width:80%;border-bottom:1px solid #c9a34a;overflow-wrap:anywhere;line-height:1.2!important}
+.certSubject{font-size:clamp(11px,1.6vw,18px)!important;color:#082344!important;line-height:1.25!important;overflow-wrap:anywhere}
+.certScore{margin:4px auto!important;padding:5px 12px!important;border:0!important;border-radius:0!important;display:inline-block;color:#082344!important;background:#f4eedb!important;font-size:clamp(8px,1vw,12px)!important}
+.certFooter{display:flex!important;justify-content:space-between!important;gap:10px!important;margin-top:auto!important;padding:7px 2px 18px!important;width:100%!important;color:#082344!important;font-size:clamp(7px,.8vw,10px)!important;text-align:left!important;border-top:1px solid #c9a34a}
+.certCode{font-family:Georgia,serif!important;text-align:right!important;overflow-wrap:anywhere}
+@media(max-width:800px){.previewGrid{grid-template-columns:1fr}.certPreview{aspect-ratio:1.414/1;min-height:0!important;padding:16px!important}.certTitle{font-size:22px!important}.certFooter{padding-bottom:17px!important}}
+
 </style>
 
 
@@ -421,7 +437,7 @@ header.brandbar,nav,.brandbar{background:#fff!important;color:#17334e!important;
         <div class="certSub">for successfully completing the learning assessment in</div>
         <div class="certSubject" id="certPreviewSubject">Anatomy</div>
         <div class="certScore" id="certPreviewScore">Score: 85% • Educational Completion</div>
-        <div class="certFooter"><span>Learn • Grow • Heal<br>Medical Education Platform</span><span class="certCode">CERT-TRUTH-2026<br>Verified Certificate</span></div>
+        <div class="certFooter"><span>Learn • Grow • Heal<br>Medical Education Platform</span><span class="certCode">CERT-TRUTH-2026<br>Verify certificate online<br>Certificate record</span></div>
       </div>
       <div class="previewCard">
         <div class="previewLabel">Preview controls</div>

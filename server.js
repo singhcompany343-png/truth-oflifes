@@ -1811,55 +1811,43 @@ app.get('/api/learning/certificates',auth,requireActiveStudent,async(req,res)=>{
 
 function pdfEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[^\x20-\x7E]/g,'');}
 function buildCertificatePdf(cert, student){
-  const safe=v=>pdfEscape(String(v??'').replace(/[\r\n]+/g,' ').slice(0,120));
+  const safe=v=>pdfEscape(String(v??'').replace(/[\r\n]+/g,' ').slice(0,100));
   const name=safe(student||'Student'), subject=safe(cert.subject||'Medical Learning'), chapter=safe(cert.chapter||''), score=safe(`${cert.score}/${cert.max_score} (${Number(cert.percentage).toFixed(2)}%)`), code=safe(cert.certificate_code), date=safe(new Date(cert.issued_at).toLocaleDateString('en-IN'));
   const objects=[];
   objects.push('<< /Type /Catalog /Pages 2 0 R >>');
   objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
   objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>');
+  const nameX=Math.max(120,421-(name.length*6));
+  const subjectX=Math.max(130,421-(subject.length*4.5));
   const stream=[
-    'q 0.98 0.98 0.96 rg 0 0 842 595 re f Q',
-    'q 0.02 0.12 0.24 rg 0 0 842 24 re f Q',
-    'q 0.02 0.12 0.24 rg 0 571 842 24 re f Q',
-    'q 0.02 0.12 0.24 RG 6 w 14 14 814 567 re S Q',
-    'q 0.78 0.60 0.22 RG 2 w 25 25 792 545 re S Q',
-    'q 0.78 0.60 0.22 RG 1 w 36 36 770 523 re S Q',
-    'q 0.78 0.60 0.22 RG 1.4 w 42 42 m 120 42 l S 722 42 m 800 42 l S Q',
-    'q 0.78 0.60 0.22 RG 1.4 w 42 553 m 120 553 l S 722 553 m 800 553 l S Q',
-    'q 0.02 0.12 0.24 RG 2 w 710 365 76 76 re S Q',
-    'q 0.78 0.60 0.22 RG 3 w 715 370 66 66 re S Q',
-    'BT /F2 11 Tf 0.68 0.49 0.16 rg 721 403 Td (CERTIFIED) Tj ET',
-    'BT /F2 10 Tf 0.02 0.12 0.24 rg 721 388 Td (MEDICAL) Tj ET',
-    'BT /F2 10 Tf 0.02 0.12 0.24 rg 727 375 Td (LEARNER) Tj ET',
-    'q 0.78 0.60 0.22 RG 1 w 60 62 m 782 62 l S Q',
-    'BT /F2 27 Tf 0.02 0.12 0.24 rg 270 515 Td (TRUTH.OFLIFES) Tj ET',
-    'BT /F1 11 Tf 0.16 0.38 0.60 rg 300 495 Td (LEARN  -  GROW  -  HEAL) Tj ET',
-    'BT /F2 35 Tf 0.02 0.12 0.24 rg 235 438 Td (CERTIFICATE) Tj ET',
-    'BT /F2 20 Tf 0.68 0.49 0.16 rg 300 408 Td (OF COMPLETION) Tj ET',
-    'BT /F1 13 Tf 0.18 0.25 0.34 rg 315 372 Td (THIS IS TO CERTIFY THAT) Tj ET',
-    `BT /F2 29 Tf 0.02 0.12 0.24 rg ${Math.max(90,421-(name.length*5))} 326 Td (${name}) Tj ET`,
-    'q 0.78 0.60 0.22 RG 1 w 170 313 m 672 313 l S Q',
-    'BT /F1 14 Tf 0.18 0.25 0.34 rg 300 282 Td (has successfully completed the course) Tj ET',
-    `BT /F2 20 Tf 0.02 0.12 0.24 rg ${Math.max(110,421-(subject.length*4))} 250 Td (${subject}) Tj ET`,
-    chapter ? `BT /F1 13 Tf 0.18 0.25 0.34 rg ${Math.max(110,421-(chapter.length*3))} 224 Td (${chapter}) Tj ET` : '',
-    `BT /F1 14 Tf 0.02 0.12 0.24 rg 310 190 Td (Score: ${score}) Tj ET`,
-    'BT /F1 10 Tf 0.18 0.25 0.34 rg 105 122 Td (________________________) Tj ET',
-    'BT /F2 13 Tf 0.02 0.12 0.24 rg 116 102 Td (Its.Abhi) Tj ET',
-    'BT /F1 10 Tf 0.52 0.40 0.16 rg 132 87 Td (Founder) Tj ET',
-    `BT /F1 10 Tf 0.18 0.25 0.34 rg 55 82 Td (Certificate ID: ${code}) Tj ET`,
-    `BT /F1 10 Tf 0.18 0.25 0.34 rg 650 82 Td (Issued: ${date}) Tj ET`,
-    'BT /F1 8 Tf 0.95 0.90 0.76 rg 230 8 Td (KNOWLEDGE TODAY  -  HEALTHIER TOMORROW) Tj ET',
-    'BT /F1 8 Tf 0.35 0.40 0.45 rg 230 29 Td (Educational completion certificate - not a professional license.) Tj ET'
+    'q 0.99 0.985 0.96 rg 0 0 842 595 re f Q',
+    'q 0.02 0.12 0.24 rg 0 0 842 22 re f Q','q 0.02 0.12 0.24 rg 0 573 842 22 re f Q',
+    'q 0.02 0.12 0.24 RG 6 w 13 13 816 569 re S Q','q 0.78 0.60 0.22 RG 2 w 24 24 794 547 re S Q','q 0.78 0.60 0.22 RG 0.8 w 34 34 774 527 re S Q',
+    'q 0.78 0.60 0.22 RG 1.2 w 42 42 m 120 42 l S 722 42 m 800 42 l S Q','q 0.78 0.60 0.22 RG 1.2 w 42 553 m 120 553 l S 722 553 m 800 553 l S Q',
+    // Medical emblem and gold learner seal
+    'q 0.02 0.12 0.24 RG 2 w 74 426 m 74 472 l S 60 458 m 88 458 l S 63 445 m 85 445 l S Q',
+    'BT /F2 8 Tf 0.02 0.12 0.24 rg 45 410 Td (MEDICAL EDUCATION) Tj ET',
+    'q 0.78 0.60 0.22 rg 1 w 733 385 58 58 re f Q','q 0.02 0.12 0.24 RG 2 w 733 385 58 58 re S Q',
+    'BT /F2 8 Tf 1 1 1 rg 741 419 Td (CERTIFIED) Tj ET','BT /F2 8 Tf 1 1 1 rg 743 406 Td (MEDICAL) Tj ET','BT /F2 8 Tf 1 1 1 rg 747 393 Td (LEARNER) Tj ET',
+    'BT /F2 25 Tf 0.02 0.12 0.24 rg 270 515 Td (TRUTH.OFLIFES) Tj ET','BT /F1 10 Tf 0.16 0.38 0.60 rg 322 495 Td (LEARN  -  GROW  -  HEAL) Tj ET',
+    'BT /F2 37 Tf 0.02 0.12 0.24 rg 232 444 Td (CERTIFICATE) Tj ET','q 0.78 0.60 0.22 RG 1.5 w 230 431 m 612 431 l S Q','BT /F2 19 Tf 0.68 0.49 0.16 rg 307 408 Td (OF COMPLETION) Tj ET',
+    'BT /F1 12 Tf 0.18 0.25 0.34 rg 326 376 Td (THIS IS TO CERTIFY THAT) Tj ET',
+    `BT /F2 29 Tf 0.02 0.12 0.24 rg ${nameX} 333 Td (${name}) Tj ET`,'q 0.78 0.60 0.22 RG 1 w 155 319 m 687 319 l S Q',
+    'BT /F1 13 Tf 0.18 0.25 0.34 rg 290 289 Td (has successfully completed the course) Tj ET',
+    `BT /F2 20 Tf 0.02 0.12 0.24 rg ${subjectX} 259 Td (${subject}) Tj ET`,
+    chapter ? `BT /F1 12 Tf 0.18 0.25 0.34 rg ${Math.max(150,421-(chapter.length*3.1))} 236 Td (${chapter}) Tj ET` : '',
+    `BT /F1 13 Tf 0.02 0.12 0.24 rg ${Math.max(180,421-(score.length*3.2))} 208 Td (Score: ${score}) Tj ET`,
+    'q 0.78 0.60 0.22 RG 1 w 60 64 m 782 64 l S Q',
+    'BT /F1 10 Tf 0.18 0.25 0.34 rg 96 126 Td (__________________________) Tj ET','BT /F2 13 Tf 0.02 0.12 0.24 rg 127 105 Td (Its.Abhi) Tj ET','BT /F1 10 Tf 0.52 0.40 0.16 rg 145 89 Td (Founder) Tj ET',
+    `BT /F1 9 Tf 0.18 0.25 0.34 rg 300 130 Td (Certificate ID) Tj ET`,`BT /F2 10 Tf 0.02 0.12 0.24 rg ${Math.max(275,421-(code.length*2.7))} 112 Td (${code}) Tj ET`,
+    `BT /F1 10 Tf 0.18 0.25 0.34 rg 660 105 Td (Issued: ${date}) Tj ET`,
+    'BT /F1 8 Tf 0.35 0.40 0.45 rg 265 30 Td (Educational completion certificate - not a professional license.) Tj ET',
+    'BT /F1 8 Tf 0.95 0.90 0.76 rg 255 7 Td (KNOWLEDGE TODAY  -  HEALTHIER TOMORROW) Tj ET'
   ].join('\n');
   objects.push(`<< /Length ${Buffer.byteLength(stream,'utf8')} >>\nstream\n${stream}\nendstream`);
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-  let pdf='%PDF-1.4\n'; const offsets=[0];
-  for(let i=0;i<objects.length;i++){offsets[i+1]=Buffer.byteLength(pdf,'utf8');pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;}
-  const xref=Buffer.byteLength(pdf,'utf8'); pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
-  for(let i=1;i<=objects.length;i++) pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
-  pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return Buffer.from(pdf,'utf8');
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  let pdf='%PDF-1.4\n';const offsets=[0];for(let i=0;i<objects.length;i++){offsets[i+1]=Buffer.byteLength(pdf,'utf8');pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;}
+  const xref=Buffer.byteLength(pdf,'utf8');pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;for(let i=1;i<=objects.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;return Buffer.from(pdf,'utf8');
 }
 
 app.get('/api/admin/certificate-options',adminAuth,async(req,res)=>{
