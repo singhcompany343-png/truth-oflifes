@@ -1093,8 +1093,7 @@ app.get("/api/resources/:id/open", maybeAuth, async (req, res) => {
     const comma = data.indexOf(",");
     const payload = comma >= 0 ? data.slice(comma + 1) : data;
     const detected = comma >= 0 ? data.slice(0, comma).match(/^data:([^;]+)/i)?.[1] : "";
-    const storedMime = String(row.mime_type || "").toLowerCase();
-    const mime = (!storedMime || storedMime === "application/octet-stream") ? (detected || storedMime || "application/octet-stream") : storedMime;
+    const mime = row.mime_type || detected || "application/octet-stream";
     const buffer = Buffer.from(payload, "base64");
     res.setHeader("Content-Type", mime);
     res.setHeader("Content-Length", buffer.length);
@@ -1793,7 +1792,7 @@ app.get('/api/learning/attempts/:id/current',auth,requireActiveStudent,async(req
 });
 
 async function finishAttempt(req,res,attemptId,timeout=false){
-  const client=await pool.connect();try{await client.query('BEGIN');const a=await client.query(`SELECT * FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[attemptId,req.user.id]);if(!a.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Attempt not found.'});}const row=a.rows[0];const correct=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND is_correct=true`,[attemptId]);const score=correct.rows[0].n, max=row.question_count, passed=max===50&&score>=40;if(row.status==='completed'){const existing=await client.query(`SELECT certificate_code FROM learning_certificates WHERE attempt_id=$1 LIMIT 1`,[attemptId]);await client.query('COMMIT');return res.json({completed:true,timeout,passed,score:Number(row.score??score),max_score:max,percentage:Number(((Number(row.score??score)/max)*100).toFixed(2)),certificate_code:existing.rows[0]?.certificate_code||null,certificate_threshold:max===50?40:null});}await client.query(`UPDATE learning_attempts SET status='completed',completed_at=NOW(),score=$2 WHERE id=$1`,[attemptId,score]);let code=null;if(passed){const existing=await client.query(`SELECT certificate_code FROM learning_certificates WHERE attempt_id=$1 LIMIT 1`,[attemptId]);code=existing.rows[0]?.certificate_code||('TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase());if(!existing.rowCount){const type=row.chapter?'chapter':'subject';await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,chapter,certificate_code,score,max_score,percentage,certificate_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[req.user.id,row.subject_id,attemptId,row.chapter,code,score,max,(score/max)*100,type]);}}await client.query('COMMIT');return res.json({completed:true,timeout,passed,score,max_score:max,percentage:Number(((score/max)*100).toFixed(2)),certificate_code:code,certificate_threshold:max===50?40:null});}
+  const client=await pool.connect();try{await client.query('BEGIN');const a=await client.query(`SELECT * FROM learning_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE`,[attemptId,req.user.id]);if(!a.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Attempt not found.'});}const correct=await client.query(`SELECT COUNT(*)::int n FROM learning_attempt_items WHERE attempt_id=$1 AND is_correct=true`,[attemptId]);const score=correct.rows[0].n, max=a.rows[0].question_count, passed=max===50&&score>=40;await client.query(`UPDATE learning_attempts SET status='completed',completed_at=NOW(),score=$2 WHERE id=$1`,[attemptId,score]);let code=null;if(passed){code='TOL-'+crypto.randomBytes(6).toString('hex').toUpperCase();const type=a.rows[0].chapter?'chapter':'subject';await client.query(`INSERT INTO learning_certificates(user_id,subject_id,attempt_id,chapter,certificate_code,score,max_score,percentage,certificate_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[req.user.id,a.rows[0].subject_id,attemptId,a.rows[0].chapter,code,score,max,(score/max)*100,type]);}await client.query('COMMIT');return res.json({completed:true,timeout,passed,score,max_score:max,percentage:Number(((score/max)*100).toFixed(2)),certificate_code:code,certificate_threshold:max===50?40:null});}
   catch(e){await client.query('ROLLBACK');console.error(e);return res.status(500).json({error:'Could not finish attempt.'});}finally{client.release();}
 }
 
@@ -1837,20 +1836,6 @@ function buildCertificatePdf(cert, student){
   pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   return Buffer.from(pdf,'utf8');
 }
-
-app.get('/api/admin/certificates',adminAuth,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student,u.instagram_username FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id ORDER BY c.issued_at DESC LIMIT 500`);res.json({certificates:r.rows});}
- catch(e){console.error(e);res.status(503).json({error:'Could not load issued certificates.'});}
-});
-app.get('/api/admin/certificates/:code/preview',adminAuth,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1`,[req.params.code]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
- catch(e){console.error(e);res.status(503).json({error:'Certificate preview unavailable.'});}
-});
-
-app.get('/api/learning/certificates/:code/preview',auth,requireActiveStudent,async(req,res)=>{
- try{const r=await pool.query(`SELECT c.certificate_code,c.score,c.max_score,c.percentage,c.issued_at,c.certificate_type,c.chapter,s.name subject,COALESCE(u.display_name,u.instagram_username) student FROM learning_certificates c JOIN users u ON u.id=c.user_id LEFT JOIN learning_subjects s ON s.id=c.subject_id WHERE c.certificate_code=$1 AND c.user_id=$2`,[req.params.code,req.user.id]);if(!r.rowCount)return res.status(404).json({error:'Certificate not found.'});res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition',`inline; filename="${r.rows[0].certificate_code}.pdf"`);res.send(buildCertificatePdf(r.rows[0],r.rows[0].student));}
- catch(e){console.error(e);res.status(503).json({error:'Certificate preview unavailable.'});}
-});
 
 app.get('/api/learning/certificates/:code/download',auth,requireActiveStudent,async(req,res)=>{
   try{
