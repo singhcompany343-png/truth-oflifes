@@ -1091,20 +1091,32 @@ app.get("/api/resources/:id/open", maybeAuth, async (req, res) => {
       return res.redirect(fileUrl);
     }
 
-    const data = String(row.file_data || "").trim();
-    if (!data) return res.status(404).json({error:"File is not available to open"});
+    // PostgreSQL BYTEA is returned by node-postgres as a Buffer.
+    // The previous implementation converted that Buffer to a comma-separated
+    // string and then treated it as base64, which corrupts uploaded PDFs.
+    const raw = row.file_data;
+    if (raw == null || (Buffer.isBuffer(raw) && raw.length === 0)) {
+      return res.status(404).json({error:"File is not available to open"});
+    }
     let buffer, detected = "";
-    if (data.startsWith("data:")) {
-      const comma = data.indexOf(",");
-      if (comma < 0) return res.status(422).json({error:"Stored file data is invalid"});
-      const meta = data.slice(5, comma);
-      const payload = data.slice(comma + 1);
-      detected = meta.split(";")[0] || "";
-      buffer = meta.includes(";base64")
-        ? Buffer.from(payload, "base64")
-        : Buffer.from(decodeURIComponent(payload));
+    if (Buffer.isBuffer(raw) || raw instanceof Uint8Array) {
+      buffer = Buffer.from(raw);
     } else {
-      buffer = Buffer.from(data, "base64");
+      const data = String(raw).trim();
+      if (!data) return res.status(404).json({error:"File is not available to open"});
+      if (data.startsWith("data:")) {
+        const comma = data.indexOf(",");
+        if (comma < 0) return res.status(422).json({error:"Stored file data is invalid"});
+        const meta = data.slice(5, comma);
+        const payload = data.slice(comma + 1);
+        detected = meta.split(";")[0] || "";
+        buffer = meta.includes(";base64")
+          ? Buffer.from(payload, "base64")
+          : Buffer.from(decodeURIComponent(payload));
+      } else {
+        // Legacy rows may contain base64 text.
+        buffer = Buffer.from(data, "base64");
+      }
     }
     const storedMime = String(row.mime_type || "").toLowerCase();
     const mime = (!storedMime || storedMime === "application/octet-stream") ? (detected || storedMime || "application/octet-stream") : storedMime;
@@ -1144,21 +1156,28 @@ app.get("/api/resources/:id/download", auth, async (req, res) => {
 
     const row = result.rows[0];
     const fileUrl = String(row.file_url || "").trim();
-    const fileData = String(row.file_data || "").trim();
+    const rawFileData = row.file_data;
 
-    // Files uploaded from the admin panel are stored as data URLs in PostgreSQL.
-    // Serve them directly so PDFs, PPTs, DOCs, images and videos all work.
-    if (fileData) {
+    // Uploaded resources are stored as PostgreSQL BYTEA by direct-pdf.js.
+    // Never stringify a BYTEA Buffer: doing so turns the PDF bytes into a
+    // comma-separated string and corrupts the download/open response.
+    if (rawFileData != null && (!Buffer.isBuffer(rawFileData) || rawFileData.length > 0)) {
       let mime = row.mime_type || "application/octet-stream";
       let buffer;
-      if (fileData.startsWith('data:')) {
-        const comma = fileData.indexOf(',');
-        const meta = fileData.slice(5, comma);
-        const payload = fileData.slice(comma + 1);
-        mime = String(row.mime_type || meta.split(';')[0] || mime);
-        buffer = meta.includes(';base64') ? Buffer.from(payload, 'base64') : Buffer.from(decodeURIComponent(payload));
+      if (Buffer.isBuffer(rawFileData) || rawFileData instanceof Uint8Array) {
+        buffer = Buffer.from(rawFileData);
       } else {
-        buffer = Buffer.from(fileData, 'base64');
+        const fileData = String(rawFileData).trim();
+        if (fileData.startsWith('data:')) {
+          const comma = fileData.indexOf(',');
+          if (comma < 0) return res.status(422).json({error:'Stored file data is invalid'});
+          const meta = fileData.slice(5, comma);
+          const payload = fileData.slice(comma + 1);
+          mime = String(row.mime_type || meta.split(';')[0] || mime);
+          buffer = meta.includes(';base64') ? Buffer.from(payload, 'base64') : Buffer.from(decodeURIComponent(payload));
+        } else {
+          buffer = Buffer.from(fileData, 'base64');
+        }
       }
       res.setHeader('Content-Type', mime);
       res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(row.file_name || row.title || 'resource')}`);
@@ -1846,19 +1865,19 @@ function buildCertificatePdf(cert, student){
     'BT /F2 35 Tf 0.02 0.12 0.24 rg 235 438 Td (CERTIFICATE) Tj ET',
     'BT /F2 20 Tf 0.68 0.49 0.16 rg 300 408 Td (OF COMPLETION) Tj ET',
     'BT /F1 13 Tf 0.18 0.25 0.34 rg 315 372 Td (THIS IS TO CERTIFY THAT) Tj ET',
-    `BT /F2 29 Tf 0.02 0.12 0.24 rg ${Math.max(90,421-(name.length*5))} 326 Td (${name}) Tj ET`,
+    `BT /F2 29 Tf 0.02 0.12 0.24 rg ${Math.max(80,Math.min(842-80-(name.length*8),421-(name.length*5)))} 326 Td (${name}) Tj ET`,
     'q 0.78 0.60 0.22 RG 1 w 170 313 m 672 313 l S Q',
     'BT /F1 14 Tf 0.18 0.25 0.34 rg 300 282 Td (has successfully completed the course) Tj ET',
     `BT /F2 20 Tf 0.02 0.12 0.24 rg ${Math.max(110,421-(subject.length*4))} 250 Td (${subject}) Tj ET`,
     chapter ? `BT /F1 13 Tf 0.18 0.25 0.34 rg ${Math.max(110,421-(chapter.length*3))} 224 Td (${chapter}) Tj ET` : '',
     `BT /F1 14 Tf 0.02 0.12 0.24 rg 310 190 Td (Score: ${score}) Tj ET`,
-    'BT /F1 10 Tf 0.18 0.25 0.34 rg 105 122 Td (________________________) Tj ET',
-    'BT /F2 13 Tf 0.02 0.12 0.24 rg 116 102 Td (Its.Abhi) Tj ET',
-    'BT /F1 10 Tf 0.52 0.40 0.16 rg 132 87 Td (Founder) Tj ET',
-    `BT /F1 10 Tf 0.18 0.25 0.34 rg 55 82 Td (Certificate ID: ${code}) Tj ET`,
-    `BT /F1 10 Tf 0.18 0.25 0.34 rg 650 82 Td (Issued: ${date}) Tj ET`,
-    'BT /F1 8 Tf 0.95 0.90 0.76 rg 230 8 Td (KNOWLEDGE TODAY  -  HEALTHIER TOMORROW) Tj ET',
-    'BT /F1 8 Tf 0.35 0.40 0.45 rg 230 29 Td (Educational completion certificate - not a professional license.) Tj ET'
+    'BT /F1 10 Tf 0.18 0.25 0.34 rg 92 122 Td (________________________) Tj ET',
+    'BT /F2 13 Tf 0.02 0.12 0.24 rg 112 102 Td (Its.Abhi) Tj ET',
+    'BT /F1 10 Tf 0.52 0.40 0.16 rg 127 87 Td (Founder) Tj ET',
+    `BT /F1 10 Tf 0.18 0.25 0.34 rg 55 70 Td (Certificate ID: ${code}) Tj ET`,
+    `BT /F1 10 Tf 0.18 0.25 0.34 rg 665 70 Td (Issued: ${date}) Tj ET`,
+    'BT /F1 8 Tf 0.35 0.40 0.45 rg 276 30 Td (Educational completion certificate - not a professional license.) Tj ET',
+    'BT /F1 8 Tf 0.95 0.90 0.76 rg 275 8 Td (KNOWLEDGE TODAY  -  HEALTHIER TOMORROW) Tj ET'
   ].join('\n');
   objects.push(`<< /Length ${Buffer.byteLength(stream,'utf8')} >>\nstream\n${stream}\nendstream`);
   objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
